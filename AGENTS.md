@@ -11,5 +11,5 @@ Contexto inicial para agentes de IA trabalhando neste projeto.
 | Arquivo | Conteúdo |
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Superfícies, arquivos-chave, estado atual, roadmap de backend |
-| [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) | Convenções de código, stack, regras de estilo |
+| [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) | Regras de frontend, convenções de componentes, estilos, stack |
 | [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) | Paleta, tipografia, espaçamento, componentes, tokens CSS |

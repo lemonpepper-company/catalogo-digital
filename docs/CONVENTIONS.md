@@ -1,5 +1,15 @@
 # Convenções de código — Catálogo Digital
 
+## Regras de frontend
+
+- **Mobile-first** — estilize para mobile primeiro; use breakpoints (`md:`, `lg:`) para adaptar ao desktop
+- **Sem lógica nos templates** — componentes de UI não buscam dados; dados descem via props ou são carregados no Server Component pai
+- **Sem estado global desnecessário** — preferir estado local (`useState`) ou URL state; zustand/context só se realmente compartilhado entre árvores distantes
+- **Acessibilidade mínima** — todo elemento interativo tem `aria-label` ou texto visível; imagens têm `alt`; foco visível nunca removido sem substituto
+- **Sem animações desnecessárias** — transições máximo `200ms ease`; nada de animate-spin, bounce ou pulse sem propósito funcional
+- **Ícones** — sempre Lucide React, outline, stroke `~2px`; nunca importar o pacote inteiro (`import { X } from 'lucide-react'`)
+- **Imagens** — usar `next/image` para imagens de conteúdo; nunca `<img>` direto
+
 ## Componentes
 
 - Server Components por padrão; `"use client"` apenas onde há interatividade
