@@ -24,6 +24,16 @@ O sistema tem duas superfícies:
 - **Lucide React** (ícones outline)
 - **Vitest + Testing Library** (testes unitários)
 
+## Documentação
+
+| Arquivo | Descrição |
+|---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Superfícies, arquivos-chave, estado atual, roadmap de backend |
+| [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) | Convenções de código, stack, regras de estilo |
+| [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) | Design system completo — paleta, tipografia, espaçamento, componentes, tokens CSS |
+
+---
+
 ## Estrutura do projeto
 
 ```
