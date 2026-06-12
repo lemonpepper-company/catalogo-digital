@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   DESIGN TOKENS — Catálogo Digital · Bold Minimal Premium
+   ============================================================ */
+:root {
+  /* Palette */
+  --color-primary:       #0D0D0D;
+  --color-accent:        #C9A96E;
+  --color-bg:            #F9F9F7;
+  --color-surface:       #F0EDE8;
+  --color-text-1:        #0D0D0D;
+  --color-text-2:        #3D3D3D;
+  --color-border:        #E2DFDA;
+  --color-surface-hover: #E7E2DB;
+
+  /* Status */
+  --color-success:       #1A9C6E;
+  --color-soldout:       #C47E00;
+  --color-error:         #C0392B;
+  --color-inactive:      #B0ADA8;
+  --color-error-surface: #FDECEA;
+  --color-on-primary:    #FFFFFF;
+  --color-on-accent:     #FFFFFF;
+
+  /* Overlays */
+  --color-soldout-wash:  rgba(255, 255, 255, 0.60);
+  --color-overlay:       rgba(13, 13, 13, 0.40);
+
+  /* Typography */
+  --font-display: var(--font-sora), sans-serif;
+  --font-body:    var(--font-dm-sans), sans-serif;
+
+  /* Borders */
+  --border-hair: 0.5px solid var(--color-border);
+  --border-thin: 1px solid var(--color-border);
+
+  /* Radius */
+  --radius-card:  16px;
+  --radius-btn:   8px;
+  --radius-pill:  999px;
+  --radius-input: 8px;
+  --radius-modal: 20px;
+
+  /* Spacing */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-12: 48px;
+
+  /* Layout */
+  --page-max:       1200px;
+  --gutter-mobile:  16px;
+  --gutter-tablet:  32px;
+  --gutter-desktop: 48px;
+
+  /* Motion */
+  --dur:        200ms;
+  --dur-fast:   120ms;
+  --ease:       ease;
+  --transition: all var(--dur) var(--ease);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text-2);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--color-text-1);
+  line-height: 1.2;
+}
+
+/* No scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
