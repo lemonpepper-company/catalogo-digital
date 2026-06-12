@@ -14,7 +14,8 @@ Contexto inicial para agentes de IA trabalhando neste projeto.
 
 ## Stack
 
-- Next.js 14 App Router, TypeScript strict, Tailwind CSS v3
+- Next.js 16 App Router (Turbopack), React 19, TypeScript strict, Tailwind CSS v3
+- Node.js 20.9+
 - Sem CSS Modules, sem styled-components
 - Lucide React para ícones (outline, ~2px stroke)
 - Vitest + Testing Library para testes unitários

@@ -17,7 +17,8 @@ O sistema tem duas superfícies:
 
 ## Stack
 
-- **Next.js 14** (App Router)
+- **Next.js 16** (App Router, Turbopack)
+- **React 19**
 - **TypeScript** (strict mode)
 - **Tailwind CSS v3** (sem CSS Modules nem styled-components)
 - **Lucide React** (ícones outline)
@@ -50,7 +51,7 @@ __tests__/            # Suíte de testes unitários
 
 ## Pré-requisitos
 
-- Node.js 18+
+- Node.js 20.9+
 - npm, yarn ou pnpm
 
 ## Instalação
