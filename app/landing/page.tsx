@@ -36,7 +36,7 @@ export default function LandingPage() {
         className="fixed top-0 inset-x-0 z-50 border-b border-sand"
         style={{ background: "rgba(249,249,247,0.92)", backdropFilter: "blur(8px)" }}
       >
-        <div className="max-w-page mx-auto px-12 h-[72px] flex items-center justify-between">
+        <div className="max-w-page mx-auto px-4 md:px-8 lg:px-12 h-[64px] md:h-[72px] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-[30px] h-[30px] rounded-[8px] bg-obsidian flex items-center justify-center">
               <span className="w-2 h-2 rounded-full bg-gold block" />
@@ -45,28 +45,28 @@ export default function LandingPage() {
               Catálogo Digital
             </span>
           </div>
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4 md:gap-8">
             <Link
               href="#funcionalidades"
-              className="font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
+              className="hidden md:block font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
             >
               Funcionalidades
             </Link>
             <Link
               href="/planos"
-              className="font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
+              className="hidden md:block font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
             >
               Planos
             </Link>
             <Link
               href="/login"
-              className="font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
+              className="hidden md:block font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
             >
               Entrar
             </Link>
             <Link
               href="/cadastro"
-              className="inline-flex items-center gap-2 h-[44px] px-6 rounded-btn bg-obsidian text-white font-display font-medium text-[15px] hover:bg-[#1f1f1f] transition-colors"
+              className="inline-flex items-center gap-2 h-[38px] md:h-[44px] px-4 md:px-6 rounded-btn bg-obsidian text-white font-display font-medium text-[13px] md:text-[15px] hover:bg-[#1f1f1f] transition-colors"
             >
               Começar grátis
             </Link>
@@ -75,14 +75,14 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="pt-[168px] pb-24 px-12">
+      <section className="pt-[120px] md:pt-[148px] lg:pt-[168px] pb-16 md:pb-24 px-4 md:px-8 lg:px-12">
         <div className="max-w-page mx-auto">
-          <div className="grid grid-cols-[1.05fr_0.95fr] gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-16 items-center">
             <div>
               <span className="font-body font-medium text-[11px] tracking-[0.14em] uppercase text-gold">
                 SaaS para lojistas de moda
               </span>
-              <h1 className="font-display font-semibold text-[54px] text-obsidian leading-[1.06] tracking-tight mt-4 mb-5 text-balance">
+              <h1 className="font-display font-semibold text-[36px] sm:text-[46px] lg:text-[54px] text-obsidian leading-[1.06] tracking-tight mt-4 mb-5 text-balance">
                 Sua vitrine online, pedidos pelo WhatsApp
               </h1>
               <p className="font-body text-[17px] text-graphite leading-relaxed mb-8 text-pretty">
@@ -107,7 +107,7 @@ export default function LandingPage() {
             </div>
 
             {/* Phone mockup */}
-            <div className="relative flex justify-center">
+            <div className="relative hidden lg:flex justify-center">
               <div className="w-[280px] h-[560px] rounded-[32px] bg-obsidian border-[6px] border-obsidian shadow-none overflow-hidden">
                 <div className="w-full h-full bg-ivory rounded-[26px] overflow-hidden flex flex-col">
                   <div className="bg-ivory border-b border-sand px-3 py-2.5 flex items-center gap-2">
@@ -157,13 +157,13 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="funcionalidades" className="py-28 px-12 bg-linen">
+      <section id="funcionalidades" className="py-16 md:py-28 px-4 md:px-8 lg:px-12 bg-linen">
         <div className="max-w-page mx-auto">
-          <div className="max-w-[660px] mx-auto text-center mb-16">
+          <div className="max-w-[660px] mx-auto text-center mb-12 md:mb-16">
             <span className="font-body font-medium text-[11px] tracking-[0.14em] uppercase text-gold">
               Funcionalidades
             </span>
-            <h2 className="font-display font-semibold text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 mb-4 text-balance">
+            <h2 className="font-display font-semibold text-[28px] md:text-[34px] lg:text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 mb-4 text-balance">
               Tudo que você precisa para vender mais
             </h2>
             <p className="font-body text-[17px] text-graphite text-pretty">
@@ -172,7 +172,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((f) => (
               <div
                 key={f.title}
@@ -196,9 +196,9 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-28 px-12 bg-obsidian">
+      <section className="py-16 md:py-28 px-4 md:px-8 lg:px-12 bg-obsidian">
         <div className="max-w-page mx-auto text-center">
-          <h2 className="font-display font-semibold text-[42px] text-white leading-tight tracking-tight mb-5">
+          <h2 className="font-display font-semibold text-[30px] md:text-[38px] lg:text-[42px] text-white leading-tight tracking-tight mb-5">
             Pronto para ter sua vitrine online?
           </h2>
           <p className="font-body text-[17px] text-white/70 mb-10">
@@ -214,8 +214,8 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-10 px-12 border-t border-sand">
-        <div className="max-w-page mx-auto flex items-center justify-between">
+      <footer className="py-8 md:py-10 px-4 md:px-8 lg:px-12 border-t border-sand">
+        <div className="max-w-page mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
           <div className="flex items-center gap-2.5">
             <div className="w-6 h-6 rounded-[6px] bg-obsidian flex items-center justify-center">
               <span className="w-1.5 h-1.5 rounded-full bg-gold block" />
