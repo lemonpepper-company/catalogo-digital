@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import type { Product } from "@/lib/types";
 
@@ -60,13 +61,22 @@ export function ProductCard({ product, onOpen }: ProductCardProps) {
             e.stopPropagation();
             if (!isSoldOut) onOpen(product);
           }}
-          className={
+          className={[
+            "w-full h-[38px] rounded-btn flex items-center justify-center gap-1.5",
+            "font-display font-medium text-[12px] tracking-[0.02em] whitespace-nowrap transition-colors",
             isSoldOut
-              ? "w-full h-[38px] rounded-btn bg-linen text-inactive font-display font-medium text-[12px] tracking-[0.02em] cursor-not-allowed"
-              : "w-full h-[38px] rounded-btn bg-obsidian text-white font-display font-medium text-[12px] tracking-[0.02em] hover:bg-[#1f1f1f] transition-colors"
-          }
+              ? "bg-linen text-inactive cursor-not-allowed"
+              : "bg-gold text-white hover:bg-gold-hover",
+          ].join(" ")}
         >
-          {isSoldOut ? "Indisponível" : "Comprar"}
+          {isSoldOut ? (
+            "Indisponível"
+          ) : (
+            <>
+              <ShoppingBag size={13} />
+              Adicionar à sacola
+            </>
+          )}
         </button>
       </div>
     </div>

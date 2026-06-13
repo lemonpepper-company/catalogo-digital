@@ -107,7 +107,7 @@ export function CatalogoClient() {
             active={activeCategory === cat}
             onClick={() => setActiveCategory(cat)}
           >
-            {cat.toUpperCase()}
+            {cat}
           </Pill>
         ))}
       </div>

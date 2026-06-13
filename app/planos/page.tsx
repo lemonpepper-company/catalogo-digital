@@ -1,152 +1,131 @@
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, ArrowRight } from "lucide-react";
 
 export const metadata = {
-  title: "Planos — Catálogo Digital",
+  title: "Escolha seu plano — Catálogo Digital",
 };
-
-const plans = [
-  {
-    name: "Básico",
-    price: "R$ 49",
-    period: "/mês",
-    desc: "Para quem está começando",
-    features: [
-      "Até 30 produtos",
-      "Catálogo público",
-      "Pedidos via WhatsApp",
-      "1 categoria",
-      "Suporte por e-mail",
-    ],
-    cta: "Começar grátis",
-    href: "/painel",
-    highlighted: false,
-  },
-  {
-    name: "Pro",
-    price: "R$ 99",
-    period: "/mês",
-    desc: "Para quem quer crescer",
-    features: [
-      "Produtos ilimitados",
-      "Catálogo público",
-      "Pedidos via WhatsApp",
-      "Categorias ilimitadas",
-      "Cor de destaque personalizada",
-      "Google Analytics + Meta Pixel",
-      "Suporte prioritário",
-    ],
-    cta: "Assinar Pro",
-    href: "/painel",
-    highlighted: true,
-  },
-];
 
 export default function PlanosPage() {
   return (
-    <div className="min-h-screen bg-ivory">
-      <nav className="flex items-center justify-between px-6 py-5 border-b border-sand">
-        <Link href="/landing" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-[7px] bg-obsidian flex items-center justify-center">
-            <span className="w-2 h-2 rounded-full bg-gold block" />
-          </div>
-          <span className="font-display font-semibold text-[16px] text-obsidian">
-            Catálogo Digital
-          </span>
-        </Link>
-        <Link
-          href="/login"
-          className="font-body text-[14px] text-graphite hover:text-obsidian transition-colors"
-        >
-          Já tenho conta
-        </Link>
-      </nav>
+    <div
+      className="min-h-screen bg-ivory flex items-center justify-center px-8"
+      style={{ padding: "48px 32px" }}
+    >
+      <div className="w-full max-w-[860px]">
+        {/* Logo */}
+        <div className="flex justify-center mb-9">
+          <Link href="/landing" className="flex items-center gap-2.5">
+            <div className="w-[34px] h-[34px] rounded-[9px] bg-obsidian flex items-center justify-center">
+              <span className="w-2.5 h-2.5 rounded-full bg-gold block" />
+            </div>
+            <span className="font-display font-semibold text-[19px] text-obsidian tracking-tight">
+              Catálogo Digital
+            </span>
+          </Link>
+        </div>
 
-      <div className="max-w-[800px] mx-auto px-6 py-20">
-        <div className="text-center mb-14">
-          <span className="font-body font-medium text-[11px] tracking-[0.14em] uppercase text-gold">
-            Planos e preços
-          </span>
-          <h1 className="font-display font-semibold text-[38px] text-obsidian leading-tight tracking-tight mt-3 mb-4">
-            Escolha seu plano
+        {/* Heading */}
+        <div className="text-center mb-10">
+          <h1 className="font-display font-semibold text-[32px] text-obsidian leading-[1.2] tracking-tight">
+            Escolha seu plano —{" "}
+            <em className="not-italic text-gold">14 dias grátis</em> nos dois
           </h1>
-          <p className="font-body text-[17px] text-graphite">
-            14 dias grátis em qualquer plano. Cancele quando quiser.
+          <p className="font-body text-[15px] text-graphite mt-2.5">
+            Sua loja já está pronta. Escolha como quer crescer.
           </p>
         </div>
 
+        {/* Plans */}
         <div className="grid grid-cols-2 gap-6">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`rounded-card p-8 flex flex-col gap-6 ${
-                plan.highlighted
-                  ? "bg-obsidian text-white"
-                  : "bg-white border border-sand"
-              }`}
-            >
-              {plan.highlighted && (
-                <div className="inline-flex self-start">
-                  <span className="h-[22px] px-3 rounded-pill bg-gold text-white font-body font-medium text-[11px] tracking-[0.06em] uppercase flex items-center">
-                    Mais popular
-                  </span>
-                </div>
-              )}
-              <div>
-                <div
-                  className={`font-display font-semibold text-[18px] ${plan.highlighted ? "text-white" : "text-obsidian"}`}
-                >
-                  {plan.name}
-                </div>
-                <div
-                  className={`font-body text-[14px] mt-1 ${plan.highlighted ? "text-white/70" : "text-graphite"}`}
-                >
-                  {plan.desc}
-                </div>
-              </div>
-
-              <div className="flex items-baseline gap-1">
-                <span
-                  className={`font-display font-semibold text-[42px] leading-none ${plan.highlighted ? "text-white" : "text-obsidian"}`}
-                >
-                  {plan.price}
-                </span>
-                <span
-                  className={`font-body text-[15px] ${plan.highlighted ? "text-white/60" : "text-graphite"}`}
-                >
-                  {plan.period}
-                </span>
-              </div>
-
-              <ul className="flex flex-col gap-3">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2.5">
-                    <Check
-                      size={16}
-                      className={plan.highlighted ? "text-gold" : "text-success"}
-                    />
-                    <span
-                      className={`font-body text-[14px] ${plan.highlighted ? "text-white/90" : "text-graphite"}`}
-                    >
-                      {f}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                href={plan.href}
-                className={`mt-auto w-full h-11 rounded-btn flex items-center justify-center font-display font-medium text-[15px] transition-colors ${
-                  plan.highlighted
-                    ? "bg-gold text-white hover:bg-gold-hover"
-                    : "bg-obsidian text-white hover:bg-[#1f1f1f]"
-                }`}
-              >
-                {plan.cta}
-              </Link>
+          {/* Starter */}
+          <div className="bg-white border border-sand rounded-card p-8 flex flex-col gap-6">
+            <div className="font-display font-semibold text-[16px] tracking-[0.04em] uppercase text-obsidian">
+              Starter
             </div>
-          ))}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-baseline gap-1">
+                <span className="font-display font-semibold text-[40px] text-obsidian leading-none tracking-tight">
+                  R$49
+                </span>
+                <span className="font-body text-[15px] text-graphite">/mês</span>
+              </div>
+              <div className="font-body text-[13px] text-graphite">
+                Sem cartão de crédito agora
+              </div>
+            </div>
+            <ul className="flex flex-col gap-3">
+              {[
+                "Até 30 produtos",
+                "5 categorias",
+                "Link público do catálogo",
+                "Pedidos pelo WhatsApp",
+              ].map((f) => (
+                <li
+                  key={f}
+                  className="flex items-center gap-2.5 font-body text-[15px] text-graphite"
+                >
+                  <Check size={18} className="text-gold flex-shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/painel"
+              className="mt-auto w-full h-12 rounded-btn border border-sand bg-transparent text-obsidian font-display font-medium text-[15px] flex items-center justify-center hover:bg-linen transition-colors"
+            >
+              Começar com Starter
+            </Link>
+          </div>
+
+          {/* Pro */}
+          <div className="relative bg-white border-2 border-gold rounded-card p-8 flex flex-col gap-6">
+            <span className="absolute -top-3 left-1/2 -translate-x-1/2 h-6 px-3.5 rounded-pill bg-gold text-white font-body font-semibold text-[11px] tracking-[0.06em] uppercase flex items-center whitespace-nowrap">
+              Mais popular
+            </span>
+            <div className="font-display font-semibold text-[16px] tracking-[0.04em] uppercase text-obsidian">
+              Pro
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-baseline gap-1">
+                <span className="font-display font-semibold text-[40px] text-obsidian leading-none tracking-tight">
+                  R$99
+                </span>
+                <span className="font-body text-[15px] text-graphite">/mês</span>
+              </div>
+              <div className="font-body text-[13px] text-graphite">
+                Sem cartão de crédito agora
+              </div>
+            </div>
+            <ul className="flex flex-col gap-3">
+              {[
+                "Produtos ilimitados",
+                "Categorias ilimitadas",
+                "Domínio próprio",
+                "Destaques e relatórios",
+              ].map((f) => (
+                <li
+                  key={f}
+                  className="flex items-center gap-2.5 font-body text-[15px] text-graphite"
+                >
+                  <Check size={18} className="text-gold flex-shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/painel"
+              className="mt-auto w-full h-12 rounded-btn bg-gold text-white font-display font-medium text-[15px] flex items-center justify-center gap-2 hover:bg-gold-hover transition-colors"
+            >
+              Começar com Pro <ArrowRight size={18} />
+            </Link>
+          </div>
         </div>
+
+        {/* Footer note */}
+        <p className="text-center font-body text-[14px] text-graphite mt-8">
+          Você escolhe o plano — a cobrança só começa no{" "}
+          <strong className="text-obsidian font-semibold">dia 15</strong>.
+        </p>
       </div>
     </div>
   );

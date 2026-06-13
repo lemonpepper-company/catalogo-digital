@@ -10,6 +10,18 @@
 - **Ícones** — sempre Lucide React, outline, stroke `~2px`; nunca importar o pacote inteiro (`import { X } from 'lucide-react'`)
 - **Imagens** — usar `next/image` para imagens de conteúdo; nunca `<img>` direto
 
+## Páginas (`app/**/page.tsx`)
+
+- Arquivos de page devem ser limpos — **sem lógica**: nenhum `useState`, `useEffect`, fetch, handler, formatação ou cálculo
+- Responsabilidade única: composição de layout e passagem de props estáticas para componentes filhos
+- Toda lógica de estado, efeitos colaterais e derivações vai em **custom hooks** (`hooks/use-*.ts` ou co-locado no feature folder)
+
+## Custom Hooks
+
+- Isolar em hooks toda lógica reutilizável ou que envolva estado, efeitos, fetching ou derivações
+- Nomear com prefixo `use-` (ex: `use-product-list.ts`, `use-checkout.ts`)
+- Um hook por arquivo; não agrupar hooks não relacionados
+
 ## Componentes
 
 - Server Components por padrão; `"use client"` apenas onde há interatividade

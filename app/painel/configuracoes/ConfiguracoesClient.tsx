@@ -1,0 +1,204 @@
+"use client";
+
+import { Upload } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Toast } from "@/components/ui/Toast";
+import { STORE, ACCENT_COLOR_OPTIONS } from "@/lib/data";
+import { useConfiguracoes, MSG_VARS } from "./use-configuracoes";
+
+const MSG_MOCK = {
+  saudacao: "Olá! Gostaria de fazer um pedido:",
+  itens:
+    "01. Produto Exemplo\n    Quantidade: 2x | Valor unitário: R$ 50,00\n    Tamanho: M\n    Cor: Preto\n    Subtotal: R$ 100,00",
+  total: "R$ 100,00",
+};
+
+function renderTemplate(tpl: string) {
+  return tpl
+    .replace(/\{saudacao\}/g, MSG_MOCK.saudacao)
+    .replace(/\{itens\}/g, MSG_MOCK.itens)
+    .replace(/\{total\}/g, MSG_MOCK.total);
+}
+
+function WhatsPreviewText({ text }: { text: string }) {
+  const parts = text.split(/(\*[^*]+\*)/g);
+  return (
+    <>
+      {parts.map((seg, i) =>
+        seg.startsWith("*") && seg.endsWith("*") && seg.length > 1 ? (
+          <strong key={i} style={{ fontWeight: 700, color: "var(--color-text-1)" }}>
+            {seg.slice(1, -1)}
+          </strong>
+        ) : (
+          <span key={i}>{seg}</span>
+        )
+      )}
+    </>
+  );
+}
+
+export function ConfiguracoesClient() {
+  const {
+    accent,
+    setAccent,
+    msgTpl,
+    setMsgTpl,
+    toast,
+    textareaRef,
+    insertToken,
+    resetTemplate,
+    flash,
+  } = useConfiguracoes();
+
+  return (
+    <div className="max-w-form flex flex-col gap-5">
+      <h1 className="font-display font-semibold text-[28px] text-obsidian">
+        Configurações da loja
+      </h1>
+
+      <Card>
+        <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
+          Identidade
+        </h2>
+        <div className="flex gap-5 items-center mb-5">
+          <div
+            className="w-[72px] h-[72px] rounded-full text-white flex items-center justify-center font-display font-semibold text-[26px] flex-shrink-0"
+            style={{ background: "var(--color-primary)" }}
+          >
+            {STORE.monogram}
+          </div>
+          <Button variant="ghost" iconLeft={<Upload size={18} />}>
+            Enviar logo
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 gap-[18px]">
+          <Input label="Nome da loja" defaultValue={STORE.name} />
+          <Input
+            label="WhatsApp para pedidos"
+            prefix="+55"
+            defaultValue="11 99999-0000"
+          />
+          <div className="col-span-2">
+            <Input label="Descrição curta" defaultValue={STORE.description} />
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
+          Cor de destaque{" "}
+          <span className="text-graphite font-normal">
+            · aplicada nos botões primários e pills ativos
+          </span>
+        </h2>
+        <div className="flex gap-3 flex-wrap mb-5">
+          {ACCENT_COLOR_OPTIONS.map((c) => (
+            <button
+              key={c}
+              onClick={() => setAccent(c)}
+              aria-label={c}
+              className="w-10 h-10 rounded-full transition-all duration-200"
+              style={{
+                background: c,
+                border:
+                  accent === c
+                    ? "2px solid var(--color-primary)"
+                    : "1px solid var(--color-border)",
+                outline: accent === c ? "2px solid var(--color-bg)" : "none",
+                outlineOffset: accent === c ? "-4px" : "0",
+                boxSizing: "border-box",
+              }}
+            />
+          ))}
+        </div>
+        <div className="flex items-center gap-3">
+          <span
+            className="inline-flex h-11 items-center px-[22px] rounded-btn font-display font-medium text-[15px] text-white"
+            style={{ background: accent }}
+          >
+            Comprar via WhatsApp
+          </span>
+          <span className="font-body text-[13px] text-graphite">
+            Pré-visualização do CTA
+          </span>
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
+          Mensagem do pedido{" "}
+          <span className="text-graphite font-normal">
+            · enviada no WhatsApp ao finalizar a sacola
+          </span>
+        </h2>
+        <div className="grid grid-cols-2 gap-6 items-start">
+          <div className="flex flex-col gap-3">
+            <textarea
+              ref={textareaRef}
+              value={msgTpl}
+              onChange={(e) => setMsgTpl(e.target.value)}
+              rows={11}
+              className="w-full px-3.5 py-3 bg-white border border-sand rounded-input font-mono text-[13px] leading-relaxed text-obsidian outline-none focus:border-obsidian resize-y"
+            />
+            <div className="flex flex-wrap gap-2">
+              {MSG_VARS.map((v) => (
+                <button
+                  key={v.token}
+                  type="button"
+                  onClick={() => insertToken(v.token)}
+                  title={`Inserir ${v.desc}`}
+                  className="inline-flex items-center gap-1.5 h-[30px] px-3 rounded-pill border border-sand bg-linen font-mono text-[12.5px] text-obsidian hover:bg-surface-hover transition-colors cursor-pointer"
+                >
+                  <span className="text-gold">+</span>
+                  {v.token}
+                </button>
+              ))}
+            </div>
+            <div>
+              <Button variant="ghost" size="sm" onClick={resetTemplate}>
+                Restaurar padrão
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
+              Pré-visualização
+            </span>
+            <div className="bg-linen border border-sand/50 rounded-card p-4 font-mono text-[12.5px] leading-relaxed text-graphite whitespace-pre-wrap break-words">
+              <WhatsPreviewText text={renderTemplate(msgTpl)} />
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
+          Integrações
+        </h2>
+        <div className="grid grid-cols-2 gap-[18px]">
+          <Input
+            label="Google Analytics ID"
+            hint="Ex: G-XXXXXXXXXX"
+            placeholder="G-XXXXXXXXXX"
+          />
+          <Input
+            label="Facebook Pixel ID"
+            hint="Apenas números"
+            placeholder="000000000000000"
+          />
+        </div>
+      </Card>
+
+      <div className="flex justify-end gap-3 pb-6">
+        <Button variant="ghost">Cancelar</Button>
+        <Button variant="primary" onClick={() => flash("Configurações salvas")}>
+          Salvar alterações
+        </Button>
+      </div>
+
+      {toast && <Toast msg={toast.msg} tone={toast.tone} />}
+    </div>
+  );
+}

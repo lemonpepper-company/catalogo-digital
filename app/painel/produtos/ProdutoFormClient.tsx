@@ -10,10 +10,12 @@ import {
   Plus,
   X,
   Check,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { ToggleRow } from "@/components/ui/Switch";
 import { Modal } from "@/components/ui/Modal";
@@ -22,13 +24,17 @@ import { FASHION_COLORS } from "@/lib/data";
 import type { Product, ToastState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const CATEGORIES = ["Vestidos", "Blusas", "Calças", "Saias"];
+const BASE_CATEGORIES = ["Vestidos", "Blusas", "Calças", "Saias"];
 
 interface ProdutoFormClientProps {
   product?: Product;
 }
 
-function PhotoUploader({ photos, setPhotos }: {
+/* ─── Photo uploader ──────────────────────────────────────── */
+function PhotoUploader({
+  photos,
+  setPhotos,
+}: {
   photos: string[];
   setPhotos: (p: string[]) => void;
 }) {
@@ -65,6 +71,7 @@ function PhotoUploader({ photos, setPhotos }: {
   );
 }
 
+/* ─── Variation editor (sizes) ────────────────────────────── */
 function VariationEditor({
   title,
   items,
@@ -89,12 +96,12 @@ function VariationEditor({
     <div>
       <ToggleRow
         label={title}
-        desc={on ? "Edite as opções abaixo" : "Desativado"}
+        desc={on ? "Chips editáveis abaixo" : "Desativado"}
         checked={on}
         onChange={setOn}
       />
       {on && (
-        <div className="flex flex-wrap gap-2 items-center py-2 pb-4">
+        <div className="flex flex-wrap gap-2 items-center py-1 pb-4">
           {items.map((it) => (
             <span
               key={it}
@@ -137,6 +144,7 @@ function VariationEditor({
   );
 }
 
+/* ─── Color selector ──────────────────────────────────────── */
 function ColorSelector({
   selected,
   setSelected,
@@ -145,6 +153,17 @@ function ColorSelector({
   setSelected: (s: string[]) => void;
 }) {
   const [on, setOn] = useState(true);
+  const [custom, setCustom] = useState("");
+  const [pick, setPick] = useState("#7A8B6F");
+  const [customHex, setCustomHex] = useState<Record<string, string>>({});
+
+  /** Resolve hex for any color name — palette first, then custom map. */
+  const hexFor = (name: string): string =>
+    FASHION_COLORS.find(
+      (fc) => fc.name.toLowerCase() === name.toLowerCase()
+    )?.hex ??
+    customHex[name.toLowerCase()] ??
+    "var(--color-surface-hover)";
 
   const toggle = (name: string) =>
     setSelected(
@@ -153,53 +172,63 @@ function ColorSelector({
         : [...selected, name]
     );
 
-  const lightColors = new Set([
-    "Branco",
-    "Amarelo",
-    "Prata",
-    "Azul claro",
-  ]);
+  const addCustom = () => {
+    const v = custom.trim();
+    if (!v) return;
+    if (selected.some((s) => s.toLowerCase() === v.toLowerCase())) return;
+    setCustomHex((m) => ({ ...m, [v.toLowerCase()]: pick }));
+    setSelected([...selected, v]);
+    setCustom("");
+  };
+
+  const lightColors = new Set(["Branco", "Amarelo", "Prata", "Azul claro"]);
 
   return (
     <div>
       <ToggleRow
         label="Cores"
-        desc={on ? "Selecione na paleta abaixo" : "Desativado"}
+        desc={
+          on
+            ? "Selecione na paleta ou adicione uma cor personalizada"
+            : "Desativado"
+        }
         checked={on}
         onChange={setOn}
         accent
       />
       {on && (
-        <div className="py-2 pb-4 flex flex-col gap-4">
+        <div className="py-1.5 pb-4 flex flex-col gap-4">
+          {/* Selected color chips */}
           {selected.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {selected.map((name) => {
-                const c = FASHION_COLORS.find((fc) => fc.name === name);
-                return (
+              {selected.map((name) => (
+                <span
+                  key={name}
+                  className="inline-flex items-center gap-2 h-8 pl-2 pr-1.5 rounded-pill bg-linen border border-sand font-body text-[13px] text-obsidian"
+                >
                   <span
-                    key={name}
-                    className="inline-flex items-center gap-2 h-8 pl-2 pr-1.5 rounded-pill bg-linen border border-sand font-body text-[13px] text-obsidian"
+                    className="w-4 h-4 rounded-full border border-sand flex-shrink-0"
+                    style={{ background: hexFor(name) }}
+                  />
+                  {name}
+                  <button
+                    onClick={() => toggle(name)}
+                    aria-label={`Remover ${name}`}
+                    className="w-5 h-5 rounded-full bg-transparent text-graphite hover:text-obsidian flex items-center justify-center transition-colors"
                   >
-                    <span
-                      className="w-4 h-4 rounded-full border border-sand flex-shrink-0"
-                      style={{ background: c?.hex ?? "#ccc" }}
-                    />
-                    {name}
-                    <button
-                      onClick={() => toggle(name)}
-                      aria-label={`Remover ${name}`}
-                      className="w-5 h-5 rounded-full bg-transparent text-graphite hover:text-obsidian flex items-center justify-center"
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                );
-              })}
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
             </div>
           )}
+
+          {/* Palette swatches */}
           <div className="flex flex-wrap gap-3">
             {FASHION_COLORS.map((c) => {
-              const isSelected = selected.includes(c.name);
+              const isSelected = selected.some(
+                (s) => s.toLowerCase() === c.name.toLowerCase()
+              );
               return (
                 <button
                   key={c.name}
@@ -212,7 +241,7 @@ function ColorSelector({
                     border: isSelected
                       ? "2px solid var(--color-primary)"
                       : "1px solid var(--color-border)",
-                    outline: isSelected ? `2px solid ${c.hex}` : "none",
+                    outline: isSelected ? "2px solid #fff" : "none",
                     outlineOffset: isSelected ? "-4px" : "0",
                     boxSizing: "border-box",
                   }}
@@ -220,14 +249,70 @@ function ColorSelector({
                   {isSelected && (
                     <Check
                       size={14}
-                      className={
-                        lightColors.has(c.name) ? "text-obsidian" : "text-white"
-                      }
+                      style={{
+                        color: lightColors.has(c.name)
+                          ? "var(--color-primary)"
+                          : "#fff",
+                      }}
                     />
                   )}
                 </button>
               );
             })}
+          </div>
+
+          {/* Custom color picker */}
+          <div>
+            <span className="block font-body text-[12px] text-graphite mb-2">
+              Cor personalizada · escolha o tom na paleta
+            </span>
+            <div className="flex items-center gap-2 max-w-[400px]">
+              {/* Color picker swatch */}
+              <label
+                title="Escolher cor na paleta"
+                className="relative w-10 h-10 rounded-full flex-none cursor-pointer flex items-center justify-center"
+                style={{
+                  background: pick,
+                  border: "1px solid var(--color-border)",
+                  boxShadow: "inset 0 0 0 3px #fff",
+                }}
+              >
+                <span
+                  className="absolute -bottom-0.5 -right-0.5 w-[18px] h-[18px] rounded-full bg-white border border-sand flex items-center justify-center text-obsidian"
+                >
+                  <Pencil size={10} />
+                </span>
+                <input
+                  type="color"
+                  value={pick}
+                  onChange={(e) => setPick(e.target.value)}
+                  className="absolute inset-0 opacity-0 w-full h-full border-none p-0 cursor-pointer"
+                />
+              </label>
+
+              {/* Color name input */}
+              <input
+                value={custom}
+                onChange={(e) => setCustom(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustom();
+                  }
+                }}
+                placeholder="Nome da cor (ex: Verde musgo)"
+                className="flex-1 h-10 px-3.5 border border-sand rounded-input bg-white font-body text-[14px] text-obsidian outline-none focus:border-obsidian transition-colors"
+              />
+
+              {/* Add button */}
+              <Button
+                variant="ghost"
+                iconLeft={<Plus size={16} />}
+                onClick={addCustom}
+              >
+                Adicionar
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -235,6 +320,7 @@ function ColorSelector({
   );
 }
 
+/* ─── Main form component ─────────────────────────────────── */
 export function ProdutoFormClient({ product }: ProdutoFormClientProps) {
   const editing = !!product;
 
@@ -247,14 +333,35 @@ export function ProdutoFormClient({ product }: ProdutoFormClientProps) {
   const [colors, setColors] = useState<string[]>(
     product?.colors.map((c) => c.label) ?? ["Areia", "Caramelo"]
   );
+  const [category, setCategory] = useState(product?.category ?? "");
+  const [categories, setCategories] = useState<string[]>(BASE_CATEGORIES);
   const [soldout, setSoldout] = useState(product?.soldOut ?? false);
   const [visible, setVisible] = useState(product?.active ?? true);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [deleteModal, setDeleteModal] = useState(false);
+  const [quickCat, setQuickCat] = useState(false);
+  const [catDraft, setCatDraft] = useState("");
 
   const flash = (msg: string, tone: ToastState["tone"] = "success") => {
     setToast({ msg, tone });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const createCategory = () => {
+    const v = catDraft.trim();
+    if (!v) return;
+    if (categories.includes(v)) {
+      flash("Essa categoria já existe", "error");
+      setCategory(v);
+      setQuickCat(false);
+      setCatDraft("");
+      return;
+    }
+    setCategories((prev) => [...prev, v]);
+    setCategory(v);
+    setQuickCat(false);
+    setCatDraft("");
+    flash("Categoria criada");
   };
 
   return (
@@ -277,7 +384,7 @@ export function ProdutoFormClient({ product }: ProdutoFormClientProps) {
         <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
           Fotos{" "}
           <span className="text-graphite font-normal">
-            · mínimo 1, máximo 5
+            · mínimo 1, máximo 5 · arraste para reordenar
           </span>
         </h2>
         <PhotoUploader photos={photos} setPhotos={setPhotos} />
@@ -314,17 +421,19 @@ export function ProdutoFormClient({ product }: ProdutoFormClientProps) {
             <label className="font-body font-medium text-[13px] text-obsidian">
               Categoria
             </label>
-            <select
-              defaultValue={product?.category ?? ""}
-              className="h-11 w-full rounded-input border border-sand bg-white px-3 font-body text-[14px] text-obsidian focus:outline-none focus:border-obsidian focus:ring-2 focus:ring-obsidian focus:ring-offset-2 transition-all"
-            >
-              <option value="">Selecione uma categoria</option>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <Select
+              value={category}
+              placeholder="Selecione uma categoria"
+              options={categories}
+              onChange={setCategory}
+              footer={{
+                label: "Nova categoria",
+                onClick: () => {
+                  setCatDraft("");
+                  setQuickCat(true);
+                },
+              }}
+            />
           </div>
         </div>
       </Card>
@@ -384,15 +493,14 @@ export function ProdutoFormClient({ product }: ProdutoFormClientProps) {
           </Button>
           <Button
             variant="primary"
-            onClick={() => {
-              flash("Produto salvo");
-            }}
+            onClick={() => flash("Produto salvo")}
           >
             Salvar produto
           </Button>
         </div>
       </div>
 
+      {/* Delete confirmation modal */}
       {deleteModal && (
         <Modal title="Excluir produto" onClose={() => setDeleteModal(false)}>
           <p className="font-body text-[15px] text-graphite leading-relaxed">
@@ -412,6 +520,36 @@ export function ProdutoFormClient({ product }: ProdutoFormClientProps) {
               }}
             >
               Excluir
+            </Button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Quick category creation modal */}
+      {quickCat && (
+        <Modal title="Nova categoria" onClose={() => setQuickCat(false)}>
+          <div className="flex flex-col gap-1.5">
+            <label className="font-body font-medium text-[13px] text-obsidian">
+              Nome da categoria
+            </label>
+            <input
+              autoFocus
+              value={catDraft}
+              onChange={(e) => setCatDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") createCategory();
+                if (e.key === "Escape") setQuickCat(false);
+              }}
+              placeholder="Ex: Acessórios"
+              className="h-11 w-full rounded-input border border-sand bg-white px-4 font-body text-[15px] text-obsidian outline-none focus:border-obsidian transition-colors"
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setQuickCat(false)}>
+              Cancelar
+            </Button>
+            <Button variant="primary" onClick={createCategory}>
+              Criar categoria
             </Button>
           </div>
         </Modal>

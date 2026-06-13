@@ -18,7 +18,7 @@ export function StoreHeader({
 }: StoreHeaderProps) {
   return (
     <header className="sticky top-0 z-10 bg-ivory border-b border-sand/50 px-4 py-[14px] flex items-center gap-3">
-      <div className="w-10 h-10 rounded-full bg-obsidian text-white flex items-center justify-center font-display font-semibold text-[16px] flex-shrink-0">
+      <div className="w-10 h-10 rounded-full text-white flex items-center justify-center font-display font-semibold text-[16px] flex-shrink-0" style={{ background: "var(--color-primary)" }}>
         {store.monogram}
       </div>
       <div className="flex-1 min-w-0">

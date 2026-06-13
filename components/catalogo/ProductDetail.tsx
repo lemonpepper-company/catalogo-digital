@@ -83,13 +83,18 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
                       disabled={isSold}
                       onClick={() => !isSold && setSelectedSize(size)}
                       className={[
-                        "h-[38px] px-4 rounded-pill text-[14px] transition-all duration-200",
+                        "h-[38px] px-4 rounded-pill font-body font-medium text-[14px] transition-all duration-200",
                         isSold
                           ? "text-inactive line-through cursor-not-allowed border border-sand"
                           : isSelected
-                          ? "bg-obsidian text-white border-[1.5px] border-obsidian"
+                          ? "text-white border-[1.5px]"
                           : "border border-sand text-obsidian hover:bg-surface-hover",
                       ].join(" ")}
+                      style={
+                        isSelected && !isSold
+                          ? { background: "var(--color-primary)", borderColor: "var(--color-primary)" }
+                          : undefined
+                      }
                     >
                       {size}
                     </button>
@@ -122,8 +127,9 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
                         border: isSelected
                           ? "2px solid var(--color-primary)"
                           : "1px solid var(--color-border)",
-                        outline: isSelected ? `2px solid ${c.hex}` : "none",
-                        outlineOffset: isSelected ? "2px" : "0",
+                        outline: isSelected ? "2px solid var(--color-bg)" : "none",
+                        outlineOffset: isSelected ? "-4px" : "0",
+                        boxSizing: "border-box",
                       }}
                     />
                   );
