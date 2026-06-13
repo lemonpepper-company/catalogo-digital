@@ -39,11 +39,7 @@ export function Select({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="h-11 w-full rounded-input border bg-white font-body text-[14px] flex items-center justify-between gap-2 cursor-pointer text-left transition-all px-4"
-        style={{
-          borderColor: open ? "#0D0D0D" : "#E2DFDA",
-          color: value ? "#0D0D0D" : "#B0ADA8",
-        }}
+        className={`h-11 w-full rounded-input border bg-white font-body text-[14px] flex items-center justify-between gap-2 cursor-pointer text-left transition-all px-4 ${open ? "border-obsidian" : "border-sand"} ${value ? "text-obsidian" : "text-inactive"}`}
       >
         <span className="overflow-hidden text-ellipsis whitespace-nowrap flex-1">
           {value || placeholder}
@@ -68,17 +64,7 @@ export function Select({
                 onChange(opt);
                 setOpen(false);
               }}
-              className="flex items-center justify-between gap-2 w-full px-4 py-[11px] border-none text-left font-body text-[14px] text-obsidian transition-colors"
-              style={{
-                background: opt === value ? "#F0EDE8" : "transparent",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "#F0EDE8")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background =
-                  opt === value ? "#F0EDE8" : "transparent")
-              }
+              className={`flex items-center justify-between gap-2 w-full px-4 py-[11px] border-none text-left font-body text-[14px] text-obsidian transition-colors hover:bg-linen ${opt === value ? "bg-linen" : "bg-transparent"}`}
             >
               <span>{opt}</span>
               {opt === value && (
@@ -93,8 +79,7 @@ export function Select({
                 setOpen(false);
                 footer.onClick();
               }}
-              className="flex items-center gap-2 w-full px-4 py-3 border-none border-t border-sand bg-transparent text-left font-display font-medium text-[14px] text-gold transition-colors hover:bg-linen"
-              style={{ borderTop: "0.5px solid #E2DFDA" }}
+              className="flex items-center gap-2 w-full px-4 py-3 border-t border-sand bg-transparent text-left font-display font-medium text-[14px] text-gold transition-colors hover:bg-linen"
             >
               <Plus size={16} /> {footer.label}
             </button>

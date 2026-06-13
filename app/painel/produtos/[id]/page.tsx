@@ -1,4 +1,4 @@
-import { PRODUCTS } from "@/lib/data";
+import { PRODUCTS, getProductById } from "@/lib/data";
 import { ProdutoFormClient } from "../ProdutoFormClient";
 
 interface Props {
@@ -11,6 +11,5 @@ export function generateStaticParams() {
 
 export default async function EditarProdutoPage(props: Props) {
   const params = await props.params;
-  const product = PRODUCTS.find((p) => p.id === params.id);
-  return <ProdutoFormClient product={product} />;
+  return <ProdutoFormClient product={getProductById(params.id)} />;
 }

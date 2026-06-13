@@ -173,3 +173,7 @@ export const FASHION_COLORS = [
   { name: "Prata", hex: "#C5C7CA" },
   { name: "Bordô", hex: "#5B2433" },
 ];
+
+export function getProductById(id: string): Product | undefined {
+  return PRODUCTS.find((p) => p.id === id);
+}

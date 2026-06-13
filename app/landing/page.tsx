@@ -1,165 +1,32 @@
 import NextLink from "next/link";
 import {
-  ArrowRight,
   CheckCircle2,
   Check,
-  MessagesSquare,
-  RefreshCw,
-  Store,
-  Image as ImageIcon,
   MessageCircle,
-  Link as LinkIcon,
-  Package,
-  Smartphone,
-  BarChart3,
   ChevronDown,
+  Image as ImageIcon,
 } from "lucide-react";
+import {
+  painCards,
+  steps,
+  features,
+  testimonials,
+  starterFeatures,
+  proFeatures,
+  faqs,
+  phoneMockProducts,
+} from "./data";
 
 export const metadata = {
   title: "Catálogo Digital — Sua vitrine no WhatsApp",
 };
-
-const painCards = [
-  {
-    icon: <MessagesSquare size={22} className="text-obsidian" />,
-    title: "Catálogo no chat se perde",
-    desc: "Mandar foto por foto cansa o cliente e some no histórico de conversas. Nada fica organizado.",
-  },
-  {
-    icon: <RefreshCw size={22} className="text-obsidian" />,
-    title: "Preço e estoque desatualizados",
-    desc: "Atualizar tabela no Excel e reenviar a cada conversa é trabalhoso — e gera mal-entendido na hora da venda.",
-  },
-  {
-    icon: <Store size={22} className="text-obsidian" />,
-    title: "Sua loja parece amadora",
-    desc: "Sem uma vitrine própria, é difícil passar a imagem de marca que o seu produto realmente tem.",
-  },
-];
-
-const steps = [
-  {
-    num: "01",
-    title: "Cadastre seus produtos",
-    desc: "Adicione foto, nome, preço, tamanhos e descrição. Em poucos minutos sua vitrine começa a tomar forma.",
-  },
-  {
-    num: "02",
-    title: "Personalize sua loja",
-    desc: "Nome, número de WhatsApp e identidade. Tudo com a cara da sua marca, do jeito boutique.",
-  },
-  {
-    num: "03",
-    title: "Compartilhe o link",
-    desc: "Copie e cole na bio, no status ou no grupo. O cliente compra e a conversa cai direto no seu WhatsApp.",
-  },
-];
-
-const features = [
-  {
-    icon: <ImageIcon size={20} />,
-    title: "Vitrine editorial",
-    desc: "Layout limpo e premium que valoriza cada peça. Nada de cara de marketplace.",
-  },
-  {
-    icon: <MessageCircle size={20} />,
-    title: "Checkout no WhatsApp",
-    desc: 'O botão "Comprar" abre uma mensagem pronta com produto, tamanho e quantidade.',
-  },
-  {
-    icon: <LinkIcon size={20} />,
-    title: "Link único da loja",
-    desc: "Um endereço só seu para colocar na bio e compartilhar onde quiser.",
-  },
-  {
-    icon: <Package size={20} />,
-    title: "Controle de estoque",
-    desc: "Marque o que esgotou e mantenha a vitrine sempre certa, sem retrabalho.",
-  },
-  {
-    icon: <Smartphone size={20} />,
-    title: "Pensado no celular",
-    desc: "Seus clientes compram pelo telefone — e tudo é desenhado para essa tela.",
-  },
-  {
-    icon: <BarChart3 size={20} />,
-    title: "Painel simples",
-    desc: "Gerencie produtos e veja o que está ativo em um painel direto ao ponto.",
-  },
-];
-
-const testimonials = [
-  {
-    quote:
-      '"Minhas clientes elogiam o link toda semana. Parece site de loja grande, mas montei sozinha em uma tarde."',
-    initial: "M",
-    name: "Mariana Reis",
-    role: "Ateliê Mira · Moda feminina",
-  },
-  {
-    quote:
-      '"Parei de mandar foto por foto. Agora é só o link, e a venda já chega no WhatsApp com tudo certinho."',
-    initial: "C",
-    name: "Camila Souza",
-    role: "Loja Camé · Acessórios",
-  },
-  {
-    quote:
-      '"O visual é o que mais me conquistou. Minha marca finalmente tem a vitrine que ela merecia."',
-    initial: "J",
-    name: "Juliana Alves",
-    role: "Studio JA · Calçados",
-  },
-];
-
-const starterFeatures = [
-  "Até 30 produtos",
-  "Link único da loja",
-  "Checkout no WhatsApp",
-  "Painel do lojista",
-];
-
-const proFeatures = [
-  "Produtos ilimitados",
-  "Controle de estoque",
-  "Categorias e destaques",
-  "Personalização da marca",
-  "Suporte prioritário",
-];
-
-const faqs = [
-  {
-    q: "Preciso de maquininha ou gateway de pagamento?",
-    a: "Não. O pagamento é combinado com você direto no WhatsApp, como já acontece hoje. O Catálogo Digital cuida da vitrine e leva o cliente até a conversa — você fecha do seu jeito.",
-  },
-  {
-    q: "Meus clientes precisam baixar algum aplicativo?",
-    a: 'Nenhum. O cliente abre o link no navegador do celular, navega pela loja e toca em "Comprar". Cai no WhatsApp com a mensagem pronta. Simples assim.',
-  },
-  {
-    q: "Consigo montar minha loja sozinha?",
-    a: "Sim. O painel foi feito para ser direto: você cadastra produtos, define preços e tamanhos e publica. A maioria dos lojistas coloca a vitrine no ar no mesmo dia.",
-  },
-  {
-    q: "Posso cancelar quando quiser?",
-    a: "Quando quiser, sem multa. Você começa no plano grátis e só assina um plano pago se decidir que vale a pena para o tamanho da sua loja.",
-  },
-];
-
-const phoneMockProducts = [
-  { name: "Blusa Linho", price: "R$ 189,90" },
-  { name: "Vestido Midi", price: "R$ 249,90" },
-  { name: "Saia Plissada", price: "R$ 159,90" },
-  { name: "Camisa Seda", price: "R$ 279,90" },
-];
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-ivory">
       {/* ─── Navbar ─── */}
       <nav
-        className="fixed top-0 inset-x-0 z-50 border-b border-sand"
-        style={{ background: "rgba(249,249,247,0.92)", backdropFilter: "blur(8px)" }}
+        className="fixed top-0 inset-x-0 z-50 border-b border-sand bg-ivory/[0.92] backdrop-blur"
       >
         <div className="max-w-page mx-auto px-12 h-[72px] flex items-center justify-between">
           <NextLink href="#top" className="flex items-center gap-2.5">
@@ -203,8 +70,7 @@ export default function LandingPage() {
       {/* ─── Hero ─── */}
       <section
         id="top"
-        className="bg-ivory"
-        style={{ paddingTop: 168, paddingBottom: 96 }}
+        className="bg-ivory pt-[168px] pb-24"
       >
         <div className="max-w-page mx-auto px-12">
           <div className="grid items-center gap-16" style={{ gridTemplateColumns: "1.05fr 0.95fr" }}>
@@ -246,23 +112,16 @@ export default function LandingPage() {
             {/* Phone mockup */}
             <div className="flex justify-center">
               <div
-                className="relative flex-none bg-ivory overflow-hidden"
-                style={{
-                  width: 320,
-                  height: 650,
-                  borderRadius: 40,
-                  border: "9px solid #0D0D0D",
-                }}
+                className="relative flex-none bg-ivory overflow-hidden w-[320px] h-[650px] rounded-[40px] border-[9px] border-obsidian"
               >
                 {/* Notch */}
                 <div
-                  className="absolute top-0 left-1/2 -translate-x-1/2 bg-obsidian z-10"
-                  style={{ width: 120, height: 22, borderRadius: "0 0 14px 14px" }}
+                  className="absolute top-0 left-1/2 -translate-x-1/2 bg-obsidian z-10 w-[120px] h-[22px] rounded-b-[14px]"
                 />
                 {/* Screen */}
                 <div className="absolute inset-0 overflow-hidden">
                   {/* Store header */}
-                  <div style={{ padding: "30px 18px 14px" }}>
+                  <div className="pt-[30px] px-[18px] pb-[14px]">
                     <div className="font-display font-semibold text-[18px] text-obsidian">
                       Ateliê Mira
                     </div>
@@ -296,8 +155,7 @@ export default function LandingPage() {
                         <div className="aspect-square bg-linen flex flex-col items-center justify-center gap-1.5 text-inactive">
                           <ImageIcon size={22} />
                           <span
-                            style={{ fontFamily: "ui-monospace,monospace" }}
-                            className="text-[8px] tracking-[0.08em]"
+                            className="font-mono text-[8px] tracking-[0.08em]"
                           >
                             FOTO
                           </span>
@@ -431,8 +289,7 @@ export default function LandingPage() {
             {testimonials.map((t) => (
               <div
                 key={t.name}
-                className="bg-white border border-sand/50 rounded-card p-8 flex flex-col"
-                style={{ borderTop: "3px solid #C9A96E" }}
+                className="bg-white border border-sand/50 rounded-card p-8 flex flex-col border-t-[3px] border-t-gold"
               >
                 <p className="font-body text-[15px] text-graphite leading-[1.65] flex-1">
                   {t.quote}
@@ -603,8 +460,7 @@ export default function LandingPage() {
               Sua vitrine pode estar no ar ainda hoje.
             </h2>
             <p
-              className="font-body text-[17px] mb-[34px]"
-              style={{ color: "rgba(249,249,247,0.7)" }}
+              className="font-body text-[17px] mb-[34px] text-ivory/70"
             >
               Crie seu catálogo grátis e transforme conversas em vendas com a
               cara da sua marca.
@@ -623,8 +479,8 @@ export default function LandingPage() {
       <footer className="bg-linen border-t border-sand pt-[72px] pb-10">
         <div className="max-w-page mx-auto px-12">
           <div
-            className="grid pb-12"
-            style={{ gridTemplateColumns: "1.4fr 1fr 1fr 1fr", gap: 32 }}
+            className="grid pb-12 gap-8"
+            style={{ gridTemplateColumns: "1.4fr 1fr 1fr 1fr" }}
           >
             <div>
               <NextLink href="#top" className="flex items-center gap-2.5">

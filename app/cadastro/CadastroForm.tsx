@@ -13,31 +13,15 @@ import {
   ArrowLeft,
   ArrowRight,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useCadastroForm } from "./use-cadastro-form";
 
 const inputWrap =
   "flex items-center gap-2 h-12 px-4 bg-white border border-sand rounded-input focus-within:outline focus-within:outline-2 focus-within:outline-obsidian focus-within:outline-offset-2 focus-within:border-obsidian transition-all";
 const inputBase =
   "flex-1 border-none outline-none bg-transparent font-body text-[15px] text-obsidian placeholder:text-inactive min-w-0";
 
-function slugify(v: string): string {
-  return v
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 export function CadastroForm() {
-  const [showPw, setShowPw] = useState(false);
-  const [slug, setSlug] = useState("sua-loja");
-  const storeRef = useRef<HTMLInputElement>(null);
-
-  function handleStoreChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const s = slugify(e.target.value);
-    setSlug(s || "sua-loja");
-  }
+  const { showPw, togglePw, slug, storeRef, handleStoreChange } = useCadastroForm();
 
   return (
     <div className="min-h-screen bg-ivory flex items-center justify-center px-8 py-8">
@@ -125,7 +109,7 @@ export function CadastroForm() {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPw(!showPw)}
+                    onClick={togglePw}
                     className="text-graphite hover:text-obsidian transition-colors flex-shrink-0"
                   >
                     {showPw ? <EyeOff size={18} /> : <Eye size={18} />}

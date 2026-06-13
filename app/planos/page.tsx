@@ -8,8 +8,7 @@ export const metadata = {
 export default function PlanosPage() {
   return (
     <div
-      className="min-h-screen bg-ivory flex items-center justify-center px-8"
-      style={{ padding: "48px 32px" }}
+      className="min-h-screen bg-ivory flex items-center justify-center py-12 px-8"
     >
       <div className="w-full max-w-[860px]">
         {/* Logo */}

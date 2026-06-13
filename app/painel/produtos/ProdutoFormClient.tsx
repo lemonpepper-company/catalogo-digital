@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -21,10 +20,11 @@ import { ToggleRow } from "@/components/ui/Switch";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { FASHION_COLORS } from "@/lib/data";
-import type { Product, ToastState } from "@/lib/types";
+import type { Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const BASE_CATEGORIES = ["Vestidos", "Blusas", "Calças", "Saias"];
+import { useProdutoForm } from "./use-produto-form";
+import { useVariationEditor } from "./use-variation-editor";
+import { useColorSelector } from "./use-color-selector";
 
 interface ProdutoFormClientProps {
   product?: Product;
@@ -81,8 +81,7 @@ function VariationEditor({
   items: string[];
   setItems: (items: string[]) => void;
 }) {
-  const [on, setOn] = useState(true);
-  const [draft, setDraft] = useState("");
+  const { on, setOn, draft, setDraft } = useVariationEditor();
 
   const add = () => {
     const v = draft.trim();
@@ -152,18 +151,10 @@ function ColorSelector({
   selected: string[];
   setSelected: (s: string[]) => void;
 }) {
-  const [on, setOn] = useState(true);
-  const [custom, setCustom] = useState("");
-  const [pick, setPick] = useState("#7A8B6F");
-  const [customHex, setCustomHex] = useState<Record<string, string>>({});
+  const { on, setOn, custom, setCustom, pick, setPick, setCustomHex, hexFor } =
+    useColorSelector();
 
-  /** Resolve hex for any color name — palette first, then custom map. */
-  const hexFor = (name: string): string =>
-    FASHION_COLORS.find(
-      (fc) => fc.name.toLowerCase() === name.toLowerCase()
-    )?.hex ??
-    customHex[name.toLowerCase()] ??
-    "var(--color-surface-hover)";
+  const lightColors = new Set(["Branco", "Amarelo", "Prata", "Azul claro"]);
 
   const toggle = (name: string) =>
     setSelected(
@@ -180,8 +171,6 @@ function ColorSelector({
     setSelected([...selected, v]);
     setCustom("");
   };
-
-  const lightColors = new Set(["Branco", "Amarelo", "Prata", "Azul claro"]);
 
   return (
     <div>
@@ -270,13 +259,12 @@ function ColorSelector({
               {/* Color picker swatch */}
               <label
                 title="Escolher cor na paleta"
-                className="relative w-10 h-10 rounded-full flex-none cursor-pointer flex items-center justify-center"
-                style={{
-                  background: pick,
-                  border: "1px solid var(--color-border)",
-                  boxShadow: "inset 0 0 0 3px #fff",
-                }}
+                className="relative w-10 h-10 rounded-full flex-none cursor-pointer bg-white border border-sand flex items-center justify-center"
               >
+                <span
+                  className="w-[26px] h-[26px] rounded-full"
+                  style={{ background: pick }}
+                />
                 <span
                   className="absolute -bottom-0.5 -right-0.5 w-[18px] h-[18px] rounded-full bg-white border border-sand flex items-center justify-center text-obsidian"
                 >
@@ -323,46 +311,30 @@ function ColorSelector({
 /* ─── Main form component ─────────────────────────────────── */
 export function ProdutoFormClient({ product }: ProdutoFormClientProps) {
   const editing = !!product;
-
-  const [photos, setPhotos] = useState<string[]>(
-    product ? [product.image] : []
-  );
-  const [sizes, setSizes] = useState<string[]>(
-    product?.sizes ?? ["PP", "P", "M", "G"]
-  );
-  const [colors, setColors] = useState<string[]>(
-    product?.colors.map((c) => c.label) ?? ["Areia", "Caramelo"]
-  );
-  const [category, setCategory] = useState(product?.category ?? "");
-  const [categories, setCategories] = useState<string[]>(BASE_CATEGORIES);
-  const [soldout, setSoldout] = useState(product?.soldOut ?? false);
-  const [visible, setVisible] = useState(product?.active ?? true);
-  const [toast, setToast] = useState<ToastState | null>(null);
-  const [deleteModal, setDeleteModal] = useState(false);
-  const [quickCat, setQuickCat] = useState(false);
-  const [catDraft, setCatDraft] = useState("");
-
-  const flash = (msg: string, tone: ToastState["tone"] = "success") => {
-    setToast({ msg, tone });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const createCategory = () => {
-    const v = catDraft.trim();
-    if (!v) return;
-    if (categories.includes(v)) {
-      flash("Essa categoria já existe", "error");
-      setCategory(v);
-      setQuickCat(false);
-      setCatDraft("");
-      return;
-    }
-    setCategories((prev) => [...prev, v]);
-    setCategory(v);
-    setQuickCat(false);
-    setCatDraft("");
-    flash("Categoria criada");
-  };
+  const {
+    photos,
+    setPhotos,
+    sizes,
+    setSizes,
+    colors,
+    setColors,
+    category,
+    setCategory,
+    categories,
+    soldout,
+    setSoldout,
+    visible,
+    setVisible,
+    toast,
+    deleteModal,
+    setDeleteModal,
+    quickCat,
+    setQuickCat,
+    catDraft,
+    setCatDraft,
+    flash,
+    createCategory,
+  } = useProdutoForm(product);
 
   return (
     <div className="max-w-form flex flex-col gap-5">
