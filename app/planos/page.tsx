@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Check, ArrowRight } from "lucide-react";
+import { starterFeatures, proFeatures } from "./data";
 
 export const metadata = {
   title: "Escolha seu plano — Catálogo Digital",
@@ -53,12 +54,7 @@ export default function PlanosPage() {
               </div>
             </div>
             <ul className="flex flex-col gap-3">
-              {[
-                "Até 30 produtos",
-                "5 categorias",
-                "Link público do catálogo",
-                "Pedidos pelo WhatsApp",
-              ].map((f) => (
+              {starterFeatures.map((f) => (
                 <li
                   key={f}
                   className="flex items-center gap-2.5 font-body text-[15px] text-graphite"
@@ -96,12 +92,7 @@ export default function PlanosPage() {
               </div>
             </div>
             <ul className="flex flex-col gap-3">
-              {[
-                "Produtos ilimitados",
-                "Categorias ilimitadas",
-                "Domínio próprio",
-                "Destaques e relatórios",
-              ].map((f) => (
+              {proFeatures.map((f) => (
                 <li
                   key={f}
                   className="flex items-center gap-2.5 font-body text-[15px] text-graphite"
