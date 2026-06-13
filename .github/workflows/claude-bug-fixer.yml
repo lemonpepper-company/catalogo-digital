@@ -64,7 +64,13 @@ jobs:
                   "Bash(mv *)",
                   "Bash(node *)",
                   "Bash(npm *)",
-                  "Bash(npx *)"
+                  "Bash(npx *)",
+                  "Bash(python3 *)",
+                  "Bash(sed *)",
+                  "Bash(awk *)",
+                  "Edit",
+                  "Write",
+                  "MultiEdit"
                 ],
                 "deny": []
               }
