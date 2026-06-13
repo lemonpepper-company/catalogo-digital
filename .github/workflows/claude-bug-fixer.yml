@@ -19,15 +19,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           fetch-depth: 1
 
       - name: Run Claude Bug Fixer
         uses: anthropics/claude-code-action@v1
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             A issue #${{ github.event.issue.number }} foi marcada como bug.
 
@@ -47,4 +48,31 @@ jobs:
             - Faça apenas as mudanças necessárias para corrigir o bug — sem refatorações extras
             - Mantenha consistência com o estilo de código existente
             - Se o bug não for reproduzível ou a causa não for clara, comente na issue pedindo mais informações
+          settings: |
+            {
+              "permissions": {
+                "allow": [
+                  "Bash(git *)",
+                  "Bash(gh *)",
+                  "Bash(ls *)",
+                  "Bash(find *)",
+                  "Bash(grep *)",
+                  "Bash(cat *)",
+                  "Bash(echo *)",
+                  "Bash(mkdir *)",
+                  "Bash(cp *)",
+                  "Bash(mv *)",
+                  "Bash(node *)",
+                  "Bash(npm *)",
+                  "Bash(npx *)",
+                  "Bash(python3 *)",
+                  "Bash(sed *)",
+                  "Bash(awk *)",
+                  "Edit",
+                  "Write",
+                  "MultiEdit"
+                ],
+                "deny": []
+              }
+            }
           claude_args: '--max-turns 30'
