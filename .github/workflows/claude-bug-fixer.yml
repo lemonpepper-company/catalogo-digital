@@ -69,4 +69,5 @@ jobs:
                 "deny": []
               }
             }
+          show_full_output: true
           claude_args: '--max-turns 50'
