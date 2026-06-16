@@ -17,7 +17,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ next, resetSuccess }: LoginFormProps) {
-  const { showPw, togglePw, state, action, pending } = useLoginForm()
+  const { state, action, pending } = useLoginForm()
 
   return (
     <div className="min-h-screen bg-ivory flex items-center justify-center px-8">

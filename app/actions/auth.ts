@@ -112,7 +112,7 @@ export async function signIn(
   }
 
   const next = formData.get('next') as string | null
-  redirect(next && next.startsWith('/') ? next : '/painel')
+  redirect(next && next.startsWith('/') && !next.startsWith('//') ? next : '/painel')
 }
 
 export async function signInWithGoogle(): Promise<never> {
@@ -186,11 +186,15 @@ export async function selectPlan(plan: 'starter' | 'pro'): Promise<never> {
 
   if (!user) redirect('/login')
 
-  await supabase
+  const { error } = await supabase
     .from('stores')
     .update({ plan })
     .eq('owner_id', user.id)
     .is('plan', null)
+
+  if (error) {
+    redirect('/escolha-de-plano?error=plan')
+  }
 
   redirect('/painel')
 }

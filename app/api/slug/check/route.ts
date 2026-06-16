@@ -42,5 +42,17 @@ export async function GET(request: NextRequest) {
     suggestion = `${slug}-${suffix}`
   }
 
+  // Verify the suggestion is actually available (handles loop exhaustion)
+  const { data: verify } = await supabase
+    .from('stores')
+    .select('id')
+    .eq('slug', suggestion)
+    .maybeSingle()
+
+  if (verify) {
+    // No good suggestion found
+    return NextResponse.json({ available: false })
+  }
+
   return NextResponse.json({ available: false, suggestion })
 }
