@@ -20,7 +20,7 @@ export default function PainelLayout({
         <span>{TRIAL_DAYS} dias restantes</span>
         <span className="opacity-55">·</span>
         <a
-          href="/planos"
+          href="/escolha-de-plano"
           className="font-display font-semibold text-[13.5px] text-gold hover:underline"
         >
           Assinar agora →
