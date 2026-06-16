@@ -28,7 +28,7 @@ export default function LandingPage() {
       <nav
         className="fixed top-0 inset-x-0 z-50 border-b border-sand bg-ivory/[0.92] backdrop-blur"
       >
-        <div className="max-w-page mx-auto px-12 h-[72px] flex items-center justify-between">
+        <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12 h-[72px] flex items-center justify-between">
           <NextLink href="#top" className="flex items-center gap-2.5">
             <div className="w-[30px] h-[30px] rounded-[8px] bg-obsidian flex items-center justify-center flex-shrink-0">
               <span className="w-[9px] h-[9px] rounded-full bg-gold block" />
@@ -38,28 +38,28 @@ export default function LandingPage() {
             </span>
           </NextLink>
 
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4 md:gap-8">
             <NextLink
               href="#recursos"
-              className="font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
+              className="hidden md:block font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
             >
               Recursos
             </NextLink>
             <NextLink
               href="#precos"
-              className="font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
+              className="hidden md:block font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
             >
               Preços
             </NextLink>
             <NextLink
               href="#depoimentos"
-              className="font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
+              className="hidden md:block font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
             >
               Depoimentos
             </NextLink>
             <NextLink
               href="/cadastro"
-              className="inline-flex items-center justify-content-center gap-2 h-11 px-6 rounded-btn bg-gold text-white font-display font-medium text-[15px] hover:bg-gold-hover transition-colors whitespace-nowrap"
+              className="inline-flex items-center justify-center gap-2 h-9 sm:h-11 px-4 sm:px-6 rounded-btn bg-gold text-white font-display font-medium text-[13px] sm:text-[15px] hover:bg-gold-hover transition-colors whitespace-nowrap"
             >
               Criar meu catálogo grátis
             </NextLink>
@@ -70,21 +70,21 @@ export default function LandingPage() {
       {/* ─── Hero ─── */}
       <section
         id="top"
-        className="bg-ivory pt-[168px] pb-24"
+        className="bg-ivory pt-24 md:pt-[168px] pb-16 md:pb-24"
       >
-        <div className="max-w-page mx-auto px-12">
-          <div className="grid items-center gap-16" style={{ gridTemplateColumns: "1.05fr 0.95fr" }}>
+        <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-10 lg:gap-16">
             {/* Left */}
             <div>
               <span className="font-body font-medium text-[11px] tracking-[0.14em] uppercase text-gold">
                 Vitrine digital · venda no WhatsApp
               </span>
-              <h1 className="font-display font-semibold text-[54px] text-obsidian leading-[1.06] tracking-tight mt-[18px] mb-[22px] text-balance">
+              <h1 className="font-display font-semibold text-[36px] sm:text-[48px] lg:text-[54px] text-obsidian leading-[1.06] tracking-tight mt-[18px] mb-[22px] text-balance">
                 Sua loja como uma{" "}
                 <em className="not-italic text-gold">boutique online</em>, sem
                 complicação.
               </h1>
-              <p className="font-body text-[18px] text-graphite leading-relaxed mb-8 text-pretty max-w-[480px]">
+              <p className="font-body text-[17px] sm:text-[18px] text-graphite leading-relaxed mb-8 text-pretty max-w-[480px]">
                 Monte um catálogo bonito em minutos. O cliente navega, escolhe a
                 peça e finaliza a compra direto no seu WhatsApp. Sem carrinho,
                 sem maquininha, sem taxa.
@@ -110,7 +110,7 @@ export default function LandingPage() {
             </div>
 
             {/* Phone mockup */}
-            <div className="flex justify-center">
+            <div className="hidden md:flex justify-center">
               <div
                 className="relative flex-none bg-ivory overflow-hidden w-[320px] h-[650px] rounded-[40px] border-[9px] border-obsidian"
               >
@@ -186,12 +186,12 @@ export default function LandingPage() {
 
       {/* ─── Pain ─── */}
       <section className="bg-linen py-28">
-        <div className="max-w-page mx-auto px-12">
+        <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-[660px] mx-auto text-center mb-16">
             <span className="font-body font-medium text-[11px] tracking-[0.14em] uppercase text-gold">
               O problema
             </span>
-            <h2 className="font-display font-semibold text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 mb-4 text-balance">
+            <h2 className="font-display font-semibold text-[28px] md:text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 mb-4 text-balance">
               Vender pelo WhatsApp não precisa ser uma bagunça.
             </h2>
             <p className="font-body text-[17px] text-graphite text-pretty">
@@ -200,7 +200,7 @@ export default function LandingPage() {
               verdade.
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {painCards.map((c) => (
               <div
                 key={c.title}
@@ -221,16 +221,16 @@ export default function LandingPage() {
 
       {/* ─── How it works ─── */}
       <section id="recursos" className="bg-ivory py-28">
-        <div className="max-w-page mx-auto px-12">
+        <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-[660px] mx-auto text-center mb-16">
             <span className="font-body font-medium text-[11px] tracking-[0.14em] uppercase text-gold">
               Como funciona
             </span>
-            <h2 className="font-display font-semibold text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 text-balance">
+            <h2 className="font-display font-semibold text-[28px] md:text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 text-balance">
               Do zero ao catálogo no ar em três passos.
             </h2>
           </div>
-          <div className="grid grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
             {steps.map((s) => (
               <div key={s.num}>
                 <div className="font-display font-semibold text-[52px] text-gold leading-none tracking-tight">
@@ -249,16 +249,16 @@ export default function LandingPage() {
 
       {/* ─── Features ─── */}
       <section className="bg-linen py-28">
-        <div className="max-w-page mx-auto px-12">
+        <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-[660px] mx-auto text-center mb-16">
             <span className="font-body font-medium text-[11px] tracking-[0.14em] uppercase text-gold">
               Tudo que você precisa
             </span>
-            <h2 className="font-display font-semibold text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 mb-4 text-balance">
+            <h2 className="font-display font-semibold text-[28px] md:text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 mb-4 text-balance">
               Feito para quem vende com capricho.
             </h2>
           </div>
-          <div className="grid grid-cols-3 gap-y-8 gap-x-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-8 gap-x-6">
             {features.map((f) => (
               <div key={f.title} className="py-1">
                 <div className="w-10 h-10 rounded-[10px] bg-white border border-sand/50 flex items-center justify-center text-obsidian mb-4">
@@ -276,16 +276,16 @@ export default function LandingPage() {
 
       {/* ─── Testimonials ─── */}
       <section id="depoimentos" className="bg-ivory py-28">
-        <div className="max-w-page mx-auto px-12">
+        <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-[660px] mx-auto text-center mb-16">
             <span className="font-body font-medium text-[11px] tracking-[0.14em] uppercase text-gold">
               Quem já usa
             </span>
-            <h2 className="font-display font-semibold text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 text-balance">
+            <h2 className="font-display font-semibold text-[28px] md:text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 text-balance">
               Lojistas que deixaram a bagunça para trás.
             </h2>
           </div>
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((t) => (
               <div
                 key={t.name}
@@ -315,12 +315,12 @@ export default function LandingPage() {
 
       {/* ─── Pricing ─── */}
       <section id="precos" className="bg-linen py-28">
-        <div className="max-w-page mx-auto px-12">
+        <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-[660px] mx-auto text-center mb-16">
             <span className="font-body font-medium text-[11px] tracking-[0.14em] uppercase text-gold">
               Planos
             </span>
-            <h2 className="font-display font-semibold text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 mb-4 text-balance">
+            <h2 className="font-display font-semibold text-[28px] md:text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 mb-4 text-balance">
               Preço simples, sem surpresa.
             </h2>
             <p className="font-body text-[17px] text-graphite text-pretty">
@@ -328,10 +328,7 @@ export default function LandingPage() {
               loja.
             </p>
           </div>
-          <div
-            className="grid justify-center gap-6"
-            style={{ gridTemplateColumns: "repeat(2, minmax(0, 340px))" }}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 justify-center gap-6 sm:max-w-[712px] mx-auto">
             {/* Starter */}
             <div className="bg-white border border-sand/50 rounded-card p-9 flex flex-col">
               <div className="font-display font-medium text-[18px] text-obsidian">
@@ -418,12 +415,12 @@ export default function LandingPage() {
 
       {/* ─── FAQ ─── */}
       <section className="bg-ivory py-28">
-        <div className="max-w-page mx-auto px-12">
+        <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-[660px] mx-auto text-center mb-16">
             <span className="font-body font-medium text-[11px] tracking-[0.14em] uppercase text-gold">
               Dúvidas
             </span>
-            <h2 className="font-display font-semibold text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 text-balance">
+            <h2 className="font-display font-semibold text-[28px] md:text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 text-balance">
               Perguntas frequentes.
             </h2>
           </div>
@@ -454,9 +451,9 @@ export default function LandingPage() {
 
       {/* ─── Final CTA ─── */}
       <section className="bg-obsidian py-28">
-        <div className="max-w-page mx-auto px-12">
+        <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
           <div className="text-center max-w-[660px] mx-auto">
-            <h2 className="font-display font-semibold text-[42px] text-white leading-[1.1] tracking-tight mb-[18px] text-balance">
+            <h2 className="font-display font-semibold text-[30px] md:text-[42px] text-white leading-[1.1] tracking-tight mb-[18px] text-balance">
               Sua vitrine pode estar no ar ainda hoje.
             </h2>
             <p
@@ -477,12 +474,9 @@ export default function LandingPage() {
 
       {/* ─── Footer ─── */}
       <footer className="bg-linen border-t border-sand pt-[72px] pb-10">
-        <div className="max-w-page mx-auto px-12">
-          <div
-            className="grid pb-12 gap-8"
-            style={{ gridTemplateColumns: "1.4fr 1fr 1fr 1fr" }}
-          >
-            <div>
+        <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 pb-12 gap-8">
+            <div className="col-span-2 md:col-span-1">
               <NextLink href="#top" className="flex items-center gap-2.5">
                 <div className="w-[30px] h-[30px] rounded-[8px] bg-obsidian flex items-center justify-center flex-shrink-0">
                   <span className="w-[9px] h-[9px] rounded-full bg-gold block" />
@@ -561,7 +555,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="border-t border-sand pt-7 flex items-center justify-between font-body text-[13px] text-graphite">
+          <div className="border-t border-sand pt-7 flex flex-col sm:flex-row gap-2 sm:gap-0 items-center justify-between font-body text-[13px] text-graphite">
             <span>© 2026 Catálogo Digital. Todos os direitos reservados.</span>
             <span>Feito no Brasil</span>
           </div>
