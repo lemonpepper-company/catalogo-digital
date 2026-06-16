@@ -3,11 +3,15 @@
 import Link from 'next/link'
 import { Mail, ArrowLeft } from 'lucide-react'
 import { useActionState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { resendConfirmation } from '@/app/actions/auth'
 
 type ResendState = { sent: boolean } | null
 
 export default function VerificarEmailPage() {
+  const searchParams = useSearchParams()
+  const email = searchParams.get('email') ?? ''
+
   const [state, action, pending] = useActionState<ResendState, FormData>(
     resendConfirmation,
     null
@@ -47,6 +51,7 @@ export default function VerificarEmailPage() {
             </p>
           ) : (
             <form action={action}>
+              <input type="hidden" name="email" value={email} />
               <button
                 type="submit"
                 disabled={pending}

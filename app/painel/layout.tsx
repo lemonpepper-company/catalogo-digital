@@ -37,7 +37,7 @@ export default async function PainelLayout({
       )
     : 0
 
-  const showTrialBanner = !store?.plan || trialDaysLeft > 0
+  const showTrialBanner = !store?.plan
 
   return (
     <div className="h-screen flex flex-col bg-ivory overflow-hidden">

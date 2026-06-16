@@ -84,7 +84,7 @@ export async function signUp(
     return { error: 'Erro ao criar conta. Tente novamente.' }
   }
 
-  redirect('/verificar-email')
+  redirect(`/verificar-email?email=${encodeURIComponent(email)}`)
 }
 
 export async function signIn(

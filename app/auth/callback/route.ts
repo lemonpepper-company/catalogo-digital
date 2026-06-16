@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
   if (meta.store_name && meta.slug) {
     // Cadastro por e-mail confirmado: cria profile + store
-    await supabase.from('profiles').insert({
+    await supabase.from('profiles').upsert({
       id: user.id,
       full_name: meta.full_name ?? '',
     })
