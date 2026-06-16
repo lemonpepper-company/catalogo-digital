@@ -1,27 +1,29 @@
-"use client";
+'use client'
 
-import { useState, useRef } from "react";
+import { useActionState, useState } from 'react'
+import { slugify } from '@/lib/auth/slugify'
+import { signUp, createStore } from '@/app/actions/auth'
 
-function slugify(v: string): string {
-  return v
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+type FormState = { error: string } | null
 
-export function useCadastroForm() {
-  const [showPw, setShowPw] = useState(false);
-  const [slug, setSlug] = useState("sua-loja");
-  const storeRef = useRef<HTMLInputElement>(null);
+export function useCadastroForm(stepLoja: boolean) {
+  const [slug, setSlug] = useState('')
 
-  const togglePw = () => setShowPw((v) => !v);
+  const [state, action, pending] = useActionState<FormState, FormData>(
+    stepLoja ? createStore : signUp,
+    null
+  )
 
-  const handleStoreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const s = slugify(e.target.value);
-    setSlug(s || "sua-loja");
-  };
+  const handleStoreNameChange = (name: string) => {
+    setSlug(slugify(name))
+  }
 
-  return { showPw, togglePw, slug, storeRef, handleStoreChange };
+  return {
+    slug,
+    setSlug,
+    handleStoreNameChange,
+    state,
+    action,
+    pending,
+  }
 }

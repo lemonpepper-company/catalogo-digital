@@ -1,27 +1,24 @@
-"use client";
+'use client'
 
-import Link from "next/link";
-import {
-  User,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  Store,
-  Globe,
-  Pencil,
-  ArrowLeft,
-  ArrowRight,
-} from "lucide-react";
-import { useCadastroForm } from "./use-cadastro-form";
+import Link from 'next/link'
+import { User, Mail, ArrowLeft, ArrowRight, Store } from 'lucide-react'
+import { useCadastroForm } from './use-cadastro-form'
+import { PasswordInput } from '@/components/ui/PasswordInput'
+import { SlugInput } from '@/components/ui/SlugInput'
+import { signInWithGoogle } from '@/app/actions/auth'
 
 const inputWrap =
-  "flex items-center gap-2 h-12 px-4 bg-white border border-sand rounded-input focus-within:outline focus-within:outline-2 focus-within:outline-obsidian focus-within:outline-offset-2 focus-within:border-obsidian transition-all";
+  'flex items-center gap-2 h-12 px-4 bg-white border border-sand rounded-input focus-within:outline focus-within:outline-2 focus-within:outline-obsidian focus-within:outline-offset-2 focus-within:border-obsidian transition-all'
 const inputBase =
-  "flex-1 border-none outline-none bg-transparent font-body text-[15px] text-obsidian placeholder:text-inactive min-w-0";
+  'flex-1 border-none outline-none bg-transparent font-body text-[15px] text-obsidian placeholder:text-inactive min-w-0'
 
-export function CadastroForm() {
-  const { showPw, togglePw, slug, storeRef, handleStoreChange } = useCadastroForm();
+interface CadastroFormProps {
+  stepLoja?: boolean
+}
+
+export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
+  const { slug, setSlug, handleStoreNameChange, state, action, pending } =
+    useCadastroForm(stepLoja)
 
   return (
     <div className="min-h-screen bg-ivory flex items-center justify-center px-8 py-8">
@@ -38,87 +35,92 @@ export function CadastroForm() {
           </Link>
         </div>
 
-        {/* Card */}
         <div className="bg-white border border-sand/50 rounded-card p-10">
           <div className="text-center mb-[30px]">
             <h1 className="font-display font-semibold text-[24px] text-obsidian tracking-tight mb-2">
-              Crie sua vitrine grátis
+              {stepLoja ? 'Qual é o nome da sua loja?' : 'Crie sua vitrine grátis'}
             </h1>
             <p className="font-body text-[14px] text-graphite">
-              Sua loja no ar em poucos minutos.
+              {stepLoja
+                ? 'Esse será o link da sua vitrine.'
+                : 'Sua loja no ar em poucos minutos.'}
             </p>
           </div>
 
-          <form
-            className="flex flex-col gap-6"
-            onSubmit={(e) => e.preventDefault()}
-          >
-            {/* Sua conta */}
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <h2 className="font-display font-semibold text-[13px] tracking-[0.08em] uppercase text-obsidian whitespace-nowrap">
-                  Sua conta
-                </h2>
-                <div className="h-px bg-sand flex-1" />
-              </div>
+          {state?.error && (
+            <div className="mb-5 px-4 py-3 bg-red-50 border border-red-200 rounded-input">
+              <p className="font-body text-[13px] text-red-700">{state.error}</p>
+            </div>
+          )}
 
-              <div className="flex flex-col gap-2">
-                <label className="font-body font-medium text-[13px] text-obsidian">
-                  Seu nome
-                </label>
-                <div className={inputWrap}>
-                  <User size={18} className="text-graphite flex-shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Como você se chama"
-                    autoComplete="name"
-                    className={inputBase}
-                  />
+          <form action={action} className="flex flex-col gap-6">
+            {/* Seção A: Sua conta — oculta no step=loja */}
+            {!stepLoja && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <h2 className="font-display font-semibold text-[13px] tracking-[0.08em] uppercase text-obsidian whitespace-nowrap">
+                    Sua conta
+                  </h2>
+                  <div className="h-px bg-sand flex-1" />
                 </div>
-                <p className="font-body text-[12px] text-graphite leading-snug">
-                  Usado apenas para sua conta — não aparece no link.
-                </p>
-              </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="font-body font-medium text-[13px] text-obsidian">
-                  E-mail
-                </label>
-                <div className={inputWrap}>
-                  <Mail size={18} className="text-graphite flex-shrink-0" />
-                  <input
-                    type="email"
-                    placeholder="voce@email.com"
-                    autoComplete="email"
-                    className={inputBase}
-                  />
+                <div className="flex flex-col gap-2">
+                  <label className="font-body font-medium text-[13px] text-obsidian">
+                    Seu nome
+                  </label>
+                  <div className={inputWrap}>
+                    <User size={18} className="text-graphite flex-shrink-0" />
+                    <input
+                      type="text"
+                      name="full_name"
+                      placeholder="Como você se chama"
+                      autoComplete="name"
+                      className={inputBase}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="font-body font-medium text-[13px] text-obsidian">
-                  Senha
-                </label>
-                <div className={inputWrap}>
-                  <Lock size={18} className="text-graphite flex-shrink-0" />
-                  <input
-                    type={showPw ? "text" : "password"}
+                <div className="flex flex-col gap-2">
+                  <label className="font-body font-medium text-[13px] text-obsidian">
+                    E-mail
+                  </label>
+                  <div className={inputWrap}>
+                    <Mail size={18} className="text-graphite flex-shrink-0" />
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="voce@email.com"
+                      autoComplete="email"
+                      className={inputBase}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="font-body font-medium text-[13px] text-obsidian">
+                    Senha
+                  </label>
+                  <PasswordInput
+                    name="password"
                     placeholder="Crie uma senha"
                     autoComplete="new-password"
-                    className={inputBase}
                   />
-                  <button
-                    type="button"
-                    onClick={togglePw}
-                    className="text-graphite hover:text-obsidian transition-colors flex-shrink-0"
-                  >
-                    {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="font-body font-medium text-[13px] text-obsidian">
+                    Confirmar senha
+                  </label>
+                  <PasswordInput
+                    name="confirm_password"
+                    placeholder="Repita a senha"
+                    autoComplete="new-password"
+                  />
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Sua loja */}
+            {/* Seção B: Sua loja — sempre visível */}
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3">
                 <h2 className="font-display font-semibold text-[13px] tracking-[0.08em] uppercase text-obsidian whitespace-nowrap">
@@ -134,71 +136,90 @@ export function CadastroForm() {
                 <div className={inputWrap}>
                   <Store size={18} className="text-graphite flex-shrink-0" />
                   <input
-                    ref={storeRef}
                     type="text"
+                    name="store_name"
                     placeholder="Ex.: Ateliê Mira"
                     autoComplete="organization"
-                    onChange={handleStoreChange}
+                    onChange={(e) => handleStoreNameChange(e.target.value)}
                     className={inputBase}
                   />
                 </div>
-                {/* URL preview */}
-                <div className="flex items-center gap-2 mt-1 px-4 py-[11px] bg-linen border border-sand rounded-input">
-                  <Globe size={16} className="text-graphite flex-shrink-0" />
-                  <span className="font-body text-[14px] text-graphite flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-                    catalogo.app/
-                    <span className="text-obsidian font-semibold">{slug}</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => storeRef.current?.focus()}
-                    aria-label="Editar link"
-                    className="w-7 h-7 rounded-[6px] bg-transparent text-graphite hover:bg-surface-hover hover:text-obsidian transition-colors flex items-center justify-center flex-shrink-0"
-                  >
-                    <Pencil size={15} />
-                  </button>
-                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="font-body font-medium text-[13px] text-obsidian">
+                  Link da loja
+                </label>
+                <SlugInput name="slug" value={slug} onChange={setSlug} />
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full h-12 rounded-btn bg-gold text-white font-display font-medium text-[16px] flex items-center justify-center gap-2 hover:bg-gold-hover transition-colors mt-2"
+              disabled={pending}
+              className="w-full h-12 rounded-btn bg-gold text-white font-display font-medium text-[16px] flex items-center justify-center gap-2 hover:bg-gold-hover transition-colors mt-2 disabled:opacity-60"
             >
-              Criar minha conta grátis <ArrowRight size={18} />
+              {pending
+                ? 'Criando…'
+                : stepLoja
+                  ? 'Salvar e continuar'
+                  : 'Criar minha conta grátis'}
+              {!pending && <ArrowRight size={18} />}
             </button>
           </form>
 
-          <p className="font-body text-[12px] text-graphite text-center mt-4 leading-snug">
-            Ao criar a conta, você concorda com os{" "}
-            <Link href="#" className="text-obsidian font-medium">
-              Termos
-            </Link>{" "}
-            e a{" "}
-            <Link href="#" className="text-obsidian font-medium">
-              Política de Privacidade
-            </Link>
-            .
-          </p>
+          {!stepLoja && (
+            <>
+              <p className="font-body text-[12px] text-graphite text-center mt-4 leading-snug">
+                Ao criar a conta, você concorda com os{' '}
+                <Link href="#" className="text-obsidian font-medium">
+                  Termos
+                </Link>{' '}
+                e a{' '}
+                <Link href="#" className="text-obsidian font-medium">
+                  Política de Privacidade
+                </Link>
+                .
+              </p>
 
-          <div className="flex items-center gap-3.5 my-[26px]">
-            <div className="h-px bg-sand flex-1" />
-            <span className="font-body text-[12px] text-graphite">ou</span>
-            <div className="h-px bg-sand flex-1" />
-          </div>
+              <div className="flex items-center gap-3.5 my-[26px]">
+                <div className="h-px bg-sand flex-1" />
+                <span className="font-body text-[12px] text-graphite">ou</span>
+                <div className="h-px bg-sand flex-1" />
+              </div>
 
-          <p className="text-center font-body text-[14px] text-graphite">
-            Já tem conta?{" "}
-            <Link
-              href="/login"
-              className="font-display font-medium text-obsidian hover:text-gold transition-colors"
-            >
-              Entrar
-            </Link>
-          </p>
+              <form action={signInWithGoogle}>
+                <button
+                  type="submit"
+                  className="w-full h-12 rounded-btn border border-sand bg-white text-obsidian font-display font-medium text-[15px] hover:bg-linen transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
+                    <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"/>
+                    <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"/>
+                    <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z"/>
+                    <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z"/>
+                  </svg>
+                  Criar conta com Google
+                </button>
+              </form>
+
+              <div className="flex items-center gap-3.5 my-[26px]">
+                <div className="h-px bg-sand flex-1" />
+              </div>
+
+              <p className="text-center font-body text-[14px] text-graphite">
+                Já tem conta?{' '}
+                <Link
+                  href="/login"
+                  className="font-display font-medium text-obsidian hover:text-gold transition-colors"
+                >
+                  Entrar
+                </Link>
+              </p>
+            </>
+          )}
         </div>
 
-        {/* Back link */}
         <div className="flex justify-center mt-[26px]">
           <Link
             href="/login"
@@ -209,5 +230,5 @@ export function CadastroForm() {
         </div>
       </div>
     </div>
-  );
+  )
 }
