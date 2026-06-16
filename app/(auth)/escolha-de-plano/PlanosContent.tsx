@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Check, ArrowRight } from "lucide-react";
+import { Check } from "lucide-react";
+import { selectPlan } from "@/app/actions/auth";
 import { starterFeatures, proFeatures } from "./data";
 
 export function PlanosContent() {
@@ -58,12 +59,14 @@ export function PlanosContent() {
                 </li>
               ))}
             </ul>
-            <Link
-              href="/painel"
-              className="mt-auto w-full h-12 rounded-btn border border-sand bg-transparent text-obsidian font-display font-medium text-[15px] flex items-center justify-center hover:bg-linen transition-colors"
-            >
-              Começar com Starter
-            </Link>
+            <form action={selectPlan.bind(null, 'starter')} className="mt-auto">
+              <button
+                type="submit"
+                className="w-full h-12 rounded-btn border-2 border-obsidian text-obsidian font-display font-medium text-[16px] hover:bg-obsidian hover:text-white transition-colors"
+              >
+                Começar com Starter
+              </button>
+            </form>
           </div>
 
           {/* Pro */}
@@ -96,12 +99,14 @@ export function PlanosContent() {
                 </li>
               ))}
             </ul>
-            <Link
-              href="/painel"
-              className="mt-auto w-full h-12 rounded-btn bg-gold text-white font-display font-medium text-[15px] flex items-center justify-center gap-2 hover:bg-gold-hover transition-colors"
-            >
-              Começar com Pro <ArrowRight size={18} />
-            </Link>
+            <form action={selectPlan.bind(null, 'pro')} className="mt-auto">
+              <button
+                type="submit"
+                className="w-full h-12 rounded-btn bg-obsidian text-white font-display font-medium text-[16px] hover:bg-[#1f1f1f] transition-colors"
+              >
+                Começar com Pro
+              </button>
+            </form>
           </div>
         </div>
 
