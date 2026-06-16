@@ -1,9 +1,14 @@
-import { LoginForm } from "./LoginForm";
+import { LoginForm } from './LoginForm'
 
 export const metadata = {
-  title: "Entrar — Catálogo Digital",
-};
+  title: 'Entrar — Catálogo Digital',
+}
 
-export default function LoginPage() {
-  return <LoginForm />;
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string; reset?: string; error?: string }>
+}) {
+  const params = await searchParams
+  return <LoginForm next={params.next} resetSuccess={params.reset === 'success'} />
 }
