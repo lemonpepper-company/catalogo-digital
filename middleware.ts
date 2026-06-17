@@ -32,7 +32,10 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Rotas de auth: redireciona usuários autenticados
-  if (pathname === '/login' || pathname === '/cadastro') {
+  const step = request.nextUrl.searchParams.get('step')
+  const onStepLoja = pathname === '/cadastro' && step === 'loja'
+
+  if ((pathname === '/login' || pathname === '/cadastro') && !onStepLoja) {
     if (user) {
       const { data: store } = await supabase
         .from('stores')
