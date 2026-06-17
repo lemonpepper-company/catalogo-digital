@@ -2,15 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import {
-  Upload,
-  Star,
-  Trash2,
-  Plus,
-  X,
-  Check,
-  Pencil,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { Upload, Star, Trash2, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -20,324 +14,25 @@ import { ToggleRow } from "@/components/ui/Switch";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { FASHION_COLORS } from "@/lib/data";
-import type { Product } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { deleteProduct } from "@/app/actions/produtos";
+import type { StoreProduct, StoreCategory } from "@/lib/types";
 import { useProdutoForm } from "./use-produto-form";
-import { useVariationEditor } from "./use-variation-editor";
-import { useColorSelector } from "./use-color-selector";
 
 interface ProdutoFormClientProps {
-  product?: Product;
+  product?: StoreProduct;
+  categories: StoreCategory[];
+  maxPhotos?: number;
 }
 
-/* ─── Photo uploader ──────────────────────────────────────── */
-function PhotoUploader({
-  photos,
-  setPhotos,
-}: {
-  photos: string[];
-  setPhotos: (p: string[]) => void;
-}) {
-  const remove = (i: number) => setPhotos(photos.filter((_, idx) => idx !== i));
-  return (
-    <div className="grid grid-cols-5 gap-3">
-      {photos.map((src, i) => (
-        <div
-          key={i}
-          className="relative aspect-square rounded-[12px] overflow-hidden border border-sand/50"
-        >
-          <Image src={src} alt="" fill sizes="20vw" className="object-cover" />
-          {i === 0 && (
-            <span className="absolute top-2 left-2 inline-flex items-center gap-1 h-[22px] px-2 rounded-pill bg-obsidian/80 text-white font-body font-medium text-[10px] tracking-[0.06em] uppercase">
-              <Star size={9} fill="currentColor" /> Capa
-            </span>
-          )}
-          <button
-            onClick={() => remove(i)}
-            aria-label="Remover foto"
-            className="absolute top-2 right-2 w-[26px] h-[26px] rounded-full bg-white/90 text-obsidian flex items-center justify-center hover:bg-white transition-colors"
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
-      ))}
-      {photos.length < 5 && (
-        <button className="aspect-square rounded-[12px] border-[1.5px] border-dashed border-sand bg-linen flex flex-col items-center justify-center gap-1.5 text-graphite hover:bg-surface-hover transition-colors cursor-pointer">
-          <Upload size={22} />
-          <span className="font-body text-[12px]">Adicionar</span>
-        </button>
-      )}
-    </div>
-  );
-}
-
-/* ─── Variation editor (sizes) ────────────────────────────── */
-function VariationEditor({
-  title,
-  items,
-  setItems,
-}: {
-  title: string;
-  items: string[];
-  setItems: (items: string[]) => void;
-}) {
-  const { on, setOn, draft, setDraft } = useVariationEditor();
-
-  const add = () => {
-    const v = draft.trim();
-    if (v && !items.includes(v)) {
-      setItems([...items, v]);
-      setDraft("");
-    }
-  };
+export function ProdutoFormClient({
+  product,
+  categories,
+  maxPhotos = 5,
+}: ProdutoFormClientProps) {
+  const f = useProdutoForm(categories, maxPhotos, product);
 
   return (
-    <div>
-      <ToggleRow
-        label={title}
-        desc={on ? "Chips editáveis abaixo" : "Desativado"}
-        checked={on}
-        onChange={setOn}
-      />
-      {on && (
-        <div className="flex flex-wrap gap-2 items-center py-1 pb-4">
-          {items.map((it) => (
-            <span
-              key={it}
-              className="inline-flex items-center gap-1.5 h-8 pl-3 pr-1.5 rounded-pill bg-linen border border-sand font-body text-[13px] text-obsidian"
-            >
-              {it}
-              <button
-                onClick={() => setItems(items.filter((x) => x !== it))}
-                aria-label={`Remover ${it}`}
-                className="w-5 h-5 rounded-full bg-transparent text-graphite hover:text-obsidian flex items-center justify-center transition-colors"
-              >
-                <X size={12} />
-              </button>
-            </span>
-          ))}
-          <div className="flex items-center gap-1.5">
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  add();
-                }
-              }}
-              placeholder="Novo…"
-              className="w-20 h-8 px-3 rounded-pill border border-sand bg-white font-body text-[13px] text-obsidian outline-none focus:border-obsidian"
-            />
-            <button
-              onClick={add}
-              aria-label="Adicionar"
-              className="w-8 h-8 rounded-full bg-obsidian text-white flex items-center justify-center hover:bg-[#1f1f1f] transition-colors"
-            >
-              <Plus size={15} />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── Color selector ──────────────────────────────────────── */
-function ColorSelector({
-  selected,
-  setSelected,
-}: {
-  selected: string[];
-  setSelected: (s: string[]) => void;
-}) {
-  const { on, setOn, custom, setCustom, pick, setPick, setCustomHex, hexFor } =
-    useColorSelector();
-
-  const lightColors = new Set(["Branco", "Amarelo", "Prata", "Azul claro"]);
-
-  const toggle = (name: string) =>
-    setSelected(
-      selected.includes(name)
-        ? selected.filter((x) => x !== name)
-        : [...selected, name]
-    );
-
-  const addCustom = () => {
-    const v = custom.trim();
-    if (!v) return;
-    if (selected.some((s) => s.toLowerCase() === v.toLowerCase())) return;
-    setCustomHex((m) => ({ ...m, [v.toLowerCase()]: pick }));
-    setSelected([...selected, v]);
-    setCustom("");
-  };
-
-  return (
-    <div>
-      <ToggleRow
-        label="Cores"
-        desc={
-          on
-            ? "Selecione na paleta ou adicione uma cor personalizada"
-            : "Desativado"
-        }
-        checked={on}
-        onChange={setOn}
-        accent
-      />
-      {on && (
-        <div className="py-1.5 pb-4 flex flex-col gap-4">
-          {/* Selected color chips */}
-          {selected.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {selected.map((name) => (
-                <span
-                  key={name}
-                  className="inline-flex items-center gap-2 h-8 pl-2 pr-1.5 rounded-pill bg-linen border border-sand font-body text-[13px] text-obsidian"
-                >
-                  <span
-                    className="w-4 h-4 rounded-full border border-sand flex-shrink-0"
-                    style={{ background: hexFor(name) }}
-                  />
-                  {name}
-                  <button
-                    onClick={() => toggle(name)}
-                    aria-label={`Remover ${name}`}
-                    className="w-5 h-5 rounded-full bg-transparent text-graphite hover:text-obsidian flex items-center justify-center transition-colors"
-                  >
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Palette swatches */}
-          <div className="flex flex-wrap gap-3">
-            {FASHION_COLORS.map((c) => {
-              const isSelected = selected.some(
-                (s) => s.toLowerCase() === c.name.toLowerCase()
-              );
-              return (
-                <button
-                  key={c.name}
-                  onClick={() => toggle(c.name)}
-                  aria-label={c.name}
-                  title={c.name}
-                  className="w-9 h-9 rounded-full transition-all duration-200 flex items-center justify-center"
-                  style={{
-                    background: c.hex,
-                    border: isSelected
-                      ? "2px solid var(--color-primary)"
-                      : "1px solid var(--color-border)",
-                    outline: isSelected ? "2px solid #fff" : "none",
-                    outlineOffset: isSelected ? "-4px" : "0",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  {isSelected && (
-                    <Check
-                      size={14}
-                      style={{
-                        color: lightColors.has(c.name)
-                          ? "var(--color-primary)"
-                          : "#fff",
-                      }}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Custom color picker */}
-          <div>
-            <span className="block font-body text-[12px] text-graphite mb-2">
-              Cor personalizada · escolha o tom na paleta
-            </span>
-            <div className="flex items-center gap-2 max-w-[400px]">
-              {/* Color picker swatch */}
-              <label
-                title="Escolher cor na paleta"
-                className="relative w-10 h-10 rounded-full flex-none cursor-pointer bg-white border border-sand flex items-center justify-center"
-              >
-                <span
-                  className="w-[26px] h-[26px] rounded-full"
-                  style={{ background: pick }}
-                />
-                <span
-                  className="absolute -bottom-0.5 -right-0.5 w-[18px] h-[18px] rounded-full bg-white border border-sand flex items-center justify-center text-obsidian"
-                >
-                  <Pencil size={10} />
-                </span>
-                <input
-                  type="color"
-                  value={pick}
-                  onChange={(e) => setPick(e.target.value)}
-                  className="absolute inset-0 opacity-0 w-full h-full border-none p-0 cursor-pointer"
-                />
-              </label>
-
-              {/* Color name input */}
-              <input
-                value={custom}
-                onChange={(e) => setCustom(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addCustom();
-                  }
-                }}
-                placeholder="Nome da cor (ex: Verde musgo)"
-                className="flex-1 h-10 px-3.5 border border-sand rounded-input bg-white font-body text-[14px] text-obsidian outline-none focus:border-obsidian transition-colors"
-              />
-
-              {/* Add button */}
-              <Button
-                variant="ghost"
-                iconLeft={<Plus size={16} />}
-                onClick={addCustom}
-              >
-                Adicionar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── Main form component ─────────────────────────────────── */
-export function ProdutoFormClient({ product }: ProdutoFormClientProps) {
-  const editing = !!product;
-  const {
-    photos,
-    setPhotos,
-    sizes,
-    setSizes,
-    colors,
-    setColors,
-    category,
-    setCategory,
-    categories,
-    soldout,
-    setSoldout,
-    visible,
-    setVisible,
-    toast,
-    deleteModal,
-    setDeleteModal,
-    quickCat,
-    setQuickCat,
-    catDraft,
-    setCatDraft,
-    flash,
-    createCategory,
-  } = useProdutoForm(product);
-
-  return (
-    <div className="max-w-form flex flex-col gap-5">
+    <form action={f.formAction} className="max-w-form flex flex-col gap-5">
       <div className="flex items-center gap-3">
         <Link
           href="/painel/produtos"
@@ -348,21 +43,78 @@ export function ProdutoFormClient({ product }: ProdutoFormClientProps) {
       </div>
 
       <h1 className="font-display font-semibold text-[28px] text-obsidian">
-        {editing ? "Editar produto" : "Novo produto"}
+        {f.editing ? "Editar produto" : "Novo produto"}
       </h1>
 
-      {/* Photos */}
+      {/* Fotos */}
       <Card>
         <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
           Fotos{" "}
           <span className="text-graphite font-normal">
-            · mínimo 1, máximo 5 · arraste para reordenar
+            · mínimo 1, máximo {maxPhotos}
           </span>
         </h2>
-        <PhotoUploader photos={photos} setPhotos={setPhotos} />
+        <div className="grid grid-cols-5 gap-3">
+          {f.existingPhotos.map((src, i) => (
+            <div
+              key={src}
+              className="relative aspect-square rounded-[12px] overflow-hidden border border-sand/50"
+            >
+              <Image src={src} alt="" fill sizes="20vw" className="object-cover" />
+              {i === 0 && (
+                <span className="absolute top-2 left-2 inline-flex items-center gap-1 h-[22px] px-2 rounded-pill bg-obsidian/80 text-white font-body font-medium text-[10px] tracking-[0.06em] uppercase">
+                  <Star size={9} fill="currentColor" /> Capa
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => f.removeExisting(src)}
+                aria-label="Remover foto"
+                className="absolute top-2 right-2 w-[26px] h-[26px] rounded-full bg-white/90 text-obsidian flex items-center justify-center hover:bg-white transition-colors"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+          {f.newPhotos.map((file, i) => (
+            <div
+              key={`new-${i}`}
+              className="relative aspect-square rounded-[12px] overflow-hidden border border-sand/50"
+            >
+              <Image
+                src={URL.createObjectURL(file)}
+                alt=""
+                fill
+                sizes="20vw"
+                className="object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => f.removeNew(i)}
+                aria-label="Remover foto"
+                className="absolute top-2 right-2 w-[26px] h-[26px] rounded-full bg-white/90 text-obsidian flex items-center justify-center hover:bg-white transition-colors"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+          {!f.photosFull && (
+            <label className="aspect-square rounded-[12px] border-[1.5px] border-dashed border-sand bg-linen flex flex-col items-center justify-center gap-1.5 text-graphite hover:bg-surface-hover transition-colors cursor-pointer">
+              <Upload size={22} />
+              <span className="font-body text-[12px]">Adicionar</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => f.addPhotos(e.target.files)}
+              />
+            </label>
+          )}
+        </div>
       </Card>
 
-      {/* Info */}
+      {/* Informações */}
       <Card>
         <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
           Informações
@@ -370,23 +122,26 @@ export function ProdutoFormClient({ product }: ProdutoFormClientProps) {
         <div className="grid grid-cols-2 gap-[18px]">
           <div className="col-span-2">
             <Input
+              name="name"
               label="Nome do produto"
-              defaultValue={editing ? product?.name : ""}
+              defaultValue={product?.name ?? ""}
               placeholder="Ex: Vestido midi linho"
             />
           </div>
           <div className="col-span-2">
             <Textarea
+              name="description"
               label="Descrição"
               rows={3}
-              defaultValue={editing ? product?.desc : ""}
+              defaultValue={product?.description ?? ""}
               placeholder="Conte sobre o caimento, tecido e cuidados…"
             />
           </div>
           <Input
+            name="price"
             label="Preço"
             prefix="R$"
-            defaultValue={editing ? product?.price.replace("R$ ", "") : ""}
+            defaultValue={f.priceDefault}
             placeholder="0,00"
           />
           <div className="flex flex-col gap-1.5">
@@ -394,15 +149,20 @@ export function ProdutoFormClient({ product }: ProdutoFormClientProps) {
               Categoria
             </label>
             <Select
-              value={category}
+              value={
+                f.catList.find((c) => c.id === f.category)?.name ?? f.category
+              }
               placeholder="Selecione uma categoria"
-              options={categories}
-              onChange={setCategory}
+              options={f.catList.map((c) => c.name)}
+              onChange={(name) => {
+                const found = f.catList.find((c) => c.name === name);
+                f.setCategory(found ? found.id : name);
+              }}
               footer={{
                 label: "Nova categoria",
                 onClick: () => {
-                  setCatDraft("");
-                  setQuickCat(true);
+                  f.setCatDraft("");
+                  f.setQuickCat(true);
                 },
               }}
             />
@@ -410,49 +170,50 @@ export function ProdutoFormClient({ product }: ProdutoFormClientProps) {
         </div>
       </Card>
 
-      {/* Variations */}
+      {/* Variações */}
       <Card>
         <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
           Variações
         </h2>
-        <VariationEditor title="Tamanhos" items={sizes} setItems={setSizes} />
-        <ColorSelector selected={colors} setSelected={setColors} />
+        <ChipEditor title="Tamanhos" items={f.sizes} setItems={f.setSizes} />
+        <ColorEditor selected={f.colors} setSelected={f.setColors} />
       </Card>
 
-      {/* Stock */}
+      {/* Estoque */}
       <Card>
         <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
           Estoque & visibilidade
         </h2>
         <div className="grid grid-cols-2 gap-[18px] pb-2">
           <Input
+            name="stock"
             label="Quantidade em estoque"
             type="number"
-            defaultValue={product?.stock?.toString() ?? "12"}
+            defaultValue={product?.stock?.toString() ?? "0"}
           />
         </div>
         <ToggleRow
-          label="Marcar como esgotado"
-          desc="Mostra o badge Esgotado e desabilita o botão de compra"
-          checked={soldout}
-          onChange={setSoldout}
+          label="Marcar como novidade"
+          desc="Mostra o selo Novo no catálogo"
+          checked={f.isNew}
+          onChange={f.setIsNew}
           accent
         />
         <ToggleRow
           label="Visível no catálogo"
           desc="Produtos inativos não aparecem para o cliente"
-          checked={visible}
-          onChange={setVisible}
+          checked={f.visible}
+          onChange={f.setVisible}
         />
       </Card>
 
-      {/* Actions footer */}
       <div className="flex justify-between gap-3 pb-6">
-        {editing ? (
+        {f.editing ? (
           <Button
+            type="button"
             variant="destructive"
             iconLeft={<Trash2 size={18} />}
-            onClick={() => setDeleteModal(true)}
+            onClick={() => f.setDeleteModal(true)}
           >
             Excluir produto
           </Button>
@@ -460,74 +221,204 @@ export function ProdutoFormClient({ product }: ProdutoFormClientProps) {
           <span />
         )}
         <div className="flex gap-3">
-          <Button variant="ghost" onClick={() => history.back()}>
+          <Button type="button" variant="ghost" onClick={() => history.back()}>
             Cancelar
           </Button>
-          <Button
-            variant="primary"
-            onClick={() => flash("Produto salvo")}
-          >
-            Salvar produto
+          <Button type="submit" variant="primary" disabled={f.pending}>
+            {f.pending ? "Salvando…" : "Salvar produto"}
           </Button>
         </div>
       </div>
 
-      {/* Delete confirmation modal */}
-      {deleteModal && (
-        <Modal title="Excluir produto" onClose={() => setDeleteModal(false)}>
-          <p className="font-body text-[15px] text-graphite leading-relaxed">
-            Tem certeza que deseja excluir este produto? Essa ação não pode ser
-            desfeita.
-          </p>
-          <div className="flex justify-end gap-3">
-            <Button variant="ghost" onClick={() => setDeleteModal(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              iconLeft={<Trash2 size={18} />}
-              onClick={() => {
-                flash("Produto excluído", "error");
-                setDeleteModal(false);
-              }}
-            >
-              Excluir
-            </Button>
-          </div>
-        </Modal>
+      {f.state?.error && (
+        <Toast msg={f.state.error} tone="error" />
       )}
 
-      {/* Quick category creation modal */}
-      {quickCat && (
-        <Modal title="Nova categoria" onClose={() => setQuickCat(false)}>
+      {f.editing && f.deleteModal && (
+        <DeleteProductModal
+          productId={product!.id}
+          onClose={() => f.setDeleteModal(false)}
+        />
+      )}
+
+      {f.quickCat && (
+        <Modal title="Nova categoria" onClose={() => f.setQuickCat(false)}>
           <div className="flex flex-col gap-1.5">
             <label className="font-body font-medium text-[13px] text-obsidian">
               Nome da categoria
             </label>
             <input
               autoFocus
-              value={catDraft}
-              onChange={(e) => setCatDraft(e.target.value)}
+              value={f.catDraft}
+              onChange={(e) => f.setCatDraft(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") createCategory();
-                if (e.key === "Escape") setQuickCat(false);
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  f.createCat();
+                }
+                if (e.key === "Escape") f.setQuickCat(false);
               }}
               placeholder="Ex: Acessórios"
               className="h-11 w-full rounded-input border border-sand bg-white px-4 font-body text-[15px] text-obsidian outline-none focus:border-obsidian transition-colors"
             />
           </div>
           <div className="flex justify-end gap-3">
-            <Button variant="ghost" onClick={() => setQuickCat(false)}>
+            <Button type="button" variant="ghost" onClick={() => f.setQuickCat(false)}>
               Cancelar
             </Button>
-            <Button variant="primary" onClick={createCategory}>
+            <Button type="button" variant="primary" onClick={() => f.createCat()}>
               Criar categoria
             </Button>
           </div>
         </Modal>
       )}
 
-      {toast && <Toast msg={toast.msg} tone={toast.tone} />}
+      {f.toast && <Toast msg={f.toast.msg} tone={f.toast.tone} />}
+    </form>
+  );
+}
+
+/* ─── Chip editor (tamanhos) ─── */
+function ChipEditor({
+  title,
+  items,
+  setItems,
+}: {
+  title: string;
+  items: string[];
+  setItems: (items: string[]) => void;
+}) {
+  return (
+    <div className="py-1 pb-4">
+      <div className="font-body font-medium text-[13px] text-obsidian mb-2">
+        {title}
+      </div>
+      <div className="flex flex-wrap gap-2 items-center">
+        {items.map((it) => (
+          <span
+            key={it}
+            className="inline-flex items-center gap-1.5 h-8 pl-3 pr-1.5 rounded-pill bg-linen border border-sand font-body text-[13px] text-obsidian"
+          >
+            {it}
+            <button
+              type="button"
+              onClick={() => setItems(items.filter((x) => x !== it))}
+              aria-label={`Remover ${it}`}
+              className="w-5 h-5 rounded-full text-graphite hover:text-obsidian flex items-center justify-center transition-colors"
+            >
+              <X size={12} />
+            </button>
+          </span>
+        ))}
+        <ChipInput onAdd={(v) => !items.includes(v) && setItems([...items, v])} />
+      </div>
     </div>
+  );
+}
+
+function ChipInput({ onAdd }: { onAdd: (v: string) => void }) {
+  return (
+    <input
+      placeholder="Novo…"
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const v = (e.target as HTMLInputElement).value.trim();
+          if (v) {
+            onAdd(v);
+            (e.target as HTMLInputElement).value = "";
+          }
+        }
+      }}
+      className="w-24 h-8 px-3 rounded-pill border border-sand bg-white font-body text-[13px] text-obsidian outline-none focus:border-obsidian"
+    />
+  );
+}
+
+/* ─── Color editor ─── */
+function ColorEditor({
+  selected,
+  setSelected,
+}: {
+  selected: { label: string; hex: string }[];
+  setSelected: (s: { label: string; hex: string }[]) => void;
+}) {
+  const toggle = (label: string, hex: string) => {
+    const exists = selected.some((c) => c.label === label);
+    setSelected(
+      exists ? selected.filter((c) => c.label !== label) : [...selected, { label, hex }]
+    );
+  };
+  return (
+    <div className="py-1.5 pb-4">
+      <div className="font-body font-medium text-[13px] text-obsidian mb-2">Cores</div>
+      <div className="flex flex-wrap gap-3">
+        {FASHION_COLORS.map((c) => {
+          const isSel = selected.some((s) => s.label === c.name);
+          return (
+            <button
+              key={c.name}
+              type="button"
+              onClick={() => toggle(c.name, c.hex)}
+              aria-label={c.name}
+              title={c.name}
+              className="w-9 h-9 rounded-full transition-all duration-200"
+              style={{
+                background: c.hex,
+                border: isSel
+                  ? "2px solid var(--color-primary)"
+                  : "1px solid var(--color-border)",
+                outline: isSel ? "2px solid #fff" : "none",
+                outlineOffset: isSel ? "-4px" : "0",
+                boxSizing: "border-box",
+              }}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Modal de exclusão ─── */
+function DeleteProductModal({
+  productId,
+  onClose,
+}: {
+  productId: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+
+  const handleDelete = () =>
+    start(async () => {
+      const fd = new FormData();
+      fd.set("id", productId);
+      const res = await deleteProduct(null, fd);
+      if (res && "error" in res) return;
+      router.push("/painel/produtos");
+    });
+
+  return (
+    <Modal title="Excluir produto" onClose={onClose}>
+      <p className="font-body text-[15px] text-graphite leading-relaxed">
+        Tem certeza que deseja excluir este produto? Essa ação não pode ser desfeita.
+      </p>
+      <div className="flex justify-end gap-3">
+        <Button type="button" variant="ghost" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button
+          type="button"
+          variant="destructive"
+          iconLeft={<Trash2 size={18} />}
+          disabled={pending}
+          onClick={handleDelete}
+        >
+          {pending ? "Excluindo…" : "Excluir"}
+        </Button>
+      </div>
+    </Modal>
   );
 }

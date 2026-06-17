@@ -1,65 +1,131 @@
 "use client";
 
-import { useState } from "react";
-import type { Product, ToastState } from "@/lib/types";
+import { useActionState, useState } from "react";
+import { createProduct, updateProduct } from "@/app/actions/produtos";
+import { createCategory } from "@/app/actions/categorias";
+import { formatCents } from "@/lib/utils";
+import type { StoreProduct, StoreCategory, ProductColor } from "@/lib/types";
 
-const BASE_CATEGORIES = ["Vestidos", "Blusas", "Calças", "Saias"];
+type FormState = { error: string } | null;
 
-export function useProdutoForm(product?: Product) {
-  const [photos, setPhotos] = useState<string[]>(
-    product ? [product.image] : []
+export function useProdutoForm(
+  categories: StoreCategory[],
+  maxPhotos: number,
+  product?: StoreProduct
+) {
+  const editing = !!product;
+  const boundAction = editing ? updateProduct : createProduct;
+
+  const [existingPhotos, setExistingPhotos] = useState<string[]>(
+    product?.images ?? []
   );
-  const [sizes, setSizes] = useState<string[]>(
-    product?.sizes ?? ["PP", "P", "M", "G"]
+  const [newPhotos, setNewPhotos] = useState<File[]>([]);
+  const [sizes, setSizes] = useState<string[]>(product?.sizes ?? ["PP", "P", "M", "G"]);
+  const [soldSizes, setSoldSizes] = useState<string[]>(product?.soldSizes ?? []);
+  const [colors, setColors] = useState<ProductColor[]>(product?.colors ?? []);
+  const [category, setCategory] = useState(product?.categoryId ?? "");
+  const [catList, setCatList] = useState<StoreCategory[]>(categories);
+  const [visible, setVisible] = useState(product?.isActive ?? true);
+  const [isNew, setIsNew] = useState(product?.isNew ?? false);
+  const [toast, setToast] = useState<{ msg: string; tone: "success" | "error" } | null>(
+    null
   );
-  const [colors, setColors] = useState<string[]>(
-    product?.colors.map((c) => c.label) ?? ["Areia", "Caramelo"]
-  );
-  const [category, setCategory] = useState(product?.category ?? "");
-  const [categories, setCategories] = useState<string[]>(BASE_CATEGORIES);
-  const [soldout, setSoldout] = useState(product?.soldOut ?? false);
-  const [visible, setVisible] = useState(product?.active ?? true);
-  const [toast, setToast] = useState<ToastState | null>(null);
   const [deleteModal, setDeleteModal] = useState(false);
   const [quickCat, setQuickCat] = useState(false);
   const [catDraft, setCatDraft] = useState("");
 
-  const flash = (msg: string, tone: ToastState["tone"] = "success") => {
+  const [state, formAction, pending] = useActionState<FormState, FormData>(
+    async (prev, formData) => {
+      if (editing && product) formData.set("id", product.id);
+      formData.set("existing_images", JSON.stringify(existingPhotos));
+      newPhotos.forEach((f) => formData.append("photos", f));
+      formData.set("sizes", JSON.stringify(sizes));
+      formData.set("soldSizes", JSON.stringify(soldSizes));
+      formData.set("colors", JSON.stringify(colors));
+      const selected = catList.find((c) => c.id === category || c.name === category);
+      formData.set("categoryId", selected && selected.id !== selected.name ? selected.id : "");
+      formData.set("isActive", String(visible));
+      formData.set("isNew", String(isNew));
+      return boundAction(prev, formData);
+    },
+    null
+  );
+
+  const totalPhotos = existingPhotos.length + newPhotos.length;
+  const photosFull = totalPhotos >= maxPhotos;
+
+  const flash = (msg: string, tone: "success" | "error" = "success") => {
     setToast({ msg, tone });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const createCategory = () => {
+  const addPhotos = (files: FileList | null) => {
+    if (!files) return;
+    const room = maxPhotos - totalPhotos;
+    if (room <= 0) {
+      flash(`Seu plano permite no máximo ${maxPhotos} fotos`, "error");
+      return;
+    }
+    setNewPhotos((prev) => [...prev, ...Array.from(files).slice(0, room)]);
+  };
+
+  const removeExisting = (url: string) =>
+    setExistingPhotos((prev) => prev.filter((u) => u !== url));
+  const removeNew = (idx: number) =>
+    setNewPhotos((prev) => prev.filter((_, i) => i !== idx));
+
+  const createCat = async () => {
     const v = catDraft.trim();
     if (!v) return;
-    if (categories.includes(v)) {
+    if (catList.some((c) => c.name === v)) {
       flash("Essa categoria já existe", "error");
-      setCategory(v);
       setQuickCat(false);
       setCatDraft("");
       return;
     }
-    setCategories((prev) => [...prev, v]);
+    const fd = new FormData();
+    fd.set("name", v);
+    const res = await createCategory(null, fd);
+    if (res && "error" in res) {
+      flash(res.error, "error");
+      return;
+    }
+    setCatList((prev) => [
+      ...prev,
+      { id: v, name: v, position: prev.length, productCount: 0 },
+    ]);
     setCategory(v);
     setQuickCat(false);
     setCatDraft("");
     flash("Categoria criada");
   };
 
+  const priceDefault = product ? formatCents(product.priceCents).replace("R$ ", "") : "";
+
   return {
-    photos,
-    setPhotos,
+    editing,
+    state,
+    formAction,
+    pending,
+    existingPhotos,
+    newPhotos,
+    photosFull,
+    addPhotos,
+    removeExisting,
+    removeNew,
     sizes,
     setSizes,
+    soldSizes,
+    setSoldSizes,
     colors,
     setColors,
     category,
     setCategory,
-    categories,
-    soldout,
-    setSoldout,
+    catList,
     visible,
     setVisible,
+    isNew,
+    setIsNew,
     toast,
     deleteModal,
     setDeleteModal,
@@ -67,7 +133,7 @@ export function useProdutoForm(product?: Product) {
     setQuickCat,
     catDraft,
     setCatDraft,
-    flash,
-    createCategory,
+    priceDefault,
+    createCat,
   };
 }
