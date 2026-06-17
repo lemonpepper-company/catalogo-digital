@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parsePrice, formatMoney, buildWhatsAppMessage, cn } from "@/lib/utils";
+import { parsePrice, formatMoney, buildWhatsAppMessage, cn, parseReaisToCents, formatCents } from "@/lib/utils";
 
 describe("parsePrice", () => {
   it("parses a Brazilian real price string", () => {
@@ -128,5 +128,33 @@ describe("cn", () => {
 
   it("returns empty string for all falsy", () => {
     expect(cn(false, null, undefined)).toBe("");
+  });
+});
+
+describe("parseReaisToCents", () => {
+  it("converte '289,90' em 28990", () => {
+    expect(parseReaisToCents("289,90")).toBe(28990);
+  });
+
+  it("aceita prefixo R$ e espaços", () => {
+    expect(parseReaisToCents("R$ 1.299,00")).toBe(129900);
+  });
+
+  it("trata inteiro sem centavos", () => {
+    expect(parseReaisToCents("50")).toBe(5000);
+  });
+
+  it("retorna NaN para entrada vazia", () => {
+    expect(Number.isNaN(parseReaisToCents(""))).toBe(true);
+  });
+});
+
+describe("formatCents", () => {
+  it("formata 28990 como 'R$ 289,90'", () => {
+    expect(formatCents(28990)).toBe("R$ 289,90");
+  });
+
+  it("formata 5000 como 'R$ 50,00'", () => {
+    expect(formatCents(5000)).toBe("R$ 50,00");
   });
 });
