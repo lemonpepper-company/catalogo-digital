@@ -34,7 +34,14 @@ Conectar as quatro telas do painel do lojista (Dashboard, Produtos, Categorias, 
 
 **Opção escolhida: Server Components (leitura) + Server Actions (escrita).**
 
-Cada `page.tsx` vira Server Component que busca dados via Supabase server client e passa como props para o Client component existente. Os hooks mantêm o estado de UI e os toasts, recebem os dados iniciais por prop e chamam Server Actions para mutações, usando `useTransition` + `router.refresh()` para re-buscar. RLS cuida da autorização; limites de plano são validados no servidor (autoritativo). Sem rotas de API.
+Cada `page.tsx` vira Server Component que busca dados via Supabase server client e passa como props para o Client component existente. Os hooks mantêm o estado de UI e os toasts, recebem os dados iniciais por prop e chamam Server Actions para mutações. RLS cuida da autorização; limites de plano são validados no servidor (autoritativo). Sem rotas de API para operações autenticadas.
+
+Segue as convenções já formalizadas em `docs/CONVENTIONS.md` e `docs/ARCHITECTURE.md` (após implementação de auth):
+- **Server Actions ficam em `app/actions/*.ts`** (diretório central, como o já existente `app/actions/auth.ts`) — não co-locadas na feature folder.
+- **Hooks de formulário usam `useActionState`** (nunca `useState` + fetch manual). A action retorna `{ error: string }` em falha e faz `redirect()` no sucesso quando o fluxo navega; para mutações que permanecem na mesma tela (toggle, delete, criação inline) usa `revalidatePath` e retorna estado para o toast.
+- **Validação com Zod v4**: `safeParse` + `result.error.issues[0].message` (não `.errors`).
+- **Toda action autenticada chama `supabase.auth.getUser()` no início** (nunca `getSession()`); usa anon key + RLS, jamais a `service_role` no cliente.
+- `useSearchParams()` exige `<Suspense>` no pai (relevante caso algum filtro de painel use query params).
 
 Mantém a convenção do projeto: páginas limpas, lógica nos hooks `use-*.ts`.
 
@@ -103,15 +110,16 @@ created_at  timestamptz default now()
 - `categorias/page.tsx` → categorias + contagem de produtos por categoria (group by).
 - `configuracoes/page.tsx` → settings da loja.
 
-### Server Actions (`"use server"`, com zod + enforcement + `revalidatePath`)
+### Server Actions (`"use server"`, em `app/actions/`, com zod + `getUser()` + enforcement)
 | Action | Arquivo |
 |---|---|
-| `createProduct` / `updateProduct` / `deleteProduct` / `toggleProductActive` | `produtos/actions.ts` |
-| `createCategory` / `renameCategory` / `deleteCategory` (guard de contagem) | `categorias/actions.ts` |
-| `updateStoreSettings` | `configuracoes/actions.ts` |
+| `createProduct` / `updateProduct` / `deleteProduct` / `toggleProductActive` | `app/actions/produtos.ts` |
+| `createCategory` / `renameCategory` / `deleteCategory` (guard de contagem) | `app/actions/categorias.ts` |
+| `updateStoreSettings` | `app/actions/store.ts` |
 
+- Cada action começa verificando `supabase.auth.getUser()` e resolvendo a loja (`getCurrentStore()`); valida o input com Zod v4 (`result.error.issues[0].message`).
 - Upload de fotos: o form envia arquivos; a action faz upload no Storage, monta o array `images`, persiste. No update remove do Storage as imagens descartadas. `deleteProduct` limpa as imagens do produto.
-- Toda action retorna `{ ok, error? }` para o hook tratar (toast/erro). Mutação → `router.refresh()`.
+- **Contrato de retorno (convenção do projeto):** falha → `{ error: string }`; sucesso → `redirect()` (fluxos que navegam, ex.: salvar produto) ou `revalidatePath(...)` + estado nulo/ok (mutações in-place, ex.: toggle/delete na lista, criação inline de categoria). Os hooks de formulário consomem isso via `useActionState`.
 
 ## 3. Limites de plano
 
@@ -127,7 +135,7 @@ getPlanLimits(plan, trialActive) → {
 - Regra: trial ativo (`plan = null` e `trial_ends_at` futuro) ou `plan = "pro"` → limites Pro; `starter` → limites Starter.
 
 ### Enforcement
-1. **Servidor (autoritativo):** `createProduct` / `createCategory` / upload de foto checam limite antes de inserir; estouro → `{ ok:false, error:"limit" }`.
+1. **Servidor (autoritativo):** `createProduct` / `createCategory` / upload de foto checam limite antes de inserir; estouro → `{ error: "..." }` com a mensagem de upgrade.
 2. **UI (preventiva):** página recebe `count` + `limit`; ao atingir:
    - Produtos: botão "Novo produto" desabilitado + mensagem de upgrade.
    - Categorias: mesmo tratamento no "Nova categoria".
@@ -138,9 +146,9 @@ Quem cadastrou >30 produtos no trial e escolher Starter: nesta rodada o enforcem
 
 ## 4. Wiring das telas
 
-Padrão: `page.tsx` busca → props → Client component → hook recebe `initial*`, mantém UI/toasts, chama actions com `useTransition` + `router.refresh()`. `lib/data.ts` não é mais importado pelo painel (segue no catálogo).
+Padrão: `page.tsx` busca → props → Client component → hook recebe `initial*`, mantém UI/toasts, e dispara mutações via Server Actions. Hooks de formulário (form de produto, configurações) usam `useActionState`; mutações in-place (toggle, delete, criação inline) chamam a action e contam com `revalidatePath` para re-buscar. `lib/data.ts` não é mais importado pelo painel (segue no catálogo).
 
-- **Dashboard** (`use-dashboard`): contagens reais; link do catálogo montado de `slug` + base URL; copiar link. Banner de trial já real no `layout.tsx`.
+- **Dashboard** (`use-dashboard`): contagens reais; link do catálogo montado de `slug` + `NEXT_PUBLIC_SITE_URL`; copiar link. Banner de trial já real no `layout.tsx`.
 - **Produtos** (`use-produtos`): lista por prop; `toggleActive`/`removeProduct` viram actions; badge de limite; estado vazio.
 - **Form de produto** (`use-produto-form`): create/edit reais; upload pro Storage (respeita `maxPhotos`); sizes/cores/categoria com criação inline (`createCategory`); stock, visibilidade, esgotado; salvar/excluir via action; preço com máscara → cents.
 - **Categorias** (`use-categorias`): lista + contagem reais; create/rename via action; delete bloqueado quando `count > 0` (UI avisa; banco garante com `restrict`).
