@@ -186,6 +186,14 @@ export async function selectPlan(plan: 'starter' | 'pro'): Promise<never> {
 
   if (!user) redirect('/login')
 
+  const { data: store } = await supabase
+    .from('stores')
+    .select('id')
+    .eq('owner_id', user.id)
+    .maybeSingle()
+
+  if (!store) redirect('/cadastro?step=loja')
+
   const { error } = await supabase
     .from('stores')
     .update({ plan })

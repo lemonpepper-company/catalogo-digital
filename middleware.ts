@@ -50,7 +50,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Painel: exige sessão e plano definido
+  // Painel: exige sessão, loja criada e plano definido
   if (pathname.startsWith('/painel')) {
     if (!user) {
       const url = request.nextUrl.clone()
@@ -65,12 +65,15 @@ export async function middleware(request: NextRequest) {
       .eq('owner_id', user.id)
       .maybeSingle()
 
-    if (!store?.plan) {
+    if (!store) {
+      return NextResponse.redirect(new URL('/cadastro?step=loja', request.url))
+    }
+    if (!store.plan) {
       return NextResponse.redirect(new URL('/escolha-de-plano', request.url))
     }
   }
 
-  // Escolha de plano: exige sessão; redireciona se já tem plano
+  // Escolha de plano: exige sessão e loja criada; redireciona se já tem plano
   if (pathname === '/escolha-de-plano') {
     if (!user) {
       return NextResponse.redirect(new URL('/login', request.url))
@@ -82,7 +85,10 @@ export async function middleware(request: NextRequest) {
       .eq('owner_id', user.id)
       .maybeSingle()
 
-    if (store?.plan) {
+    if (!store) {
+      return NextResponse.redirect(new URL('/cadastro?step=loja', request.url))
+    }
+    if (store.plan) {
       return NextResponse.redirect(new URL('/painel', request.url))
     }
   }
