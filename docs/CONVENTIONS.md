@@ -14,18 +14,70 @@
 
 - Arquivos de page devem ser limpos — **sem lógica**: nenhum `useState`, `useEffect`, fetch, handler, formatação ou cálculo
 - Responsabilidade única: composição de layout e passagem de props estáticas para componentes filhos
-- Toda lógica de estado, efeitos colaterais e derivações vai em **custom hooks** (`hooks/use-*.ts` ou co-locado no feature folder)
+- Toda lógica de estado, efeitos colaterais e derivações vai em **custom hooks** (`use-*.ts` co-locado na feature folder)
 
 ## Custom Hooks
 
 - Isolar em hooks toda lógica reutilizável ou que envolva estado, efeitos, fetching ou derivações
-- Nomear com prefixo `use-` (ex: `use-product-list.ts`, `use-checkout.ts`)
+- Nomear com prefixo `use-` (ex: `use-produto-form.ts`, `use-cadastro-form.ts`)
 - Um hook por arquivo; não agrupar hooks não relacionados
+- Hooks de formulário com Server Action usam `useActionState` — nunca `useState` + `fetch` manual
+
+## Server Actions (`app/actions/*.ts`)
+
+- Toda mutação de dados passa por Server Action — nunca Route Handler para operações autenticadas
+- Sempre validar com **Zod** antes de tocar no banco; retornar `{ error: string }` em caso de falha
+- Zod v4: usar `.error.issues[0].message` (não `.errors`)
+- Verificar sessão com `supabase.auth.getUser()` no início de toda action que exige autenticação
+- `redirect()` ao final de actions que concluem com sucesso — nunca retornar a URL para o cliente redirecionar
+- Não usar `try/catch` em volta de `redirect()` — ele lança internamente por design
+
+```ts
+// Padrão de Server Action
+'use server'
+export async function createFoo(prev: State, formData: FormData): Promise<State> {
+  const result = schema.safeParse(Object.fromEntries(formData))
+  if (!result.success) return { error: result.error.issues[0].message }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  const { error } = await supabase.from('tabela').insert({ ...result.data })
+  if (error) return { error: 'Mensagem amigável.' }
+
+  redirect('/destino')
+}
+```
+
+## Hooks de formulário com Server Action
+
+```ts
+// use-foo-form.ts — co-locado na feature folder
+'use client'
+import { useActionState } from 'react'
+import { createFoo } from '@/app/actions/foo'
+
+type FormState = { error: string } | null
+
+export function useFooForm() {
+  const [state, action, pending] = useActionState<FormState, FormData>(createFoo, null)
+  return { state, action, pending }
+}
+```
 
 ## Componentes
 
 - Server Components por padrão; `"use client"` apenas onde há interatividade
 - Sem comentários no código exceto para lógica não-óbvia
+- `useSearchParams()` requer `<Suspense>` no componente pai — sempre extrair para filho quando necessário
+
+## Supabase
+
+- **Client-side**: `createBrowserClient` via `lib/supabase/client.ts`
+- **Server-side**: `createServerClient` via `lib/supabase/server.ts` (cookies httpOnly)
+- Nunca usar `supabase.auth.getSession()` para verificar autenticação — usar `getUser()` (valida o JWT no servidor)
+- Operações autenticadas usam a **anon key** + RLS; nunca expor a `service_role` key no cliente
 
 ## Estilos
 
@@ -37,7 +89,9 @@
 ## Stack
 
 - Next.js 16 App Router (Turbopack), React 19, TypeScript strict, Tailwind CSS v3
+- Supabase Auth com `@supabase/ssr ^0.12` para sessão via cookies
+- Zod v4 para validação em Server Actions
+- Vitest + Testing Library para testes unitários
 - Node.js 20.9+
 - Sem CSS Modules, sem styled-components
 - Lucide React para ícones (outline, ~2px stroke)
-- Vitest + Testing Library para testes unitários
