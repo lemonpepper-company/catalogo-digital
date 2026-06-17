@@ -8,21 +8,27 @@ import { Card } from "@/components/ui/Card";
 import { Switch } from "@/components/ui/Switch";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
-import { cn } from "@/lib/utils";
+import { cn, formatCents } from "@/lib/utils";
+import type { StoreProduct } from "@/lib/types";
 import { useProdutos } from "./use-produtos";
 
-export function ProdutosClient() {
+interface ProdutosClientProps {
+  products: StoreProduct[];
+  maxProducts: number;
+}
+
+export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
   const {
-    products,
     confirm,
     setConfirm,
     toast,
     active,
     soldOut,
     inactive,
+    limitReached,
     toggleActive,
     removeProduct,
-  } = useProdutos();
+  } = useProdutos(products, maxProducts);
 
   return (
     <div className="flex flex-col gap-6 max-w-content">
@@ -34,15 +40,22 @@ export function ProdutosClient() {
           <p className="font-body text-[15px] text-graphite mt-1.5">
             {products.length}{" "}
             {products.length === 1 ? "produto cadastrado" : "produtos cadastrados"}
+            {Number.isFinite(maxProducts) ? ` · limite ${maxProducts}` : ""}
           </p>
         </div>
-        <Link
-          href="/painel/produtos/novo"
-          className="inline-flex items-center gap-2 h-11 px-6 rounded-btn bg-obsidian text-white font-display font-medium text-[15px] hover:bg-[#1f1f1f] transition-colors"
-        >
-          <Plus size={18} />
-          Novo produto
-        </Link>
+        {limitReached ? (
+          <span className="inline-flex items-center h-11 px-6 rounded-btn bg-linen text-graphite font-display font-medium text-[15px] cursor-not-allowed">
+            Limite atingido — faça upgrade
+          </span>
+        ) : (
+          <Link
+            href="/painel/produtos/novo"
+            className="inline-flex items-center gap-2 h-11 px-6 rounded-btn bg-obsidian text-white font-display font-medium text-[15px] hover:bg-[#1f1f1f] transition-colors"
+          >
+            <Plus size={18} />
+            Novo produto
+          </Link>
+        )}
       </div>
 
       {products.length === 0 ? (
@@ -103,10 +116,11 @@ export function ProdutosClient() {
             </div>
 
             {products.map((p, i) => {
-              const isSoldOut = p.soldOut || p.stock === 0;
-              const stockTone = isSoldOut || (p.stock ?? 99) <= 5
-                ? "text-soldout font-semibold"
-                : "text-graphite";
+              const isSoldOut = p.stock === 0;
+              const stockTone =
+                isSoldOut || p.stock <= 5
+                  ? "text-soldout font-semibold"
+                  : "text-graphite";
               return (
                 <div
                   key={p.id}
@@ -118,22 +132,24 @@ export function ProdutosClient() {
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     <div
                       className="relative w-[52px] h-16 rounded-[8px] overflow-hidden bg-linen flex-shrink-0"
-                      style={{ opacity: p.active ? 1 : 0.5 }}
+                      style={{ opacity: p.isActive ? 1 : 0.5 }}
                     >
-                      <Image
-                        src={p.image}
-                        alt={p.name}
-                        fill
-                        sizes="52px"
-                        className="object-cover"
-                      />
+                      {p.images[0] && (
+                        <Image
+                          src={p.images[0]}
+                          alt={p.name}
+                          fill
+                          sizes="52px"
+                          className="object-cover"
+                        />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <div className="font-display font-medium text-[15px] text-obsidian truncate">
                         {p.name}
                       </div>
                       <div className="font-body text-[13px] text-graphite mt-0.5">
-                        {p.category} · {p.price}
+                        {formatCents(p.priceCents)}
                       </div>
                     </div>
                   </div>
@@ -146,16 +162,16 @@ export function ProdutosClient() {
 
                   <div className="w-[140px] flex-shrink-0 flex items-center gap-2.5">
                     <Switch
-                      checked={p.active ?? true}
-                      onChange={() => toggleActive(p.id)}
+                      checked={p.isActive}
+                      onChange={() => toggleActive(p)}
                     />
                     <span
                       className={cn(
                         "font-body text-[13px]",
-                        p.active ? "text-success" : "text-inactive"
+                        p.isActive ? "text-success" : "text-inactive"
                       )}
                     >
-                      {p.active ? "Ativo" : "Inativo"}
+                      {p.isActive ? "Ativo" : "Inativo"}
                     </span>
                   </div>
 
