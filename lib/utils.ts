@@ -39,3 +39,18 @@ export function buildWhatsAppMessage(
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
 }
+
+export function parseReaisToCents(input: string): number {
+  const cleaned = input.replace(/R\$\s*/, "").replace(/\./g, "").trim();
+  if (cleaned === "") return NaN;
+  const normalized = cleaned.includes(",")
+    ? cleaned.replace(",", ".")
+    : cleaned;
+  const reais = parseFloat(normalized);
+  if (Number.isNaN(reais)) return NaN;
+  return Math.round(reais * 100);
+}
+
+export function formatCents(cents: number): string {
+  return `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
+}
