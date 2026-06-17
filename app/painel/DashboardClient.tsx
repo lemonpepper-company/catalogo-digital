@@ -7,19 +7,30 @@ import { Button } from "@/components/ui/Button";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card } from "@/components/ui/Card";
 import { Toast } from "@/components/ui/Toast";
-import { PRODUCTS } from "@/lib/data";
+import { formatCents } from "@/lib/utils";
+import type { StoreProduct } from "@/lib/types";
 import { useDashboard } from "./use-dashboard";
 
-export function DashboardClient() {
-  const { copied, toast, handleCopy, activeProducts, soldOutProducts, recent, store } =
-    useDashboard();
+interface DashboardClientProps {
+  products: StoreProduct[];
+  storeName: string;
+  catalogUrl: string;
+}
+
+export function DashboardClient({
+  products,
+  storeName,
+  catalogUrl,
+}: DashboardClientProps) {
+  const { copied, toast, handleCopy, activeProducts, soldOutProducts, recent, total } =
+    useDashboard(products, catalogUrl);
 
   return (
     <div className="flex flex-col gap-6 max-w-content">
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="font-display font-semibold text-[28px] text-obsidian">
-            Olá, Mira
+            Olá, {storeName}
           </h1>
           <p className="font-body text-[15px] text-graphite mt-1.5">
             Aqui está um resumo da sua loja hoje.
@@ -41,7 +52,7 @@ export function DashboardClient() {
           label="Produtos esgotados"
           tone="soldout"
         />
-        <StatCard value={PRODUCTS.length} label="Produtos no catálogo" />
+        <StatCard value={total} label="Produtos no catálogo" />
       </div>
 
       <Card>
@@ -51,14 +62,14 @@ export function DashboardClient() {
               Link do catálogo
             </div>
             <div className="font-display font-medium text-[18px] text-obsidian mt-1.5">
-              {store.catalogUrl}
+              {catalogUrl}
             </div>
           </div>
           <div className="flex gap-2.5">
             <Button
               variant="ghost"
               iconLeft={<ExternalLink size={18} />}
-              onClick={() => window.open(`https://${store.catalogUrl}`, "_blank")}
+              onClick={() => window.open(catalogUrl, "_blank")}
             >
               Abrir
             </Button>
@@ -66,11 +77,7 @@ export function DashboardClient() {
               variant="primary"
               onClick={handleCopy}
               iconLeft={
-                copied ? (
-                  <Check size={18} className="text-gold" />
-                ) : (
-                  <Copy size={18} />
-                )
+                copied ? <Check size={18} className="text-gold" /> : <Copy size={18} />
               }
             >
               {copied ? "Link copiado" : "Copiar link"}
@@ -92,42 +99,50 @@ export function DashboardClient() {
           </Link>
         </div>
         <Card pad={0} className="overflow-hidden">
-          {recent.map((p, i) => (
-            <Link
-              key={p.id}
-              href={`/painel/produtos/${p.id}`}
-              className="flex items-center gap-4 px-5 py-3.5 hover:bg-linen/50 transition-colors"
-              style={{ borderTop: i > 0 ? "0.5px solid var(--color-border)" : "none" }}
-            >
-              <div className="relative w-12 h-12 rounded-[8px] overflow-hidden bg-linen flex-shrink-0">
-                <Image
-                  src={p.image}
-                  alt={p.name}
-                  fill
-                  sizes="48px"
-                  className="object-cover"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-display font-medium text-[15px] text-obsidian truncate">
-                  {p.name}
+          {recent.length === 0 ? (
+            <div className="px-5 py-10 text-center font-body text-[15px] text-graphite">
+              Nenhum produto cadastrado ainda.
+            </div>
+          ) : (
+            recent.map((p, i) => (
+              <Link
+                key={p.id}
+                href={`/painel/produtos/${p.id}`}
+                className="flex items-center gap-4 px-5 py-3.5 hover:bg-linen/50 transition-colors"
+                style={{ borderTop: i > 0 ? "0.5px solid var(--color-border)" : "none" }}
+              >
+                <div className="relative w-12 h-12 rounded-[8px] overflow-hidden bg-linen flex-shrink-0">
+                  {p.images[0] && (
+                    <Image
+                      src={p.images[0]}
+                      alt={p.name}
+                      fill
+                      sizes="48px"
+                      className="object-cover"
+                    />
+                  )}
                 </div>
-                <div className="font-body text-[13px] text-graphite mt-0.5">
-                  {p.category} · {p.price}
+                <div className="flex-1 min-w-0">
+                  <div className="font-display font-medium text-[15px] text-obsidian truncate">
+                    {p.name}
+                  </div>
+                  <div className="font-body text-[13px] text-graphite mt-0.5">
+                    {formatCents(p.priceCents)}
+                  </div>
                 </div>
-              </div>
-              {p.soldOut || p.stock === 0 ? (
-                <span className="inline-flex h-[22px] items-center px-2.5 rounded-pill bg-soldout text-white font-body font-medium text-[11px] tracking-[0.06em] uppercase">
-                  Esgotado
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 font-body text-[13px] text-success">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                  Ativo
-                </span>
-              )}
-            </Link>
-          ))}
+                {p.stock === 0 ? (
+                  <span className="inline-flex h-[22px] items-center px-2.5 rounded-pill bg-soldout text-white font-body font-medium text-[11px] tracking-[0.06em] uppercase">
+                    Esgotado
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 font-body text-[13px] text-success">
+                    <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                    Ativo
+                  </span>
+                )}
+              </Link>
+            ))
+          )}
         </Card>
       </div>
 
