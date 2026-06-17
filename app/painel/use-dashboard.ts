@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { PRODUCTS, STORE } from "@/lib/data";
+import type { StoreProduct } from "@/lib/types";
 
-export function useDashboard() {
+export function useDashboard(products: StoreProduct[], catalogUrl: string) {
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -13,17 +13,15 @@ export function useDashboard() {
   };
 
   const handleCopy = () => {
-    navigator.clipboard
-      ?.writeText(`https://${STORE.catalogUrl}`)
-      .catch(() => {});
+    navigator.clipboard?.writeText(catalogUrl).catch(() => {});
     setCopied(true);
     flash("Link copiado");
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const activeProducts = PRODUCTS.filter((p) => p.active && !p.soldOut);
-  const soldOutProducts = PRODUCTS.filter((p) => p.soldOut || p.stock === 0);
-  const recent = PRODUCTS.slice(0, 4);
+  const activeProducts = products.filter((p) => p.isActive && p.stock > 0);
+  const soldOutProducts = products.filter((p) => p.stock === 0);
+  const recent = products.slice(0, 4);
 
   return {
     copied,
@@ -32,6 +30,6 @@ export function useDashboard() {
     activeProducts,
     soldOutProducts,
     recent,
-    store: STORE,
+    total: products.length,
   };
 }
