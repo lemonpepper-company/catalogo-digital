@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { Mail, ArrowLeft } from 'lucide-react'
 import { useActionState } from 'react'
@@ -8,7 +9,7 @@ import { resendConfirmation } from '@/app/actions/auth'
 
 type ResendState = { sent: boolean } | null
 
-export default function VerificarEmailPage() {
+function ResendForm() {
   const searchParams = useSearchParams()
   const email = searchParams.get('email') ?? ''
 
@@ -17,6 +18,25 @@ export default function VerificarEmailPage() {
     null
   )
 
+  return state?.sent ? (
+    <p className="font-body text-[13px] text-green-700 bg-green-50 border border-green-200 rounded-input px-4 py-3">
+      E-mail reenviado! Verifique sua caixa de entrada.
+    </p>
+  ) : (
+    <form action={action}>
+      <input type="hidden" name="email" value={email} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="font-body text-[13px] text-graphite hover:text-obsidian transition-colors disabled:opacity-60"
+      >
+        {pending ? 'Enviando…' : 'Não recebeu? Reenviar e-mail'}
+      </button>
+    </form>
+  )
+}
+
+export default function VerificarEmailPage() {
   return (
     <div className="min-h-screen bg-ivory flex items-center justify-center px-8">
       <div className="w-full max-w-[420px]">
@@ -45,22 +65,9 @@ export default function VerificarEmailPage() {
             ativar sua conta e escolher seu plano.
           </p>
 
-          {state?.sent ? (
-            <p className="font-body text-[13px] text-green-700 bg-green-50 border border-green-200 rounded-input px-4 py-3">
-              E-mail reenviado! Verifique sua caixa de entrada.
-            </p>
-          ) : (
-            <form action={action}>
-              <input type="hidden" name="email" value={email} />
-              <button
-                type="submit"
-                disabled={pending}
-                className="font-body text-[13px] text-graphite hover:text-obsidian transition-colors disabled:opacity-60"
-              >
-                {pending ? 'Enviando…' : 'Não recebeu? Reenviar e-mail'}
-              </button>
-            </form>
-          )}
+          <Suspense>
+            <ResendForm />
+          </Suspense>
         </div>
 
         <div className="flex justify-center mt-7">
