@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Toast } from "@/components/ui/Toast";
-import { STORE, ACCENT_COLOR_OPTIONS } from "@/lib/data";
+import { ACCENT_COLOR_OPTIONS } from "@/lib/data";
+import type { StoreSettings } from "@/lib/types";
 import { useConfiguracoes, MSG_VARS } from "./use-configuracoes";
 
 const MSG_MOCK = {
@@ -39,21 +40,11 @@ function WhatsPreviewText({ text }: { text: string }) {
   );
 }
 
-export function ConfiguracoesClient() {
-  const {
-    accent,
-    setAccent,
-    msgTpl,
-    setMsgTpl,
-    toast,
-    textareaRef,
-    insertToken,
-    resetTemplate,
-    flash,
-  } = useConfiguracoes();
+export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
+  const f = useConfiguracoes(settings);
 
   return (
-    <div className="max-w-form flex flex-col gap-5">
+    <form action={f.formAction} className="max-w-form flex flex-col gap-5">
       <h1 className="font-display font-semibold text-[28px] text-obsidian">
         Configurações da loja
       </h1>
@@ -67,21 +58,41 @@ export function ConfiguracoesClient() {
             className="w-[72px] h-[72px] rounded-full text-white flex items-center justify-center font-display font-semibold text-[26px] flex-shrink-0"
             style={{ background: "var(--color-primary)" }}
           >
-            {STORE.monogram}
+            {settings.monogram ?? settings.name.slice(0, 2).toUpperCase()}
           </div>
-          <Button variant="ghost" iconLeft={<Upload size={18} />}>
-            Enviar logo
-          </Button>
+          <label className="inline-flex items-center gap-2 h-11 px-5 rounded-btn border border-sand bg-transparent text-obsidian font-display font-medium text-[15px] cursor-pointer hover:bg-surface-hover transition-colors">
+            <Upload size={18} />
+            {f.logo ? f.logo.name : "Enviar logo"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => f.setLogo(e.target.files?.[0] ?? null)}
+            />
+          </label>
         </div>
         <div className="grid grid-cols-2 gap-[18px]">
-          <Input label="Nome da loja" defaultValue={STORE.name} />
+          <Input name="name" label="Nome da loja" defaultValue={settings.name} />
           <Input
+            name="whatsapp"
             label="WhatsApp para pedidos"
             prefix="+55"
-            defaultValue="11 99999-0000"
+            defaultValue={settings.whatsapp ?? ""}
           />
+          <Input
+            name="monogram"
+            label="Monograma (até 3 letras)"
+            defaultValue={settings.monogram ?? ""}
+            placeholder="Ex: MR"
+            maxLength={3}
+          />
+          <div className="col-span-1" />
           <div className="col-span-2">
-            <Input label="Descrição curta" defaultValue={STORE.description} />
+            <Input
+              name="description"
+              label="Descrição curta"
+              defaultValue={settings.description ?? ""}
+            />
           </div>
         </div>
       </Card>
@@ -97,17 +108,18 @@ export function ConfiguracoesClient() {
           {ACCENT_COLOR_OPTIONS.map((c) => (
             <button
               key={c}
-              onClick={() => setAccent(c)}
+              type="button"
+              onClick={() => f.setAccent(c)}
               aria-label={c}
               className="w-10 h-10 rounded-full transition-all duration-200"
               style={{
                 background: c,
                 border:
-                  accent === c
+                  f.accent === c
                     ? "2px solid var(--color-primary)"
                     : "1px solid var(--color-border)",
-                outline: accent === c ? "2px solid var(--color-bg)" : "none",
-                outlineOffset: accent === c ? "-4px" : "0",
+                outline: f.accent === c ? "2px solid var(--color-bg)" : "none",
+                outlineOffset: f.accent === c ? "-4px" : "0",
                 boxSizing: "border-box",
               }}
             />
@@ -116,7 +128,7 @@ export function ConfiguracoesClient() {
         <div className="flex items-center gap-3">
           <span
             className="inline-flex h-11 items-center px-[22px] rounded-btn font-display font-medium text-[15px] text-white"
-            style={{ background: accent }}
+            style={{ background: f.accent }}
           >
             Comprar via WhatsApp
           </span>
@@ -136,9 +148,9 @@ export function ConfiguracoesClient() {
         <div className="grid grid-cols-2 gap-6 items-start">
           <div className="flex flex-col gap-3">
             <textarea
-              ref={textareaRef}
-              value={msgTpl}
-              onChange={(e) => setMsgTpl(e.target.value)}
+              ref={f.textareaRef}
+              value={f.msgTpl}
+              onChange={(e) => f.setMsgTpl(e.target.value)}
               rows={11}
               className="w-full px-3.5 py-3 bg-white border border-sand rounded-input font-mono text-[13px] leading-relaxed text-obsidian outline-none focus:border-obsidian resize-y"
             />
@@ -147,7 +159,7 @@ export function ConfiguracoesClient() {
                 <button
                   key={v.token}
                   type="button"
-                  onClick={() => insertToken(v.token)}
+                  onClick={() => f.insertToken(v.token)}
                   title={`Inserir ${v.desc}`}
                   className="inline-flex items-center gap-1.5 h-[30px] px-3 rounded-pill border border-sand bg-linen font-mono text-[12.5px] text-obsidian hover:bg-surface-hover transition-colors cursor-pointer"
                 >
@@ -157,7 +169,7 @@ export function ConfiguracoesClient() {
               ))}
             </div>
             <div>
-              <Button variant="ghost" size="sm" onClick={resetTemplate}>
+              <Button type="button" variant="ghost" size="sm" onClick={f.resetTemplate}>
                 Restaurar padrão
               </Button>
             </div>
@@ -167,7 +179,7 @@ export function ConfiguracoesClient() {
               Pré-visualização
             </span>
             <div className="bg-linen border border-sand/50 rounded-card p-4 font-mono text-[12.5px] leading-relaxed text-graphite whitespace-pre-wrap break-words">
-              <WhatsPreviewText text={renderTemplate(msgTpl)} />
+              <WhatsPreviewText text={renderTemplate(f.msgTpl)} />
             </div>
           </div>
         </div>
@@ -179,26 +191,32 @@ export function ConfiguracoesClient() {
         </h2>
         <div className="grid grid-cols-2 gap-[18px]">
           <Input
+            name="analyticsId"
             label="Google Analytics ID"
             hint="Ex: G-XXXXXXXXXX"
             placeholder="G-XXXXXXXXXX"
+            defaultValue={settings.analyticsId ?? ""}
           />
           <Input
+            name="pixelId"
             label="Facebook Pixel ID"
             hint="Apenas números"
             placeholder="000000000000000"
+            defaultValue={settings.pixelId ?? ""}
           />
         </div>
       </Card>
 
       <div className="flex justify-end gap-3 pb-6">
-        <Button variant="ghost">Cancelar</Button>
-        <Button variant="primary" onClick={() => flash("Configurações salvas")}>
-          Salvar alterações
+        <Button type="button" variant="ghost" onClick={() => history.back()}>
+          Cancelar
+        </Button>
+        <Button type="submit" variant="primary" disabled={f.pending}>
+          {f.pending ? "Salvando…" : "Salvar configurações"}
         </Button>
       </div>
 
-      {toast && <Toast msg={toast.msg} tone={toast.tone} />}
-    </div>
+      {f.toast && <Toast msg={f.toast.msg} tone={f.toast.tone} />}
+    </form>
   );
 }

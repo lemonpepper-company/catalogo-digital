@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { STORE } from "@/lib/data";
-import type { ToastState } from "@/lib/types";
+import { useActionState, useState, useRef } from "react";
+import { updateStoreSettings } from "@/app/actions/store";
+import type { StoreSettings, ToastState } from "@/lib/types";
 
 export const MSG_DEFAULT = `{saudacao}\n\n{itens}\n\n━━━━━━━━━━━━━━━━━\n*Total: {total}*\n━━━━━━━━━━━━━━━━━`;
 
@@ -12,11 +12,27 @@ export const MSG_VARS = [
   { token: "{total}", desc: "valor total do pedido" },
 ];
 
-export function useConfiguracoes() {
-  const [accent, setAccent] = useState(STORE.accentColor);
-  const [msgTpl, setMsgTpl] = useState(MSG_DEFAULT);
+type State = { error: string } | { ok: true } | null;
+
+export function useConfiguracoes(settings: StoreSettings) {
+  const [accent, setAccent] = useState(settings.accentColor);
+  const [msgTpl, setMsgTpl] = useState(settings.messageTemplate ?? MSG_DEFAULT);
+  const [logo, setLogo] = useState<File | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [state, formAction, pending] = useActionState<State, FormData>(
+    async (prev, formData) => {
+      formData.set("accentColor", accent);
+      formData.set("messageTemplate", msgTpl);
+      if (logo) formData.set("logo", logo);
+      const res = await updateStoreSettings(prev, formData);
+      if (res && "ok" in res) flash("Configurações salvas");
+      if (res && "error" in res) flash(res.error, "error");
+      return res;
+    },
+    null
+  );
 
   const flash = (msg: string, tone: ToastState["tone"] = "success") => {
     setToast({ msg, tone });
@@ -44,13 +60,18 @@ export function useConfiguracoes() {
   };
 
   return {
+    settings,
     accent,
     setAccent,
     msgTpl,
     setMsgTpl,
+    logo,
+    setLogo,
+    state,
+    formAction,
+    pending,
     toast,
     textareaRef,
-    flash,
     insertToken,
     resetTemplate,
   };
