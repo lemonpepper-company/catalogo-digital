@@ -1,13 +1,16 @@
 import { createServerClient } from '@supabase/ssr'
+import type { EmailOtpType, User } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const token_hash = searchParams.get('token_hash')
+  const type = searchParams.get('type')
   const next = searchParams.get('next')
 
-  if (!code) {
+  if (!code && !token_hash) {
     return NextResponse.redirect(`${origin}/login?error=auth`)
   }
 
@@ -30,12 +33,27 @@ export async function GET(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.exchangeCodeForSession(code)
+  let user: User | null = null
 
-  if (error || !user) {
+  if (code) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error || !data.user) {
+      return NextResponse.redirect(`${origin}/login?error=auth`)
+    }
+    user = data.user
+  } else if (token_hash && type) {
+    // Fluxo OTP: confirmação de e-mail ou redefinição de senha via token_hash
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash,
+      type: type as EmailOtpType,
+    })
+    if (error || !data.user) {
+      return NextResponse.redirect(`${origin}/login?error=auth`)
+    }
+    user = data.user
+  }
+
+  if (!user) {
     return NextResponse.redirect(`${origin}/login?error=auth`)
   }
 
