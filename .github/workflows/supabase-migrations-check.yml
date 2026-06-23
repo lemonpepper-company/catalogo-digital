@@ -1,0 +1,32 @@
+name: Validate Supabase Migrations
+
+# Guard de PR: sobe um Supabase local do zero e aplica todas as migrations.
+# Se alguma migration tiver SQL inválido ou ordem errada, o `supabase start`
+# falha e o PR fica vermelho — pegamos o erro antes do merge na main.
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase (applies all migrations to a fresh local DB)
+        run: supabase start
+
+      - name: Lint database schema
+        run: supabase db lint --level warning
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --no-backup
