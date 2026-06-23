@@ -79,18 +79,18 @@ create policy "product-images: owner insert" on storage.objects for insert to au
     bucket_id = 'product-images'
     and exists (
       select 1 from public.stores s
-      where s.id::text = (storage.foldername(name))[1] and s.owner_id = auth.uid()));
+      where s.id::text = (storage.foldername(objects.name))[1] and s.owner_id = auth.uid()));
 
 create policy "product-images: owner update" on storage.objects for update to authenticated
   using (
     bucket_id = 'product-images'
     and exists (
       select 1 from public.stores s
-      where s.id::text = (storage.foldername(name))[1] and s.owner_id = auth.uid()));
+      where s.id::text = (storage.foldername(objects.name))[1] and s.owner_id = auth.uid()));
 
 create policy "product-images: owner delete" on storage.objects for delete to authenticated
   using (
     bucket_id = 'product-images'
     and exists (
       select 1 from public.stores s
-      where s.id::text = (storage.foldername(name))[1] and s.owner_id = auth.uid()));
+      where s.id::text = (storage.foldername(objects.name))[1] and s.owner_id = auth.uid()));
