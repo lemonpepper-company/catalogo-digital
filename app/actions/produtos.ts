@@ -7,38 +7,13 @@ import { getCurrentStore } from "@/lib/server/store";
 import { getPlanLimits, isTrialActive } from "@/lib/plan-limits";
 import { productSchema } from "@/lib/validation/painel";
 import { parseReaisToCents } from "@/lib/utils";
+import { uploadPhotos, publicUrlToPath } from "@/lib/server/upload";
 import type { ProductColor } from "@/lib/types";
 
 const BUCKET = "product-images";
 
 export type ProductActionState = { error: string } | null;
 export type ToggleActionState = { error: string } | { ok: true } | null;
-
-function publicUrlToPath(url: string): string | null {
-  const marker = `/${BUCKET}/`;
-  const i = url.indexOf(marker);
-  return i === -1 ? null : url.slice(i + marker.length);
-}
-
-async function uploadPhotos(
-  storeId: string,
-  files: File[]
-): Promise<string[]> {
-  const supabase = await createClient();
-  const urls: string[] = [];
-  for (const file of files) {
-    if (!file || file.size === 0) continue;
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `${storeId}/${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, file, { contentType: file.type });
-    if (error) throw new Error("Falha no upload da foto.");
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-    urls.push(data.publicUrl);
-  }
-  return urls;
-}
 
 function parseFormProduct(formData: FormData) {
   const priceCents = parseReaisToCents((formData.get("price") as string) ?? "");
@@ -105,7 +80,7 @@ export async function createProduct(
 
   let images: string[];
   try {
-    images = await uploadPhotos(store.id, realFiles);
+    images = await uploadPhotos(supabase, store.id, realFiles);
   } catch {
     return { error: "Falha no upload das fotos. Tente novamente." };
   }
@@ -171,7 +146,7 @@ export async function updateProduct(
 
   let uploaded: string[];
   try {
-    uploaded = await uploadPhotos(store.id, files);
+    uploaded = await uploadPhotos(supabase, store.id, files);
   } catch {
     return { error: "Falha no upload das fotos. Tente novamente." };
   }

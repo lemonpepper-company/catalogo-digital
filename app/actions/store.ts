@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
 import { storeSettingsSchema } from "@/lib/validation/painel";
-
-const BUCKET = "product-images";
+import { uploadToBucket } from "@/lib/server/upload";
 
 export type StoreActionState = { error: string } | { ok: true } | null;
 
@@ -39,11 +38,11 @@ export async function updateStoreSettings(
   if (logo && logo.size > 0) {
     const ext = logo.name.split(".").pop() || "png";
     const path = `${store.id}/logo/${crypto.randomUUID()}.${ext}`;
-    const { error: upErr } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, logo, { contentType: logo.type });
-    if (upErr) return { error: "Falha no upload do logo." };
-    logoUrl = supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+    try {
+      logoUrl = await uploadToBucket(supabase, path, logo);
+    } catch {
+      return { error: "Falha no upload do logo." };
+    }
   }
 
   const { error } = await supabase

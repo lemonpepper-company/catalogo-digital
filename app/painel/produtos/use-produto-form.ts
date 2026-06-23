@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { createProduct, updateProduct } from "@/app/actions/produtos";
 import { createCategory } from "@/app/actions/categorias";
+import { compressImage } from "@/lib/image-compress";
 import { formatCents } from "@/lib/utils";
 import type { StoreProduct, StoreCategory, ProductColor } from "@/lib/types";
 
@@ -59,14 +60,16 @@ export function useProdutoForm(
     setTimeout(() => setToast(null), 3000);
   };
 
-  const addPhotos = (files: FileList | null) => {
+  const addPhotos = async (files: FileList | null) => {
     if (!files) return;
     const room = maxPhotos - totalPhotos;
     if (room <= 0) {
       flash(`Seu plano permite no máximo ${maxPhotos} fotos`, "error");
       return;
     }
-    setNewPhotos((prev) => [...prev, ...Array.from(files).slice(0, room)]);
+    const selected = Array.from(files).slice(0, room);
+    const compressed = await Promise.all(selected.map((f) => compressImage(f)));
+    setNewPhotos((prev) => [...prev, ...compressed]);
   };
 
   const removeExisting = (url: string) =>
