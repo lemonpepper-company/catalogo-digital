@@ -10,7 +10,13 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { STORE } from "@/lib/data";
+
+interface SidebarProps {
+  name: string;
+  monogram: string | null;
+  logoUrl: string | null;
+  slug: string | null;
+}
 
 interface NavItemProps {
   href: string;
@@ -37,7 +43,7 @@ function NavItem({ href, icon, label, active }: NavItemProps) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
   const pathname = usePathname();
 
   const isActive = (path: string) =>
@@ -45,15 +51,27 @@ export function Sidebar() {
       ? pathname === "/painel"
       : pathname.startsWith(path);
 
+  const initials = monogram ?? name.slice(0, 2).toUpperCase();
+  const catalogUrl = slug ? `catalogo.app/${slug}` : null;
+
   return (
     <aside className="w-[248px] flex-shrink-0 border-r border-sand/50 p-5 flex flex-col gap-6 h-full">
       <div className="flex items-center gap-3 px-1.5 py-1">
-        <div className="w-9 h-9 rounded-full bg-obsidian text-white flex items-center justify-center font-display font-semibold text-[15px] flex-shrink-0">
-          {STORE.monogram}
-        </div>
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoUrl}
+            alt={name}
+            className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-obsidian text-white flex items-center justify-center font-display font-semibold text-[15px] flex-shrink-0">
+            {initials}
+          </div>
+        )}
         <div className="min-w-0">
           <div className="font-display font-semibold text-[15px] text-obsidian truncate">
-            {STORE.name}
+            {name}
           </div>
           <div className="font-body text-[12px] text-graphite">
             Painel do lojista
@@ -88,20 +106,22 @@ export function Sidebar() {
         />
       </nav>
 
-      <div className="mt-auto p-3.5 rounded-card bg-linen border border-sand/50">
-        <div className="font-body text-[12px] text-graphite leading-relaxed">
-          Catálogo público em{" "}
-          <a
-            href={`https://${STORE.catalogUrl}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-obsidian inline-flex items-center gap-1 hover:underline"
-          >
-            {STORE.catalogUrl}
-            <ExternalLink size={11} />
-          </a>
+      {catalogUrl && (
+        <div className="mt-auto p-3.5 rounded-card bg-linen border border-sand/50">
+          <div className="font-body text-[12px] text-graphite leading-relaxed">
+            Catálogo público em{" "}
+            <a
+              href={`https://${catalogUrl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-obsidian inline-flex items-center gap-1 hover:underline"
+            >
+              {catalogUrl}
+              <ExternalLink size={11} />
+            </a>
+          </div>
         </div>
-      </div>
+      )}
     </aside>
   );
 }

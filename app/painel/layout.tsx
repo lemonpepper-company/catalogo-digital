@@ -23,7 +23,7 @@ export default async function PainelLayout({
 
   const { data: store } = await supabase
     .from('stores')
-    .select('trial_ends_at, plan')
+    .select('trial_ends_at, plan, name, monogram, logo_url, slug')
     .eq('owner_id', user.id)
     .maybeSingle()
 
@@ -57,7 +57,12 @@ export default async function PainelLayout({
       )}
 
       <div className="flex flex-1 min-h-0">
-        <Sidebar />
+        <Sidebar
+          name={store?.name ?? ''}
+          monogram={store?.monogram ?? null}
+          logoUrl={store?.logo_url ?? null}
+          slug={store?.slug ?? null}
+        />
         <main className="flex-1 overflow-y-auto">
           <div className="px-12 py-10">{children}</div>
         </main>

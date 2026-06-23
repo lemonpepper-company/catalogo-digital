@@ -54,12 +54,21 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
           Identidade
         </h2>
         <div className="flex gap-5 items-center mb-5">
-          <div
-            className="w-[72px] h-[72px] rounded-full text-white flex items-center justify-center font-display font-semibold text-[26px] flex-shrink-0"
-            style={{ background: "var(--color-primary)" }}
-          >
-            {settings.monogram ?? settings.name.slice(0, 2).toUpperCase()}
-          </div>
+          {f.logoPreview || settings.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={f.logoPreview ?? settings.logoUrl!}
+              alt={settings.name}
+              className="w-[72px] h-[72px] rounded-full object-cover flex-shrink-0"
+            />
+          ) : (
+            <div
+              className="w-[72px] h-[72px] rounded-full text-white flex items-center justify-center font-display font-semibold text-[26px] flex-shrink-0"
+              style={{ background: "var(--color-primary)" }}
+            >
+              {settings.monogram ?? settings.name.slice(0, 2).toUpperCase()}
+            </div>
+          )}
           <label className="inline-flex items-center gap-2 h-11 px-5 rounded-btn border border-sand bg-transparent text-obsidian font-display font-medium text-[15px] cursor-pointer hover:bg-surface-hover transition-colors">
             <Upload size={18} />
             {f.logo ? f.logo.name : "Enviar logo"}

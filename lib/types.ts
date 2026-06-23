@@ -22,6 +22,7 @@ export interface Product {
 export interface Store {
   name: string;
   monogram: string;
+  logoUrl?: string | null;
   whatsapp: string;
   categories: string[];
   description: string;

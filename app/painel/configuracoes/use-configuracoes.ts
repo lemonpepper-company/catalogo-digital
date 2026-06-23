@@ -2,6 +2,7 @@
 
 import { useActionState, useState, useRef } from "react";
 import { updateStoreSettings } from "@/app/actions/store";
+import { compressImage } from "@/lib/image-compress";
 import type { StoreSettings, ToastState } from "@/lib/types";
 
 export const MSG_DEFAULT = `{saudacao}\n\n{itens}\n\n━━━━━━━━━━━━━━━━━\n*Total: {total}*\n━━━━━━━━━━━━━━━━━`;
@@ -17,7 +18,16 @@ type State = { error: string } | { ok: true } | null;
 export function useConfiguracoes(settings: StoreSettings) {
   const [accent, setAccent] = useState(settings.accentColor);
   const [msgTpl, setMsgTpl] = useState(settings.messageTemplate ?? MSG_DEFAULT);
-  const [logo, setLogo] = useState<File | null>(null);
+  const [logo, setLogoState] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const setLogo = async (file: File | null) => {
+    const compressed = file ? await compressImage(file) : null;
+    setLogoState(compressed);
+    setLogoPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return compressed ? URL.createObjectURL(compressed) : null;
+    });
+  };
   const [toast, setToast] = useState<ToastState | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -66,6 +76,7 @@ export function useConfiguracoes(settings: StoreSettings) {
     msgTpl,
     setMsgTpl,
     logo,
+    logoPreview,
     setLogo,
     state,
     formAction,
