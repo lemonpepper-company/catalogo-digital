@@ -50,4 +50,16 @@ describe("Button", () => {
     const btn = screen.getByRole("button");
     expect(btn.className).toContain("bg-gold");
   });
+
+  it("defaults to type=button when no type is given", () => {
+    render(<Button>Sem type</Button>);
+    const btn = screen.getByRole("button");
+    expect(btn.getAttribute("type")).toBe("button");
+  });
+
+  it("respects an explicit type=submit", () => {
+    render(<Button type="submit">Salvar</Button>);
+    const btn = screen.getByRole("button");
+    expect(btn.getAttribute("type")).toBe("submit");
+  });
 });

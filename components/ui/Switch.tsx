@@ -12,6 +12,7 @@ interface SwitchProps {
 export function Switch({ checked, onChange, accent, disabled }: SwitchProps) {
   return (
     <button
+      type="button"
       role="switch"
       aria-checked={checked}
       disabled={disabled}

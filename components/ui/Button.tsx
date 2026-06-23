@@ -36,10 +36,12 @@ export function Button({
   iconRight,
   children,
   className,
+  type,
   ...props
 }: ButtonProps) {
   return (
     <button
+      type={type ?? "button"}
       className={cn(
         "inline-flex items-center justify-center gap-2",
         "rounded-btn border font-display font-medium",
