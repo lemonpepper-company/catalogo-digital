@@ -81,11 +81,12 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 px-4 pb-8 pt-1 sm:grid-cols-3 lg:grid-cols-4">
-          {filteredProducts.map((product) => (
+          {filteredProducts.map((product, index) => (
             <ProductCard
               key={product.id}
               product={product}
               onOpen={setOpenProduct}
+              priority={index < 2}
             />
           ))}
         </div>

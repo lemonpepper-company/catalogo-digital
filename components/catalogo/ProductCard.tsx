@@ -8,9 +8,10 @@ import type { Product } from "@/lib/types";
 interface ProductCardProps {
   product: Product;
   onOpen: (product: Product) => void;
+  priority?: boolean;
 }
 
-export function ProductCard({ product, onOpen }: ProductCardProps) {
+export function ProductCard({ product, onOpen, priority = false }: ProductCardProps) {
   const isSoldOut = product.soldOut || product.stock === 0;
 
   return (
@@ -26,6 +27,7 @@ export function ProductCard({ product, onOpen }: ProductCardProps) {
           sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
           className="object-cover"
           style={{ borderRadius: "16px 16px 0 0" }}
+          priority={priority}
         />
         {isSoldOut && (
           <div className="absolute inset-0 bg-white/60 rounded-t-card" />
