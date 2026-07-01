@@ -22,14 +22,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configure git
+        run: |
+          git config --global user.email "claude-bot@users.noreply.github.com"
+          git config --global user.name "Claude Bot"
+
       - name: Run Claude Bug Fixer
         uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          label_trigger: bug
+          show_full_output: "true"
           prompt: |
-            Você foi acionado porque a issue #${{ github.event.issue.number }} foi marcada como bug.
+            A issue #${{ github.event.issue.number }} foi marcada como bug.
 
             Título: ${{ github.event.issue.title }}
             Descrição: ${{ github.event.issue.body }}
@@ -39,48 +46,45 @@ jobs:
             - Frontend: Next.js App Router em app/, actions em app/actions/, componentes do painel em app/painel/
             - Stack: TypeScript, Supabase, Tailwind, shadcn/ui
 
-            Sua tarefa: encontre a causa raiz do bug e implemente a correção mínima necessária editando os arquivos.
+            Sua tarefa — execute EXATAMENTE nesta ordem:
+            1. Leia AGENTS.md para entender o projeto
+            2. Localize e diagnostique o bug
+            3. Crie uma branch: git checkout -b fix/issue-${{ github.event.issue.number }}
+            4. Implemente a correção mínima necessária nos arquivos
+            5. Commit: git add -A && git commit -m "fix: ${{ github.event.issue.title }}"
+            6. Push: git push origin fix/issue-${{ github.event.issue.number }}
+            7. Crie o PR: gh pr create --title "fix: ${{ github.event.issue.title }}" --body "Closes #${{ github.event.issue.number }}" --base main
 
-            Diretrizes:
-            - Faça apenas as mudanças necessárias para corrigir o bug — sem refatorações extras
-            - Mantenha consistência com o estilo de código existente
-            - Se o bug não for reproduzível ou a causa não for clara, não modifique nenhum arquivo
-          show_full_output: "true"
+            Se o bug não for reproduzível ou a causa não for clara, comente na issue com gh issue comment ${{ github.event.issue.number }} --body "..." e não crie branch nem PR.
+          settings: |
+            {
+              "permissions": {
+                "allow": [
+                  "Bash(git checkout -b *)",
+                  "Bash(git add *)",
+                  "Bash(git commit *)",
+                  "Bash(git push *)",
+                  "Bash(git status)",
+                  "Bash(git diff *)",
+                  "Bash(git log *)",
+                  "Bash(gh pr create *)",
+                  "Bash(gh issue comment *)",
+                  "Bash(ls *)",
+                  "Bash(find *)",
+                  "Bash(grep *)",
+                  "Bash(cat *)",
+                  "Bash(echo *)",
+                  "Bash(node *)",
+                  "Bash(npm *)",
+                  "Bash(npx *)",
+                  "Bash(python3 *)",
+                  "Bash(sed *)",
+                  "Bash(awk *)",
+                  "Edit",
+                  "Write",
+                  "MultiEdit"
+                ],
+                "deny": []
+              }
+            }
           claude_args: '--max-turns 50'
-
-      - name: Debug git state after Claude
-        if: always()
-        run: |
-          echo "=== git status ==="
-          git status
-          echo "=== changed files ==="
-          git status --porcelain
-          echo "=== git log (last 3) ==="
-          git log --oneline -3
-          echo "=== git stash list ==="
-          git stash list
-
-      - name: Create PR with Claude's changes
-        if: success()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [[ -z "$(git status --porcelain)" ]]; then
-            echo "Sem mudanças — Claude não encontrou o bug ou pediu mais informações."
-            exit 0
-          fi
-
-          git config user.email "claude-bot@users.noreply.github.com"
-          git config user.name "Claude Bot"
-
-          BRANCH="fix/bug-issue-${{ github.event.issue.number }}"
-          git checkout -b "$BRANCH"
-          git add -A
-          git commit -m "fix: ${{ github.event.issue.title }}"
-          git push origin "$BRANCH"
-
-          gh pr create \
-            --title "fix: ${{ github.event.issue.title }}" \
-            --body "Closes #${{ github.event.issue.number }}" \
-            --base main \
-            --head "$BRANCH"
