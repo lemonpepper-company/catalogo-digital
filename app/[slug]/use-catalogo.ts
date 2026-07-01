@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { renderWhatsAppMessage } from "@/lib/utils";
+import { renderWhatsAppMessage, normalizeWhatsapp } from "@/lib/utils";
 import type { CartItem, Product, Store } from "@/lib/types";
 
 interface UseCatalogoArgs {
@@ -67,7 +67,7 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     const msg = renderWhatsAppMessage(store.messageTemplate, cart);
     flash("Abrindo o WhatsApp…");
     window.open(
-      `https://wa.me/${store.whatsapp}?text=${encodeURIComponent(msg)}`,
+      `https://wa.me/${normalizeWhatsapp(store.whatsapp)}?text=${encodeURIComponent(msg)}`,
       "_blank"
     );
   }, [cart, store.whatsapp, store.messageTemplate, flash]);

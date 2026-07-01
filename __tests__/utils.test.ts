@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parsePrice, formatMoney, buildWhatsAppMessage, renderWhatsAppMessage, formatItemsBlock, WHATSAPP_GREETING, cn, parseReaisToCents, formatCents } from "@/lib/utils";
+import { parsePrice, formatMoney, buildWhatsAppMessage, renderWhatsAppMessage, normalizeWhatsapp, formatItemsBlock, WHATSAPP_GREETING, cn, parseReaisToCents, formatCents } from "@/lib/utils";
 
 describe("parsePrice", () => {
   it("parses a Brazilian real price string", () => {
@@ -171,6 +171,37 @@ describe("renderWhatsAppMessage (CAT-07, CAT-08)", () => {
   it("mantém variável desconhecida literal (CAT-08 edge case)", () => {
     const msg = renderWhatsAppMessage("{foo} custa {total}", items);
     expect(msg).toBe(`{foo} custa ${formatMoney(250)}`);
+  });
+});
+
+describe("normalizeWhatsapp", () => {
+  it("prefixa 55 em número móvel local de 11 dígitos", () => {
+    expect(normalizeWhatsapp("35998715418")).toBe("5535998715418");
+  });
+
+  it("prefixa 55 em número fixo local de 10 dígitos", () => {
+    expect(normalizeWhatsapp("3512345678")).toBe("553512345678");
+  });
+
+  it("mantém número que já tem o código do país (13 dígitos)", () => {
+    expect(normalizeWhatsapp("5511999990000")).toBe("5511999990000");
+  });
+
+  it("remove formatação e prefixa 55", () => {
+    expect(normalizeWhatsapp("(35) 99871-5418")).toBe("5535998715418");
+  });
+
+  it("remove o + do formato internacional", () => {
+    expect(normalizeWhatsapp("+55 35 99871-5418")).toBe("5535998715418");
+  });
+
+  it("trata DDD 55 local sem duplicar o código do país", () => {
+    expect(normalizeWhatsapp("55999887766")).toBe("5555999887766");
+  });
+
+  it("retorna string vazia para nulo/vazio", () => {
+    expect(normalizeWhatsapp(null)).toBe("");
+    expect(normalizeWhatsapp("")).toBe("");
   });
 });
 

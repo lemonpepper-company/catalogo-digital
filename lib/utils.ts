@@ -42,6 +42,22 @@ export function buildWhatsAppMessage(items: WhatsAppItem[]): string {
   return `${WHATSAPP_GREETING}\n\n${formatItemsBlock(items)}\n\n${WHATSAPP_SEPARATOR}\n*Total: ${formatMoney(total)}*\n${WHATSAPP_SEPARATOR}`;
 }
 
+// Normaliza um número de WhatsApp para o formato do wa.me: só dígitos, com código do país BR (55).
+// - remove espaços, parênteses, hífens e o "+"
+// - números locais (10 fixo, 11 móvel) ganham o 55 na frente
+// - números que já têm o 55 (12/13 dígitos) são mantidos
+export function normalizeWhatsapp(input: string | null | undefined): string {
+  const digits = (input ?? "").replace(/\D/g, "");
+  if (digits === "") return "";
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+    return digits;
+  }
+  if (digits.length === 10 || digits.length === 11) {
+    return `55${digits}`;
+  }
+  return digits;
+}
+
 // Renderiza a mensagem a partir do template da loja. Template nulo/vazio → formato padrão (§8).
 // Variáveis desconhecidas ({foo}) são mantidas literais.
 export function renderWhatsAppMessage(
