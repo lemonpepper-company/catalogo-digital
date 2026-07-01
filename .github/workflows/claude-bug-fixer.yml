@@ -20,12 +20,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+
+      - name: Configure git user
+        run: |
+          git config --global user.email "claude-bot@users.noreply.github.com"
+          git config --global user.name "Claude Bot"
 
       - name: Run Claude Bug Fixer
         uses: anthropics/claude-code-action@v1
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
