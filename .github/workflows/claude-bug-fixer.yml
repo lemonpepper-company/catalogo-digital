@@ -22,16 +22,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure git user
+      - name: Configure git and gh CLI
         run: |
           git config --global user.email "claude-bot@users.noreply.github.com"
           git config --global user.name "Claude Bot"
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
 
       - name: Run Claude Bug Fixer
         uses: anthropics/claude-code-action@v1
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -39,35 +37,34 @@ jobs:
             A issue #${{ github.event.issue.number }} foi marcada como bug.
 
             Título: ${{ github.event.issue.title }}
+            Descrição: ${{ github.event.issue.body }}
 
-            Sua tarefa:
-            1. Analise a issue para entender o bug relatado
-            2. Localize o código relevante no repositório
-            3. Diagnostique a causa raiz do problema
-            4. Implemente a correção mais segura e mínima possível
-            5. Crie um Pull Request com:
-               - Título: `fix: [descrição curta do bug]`
-               - Corpo com "Closes #${{ github.event.issue.number }}"
-               - Explicação da causa raiz e solução adotada
+            Analise o repositório, encontre a causa raiz do bug e implemente a correção mínima necessária.
+
+            Ao finalizar as alterações, crie o Pull Request linkando a issue com "Closes #${{ github.event.issue.number }}" no corpo.
 
             Diretrizes:
             - Faça apenas as mudanças necessárias para corrigir o bug — sem refatorações extras
             - Mantenha consistência com o estilo de código existente
-            - Se o bug não for reproduzível ou a causa não for clara, comente na issue pedindo mais informações
+            - Se o bug não for reproduzível ou a causa não for clara, comente na issue pedindo mais informações e não modifique nenhum arquivo
           settings: |
             {
               "permissions": {
                 "allow": [
-                  "Bash(git *)",
-                  "Bash(gh *)",
+                  "Bash(git checkout -b *)",
+                  "Bash(git add *)",
+                  "Bash(git commit *)",
+                  "Bash(git push *)",
+                  "Bash(git status)",
+                  "Bash(git diff *)",
+                  "Bash(git log *)",
+                  "Bash(gh pr create *)",
+                  "Bash(gh issue comment *)",
                   "Bash(ls *)",
                   "Bash(find *)",
                   "Bash(grep *)",
                   "Bash(cat *)",
                   "Bash(echo *)",
-                  "Bash(mkdir *)",
-                  "Bash(cp *)",
-                  "Bash(mv *)",
                   "Bash(node *)",
                   "Bash(npm *)",
                   "Bash(npx *)",
