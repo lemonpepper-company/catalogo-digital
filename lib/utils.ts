@@ -90,3 +90,12 @@ export function parseReaisToCents(input: string): number {
 export function formatCents(cents: number): string {
   return `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 }
+
+// Máscara de moeda para inputs: mantém só os dígitos e preenche da direita
+// para a esquerda como centavos (ex: "2899" -> "28,99").
+export function formatPriceInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits === "") return "";
+  const cents = parseInt(digits, 10);
+  return (cents / 100).toFixed(2).replace(".", ",");
+}

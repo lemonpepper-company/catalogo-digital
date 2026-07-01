@@ -141,7 +141,9 @@ export function ProdutoFormClient({
             name="price"
             label="Preço"
             prefix="R$"
-            defaultValue={f.priceDefault}
+            value={f.price}
+            onChange={f.handlePriceChange}
+            inputMode="numeric"
             placeholder="0,00"
           />
           <div className="flex flex-col gap-1.5">
