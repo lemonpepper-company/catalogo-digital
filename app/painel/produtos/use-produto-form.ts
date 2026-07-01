@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { createProduct, updateProduct } from "@/app/actions/produtos";
 import { createCategory } from "@/app/actions/categorias";
 import { compressImage } from "@/lib/image-compress";
-import { formatCents } from "@/lib/utils";
+import { formatCents, maskCurrencyInput } from "@/lib/utils";
 import type { StoreProduct, StoreCategory, ProductColor } from "@/lib/types";
 
 type FormState = { error: string } | null;
@@ -34,6 +34,10 @@ export function useProdutoForm(
   const [deleteModal, setDeleteModal] = useState(false);
   const [quickCat, setQuickCat] = useState(false);
   const [catDraft, setCatDraft] = useState("");
+  const [price, setPriceRaw] = useState(
+    product ? formatCents(product.priceCents).replace("R$ ", "") : ""
+  );
+  const setPrice = (raw: string) => setPriceRaw(maskCurrencyInput(raw));
 
   const [state, formAction, pending] = useActionState<FormState, FormData>(
     async (prev, formData) => {
@@ -103,8 +107,6 @@ export function useProdutoForm(
     flash("Categoria criada");
   };
 
-  const priceDefault = product ? formatCents(product.priceCents).replace("R$ ", "") : "";
-
   return {
     editing,
     state,
@@ -136,7 +138,8 @@ export function useProdutoForm(
     setQuickCat,
     catDraft,
     setCatDraft,
-    priceDefault,
+    price,
+    setPrice,
     createCat,
   };
 }

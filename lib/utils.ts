@@ -54,3 +54,10 @@ export function parseReaisToCents(input: string): number {
 export function formatCents(cents: number): string {
   return `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 }
+
+export function maskCurrencyInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  const cents = parseInt(digits, 10);
+  return (cents / 100).toFixed(2).replace(".", ",");
+}
