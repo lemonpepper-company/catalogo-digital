@@ -93,11 +93,12 @@ export function useProdutoForm(
       flash(res.error, "error");
       return;
     }
+    const id = res && "id" in res && res.id ? res.id : v;
     setCatList((prev) => [
       ...prev,
-      { id: v, name: v, position: prev.length, productCount: 0 },
+      { id, name: v, position: prev.length, productCount: 0 },
     ]);
-    setCategory(v);
+    setCategory(id);
     setQuickCat(false);
     setCatDraft("");
     flash("Categoria criada");

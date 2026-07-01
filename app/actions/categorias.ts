@@ -6,7 +6,10 @@ import { getCurrentStore } from "@/lib/server/store";
 import { getPlanLimits, isTrialActive } from "@/lib/plan-limits";
 import { categoryNameSchema, canDeleteCategory } from "@/lib/validation/painel";
 
-export type CategoryActionState = { error: string } | { ok: true } | null;
+export type CategoryActionState =
+  | { error: string }
+  | { ok: true; id?: string }
+  | null;
 
 export async function createCategory(
   prevState: CategoryActionState,
@@ -36,9 +39,11 @@ export async function createCategory(
     };
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("categories")
-    .insert({ store_id: store.id, name: parsed.data });
+    .insert({ store_id: store.id, name: parsed.data })
+    .select("id")
+    .single();
 
   if (error) {
     if (error.code === "23505") return { error: "Essa categoria já existe." };
@@ -46,7 +51,7 @@ export async function createCategory(
   }
 
   revalidatePath("/painel/categorias");
-  return { ok: true };
+  return { ok: true, id: data.id };
 }
 
 export async function renameCategory(
