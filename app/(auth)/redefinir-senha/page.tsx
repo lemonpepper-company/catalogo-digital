@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { resetPassword } from '@/app/actions/auth'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 
@@ -13,6 +13,8 @@ export default function RedefinirSenhaPage() {
     resetPassword,
     null
   )
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
 
   return (
     <div className="min-h-screen bg-ivory flex items-center justify-center px-8">
@@ -60,6 +62,8 @@ export default function RedefinirSenhaPage() {
                 name="password"
                 placeholder="Nova senha"
                 autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
@@ -71,6 +75,8 @@ export default function RedefinirSenhaPage() {
                 name="confirm_password"
                 placeholder="Repita a nova senha"
                 autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
               />
             </div>
 

@@ -81,26 +81,34 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
           </label>
         </div>
         <div className="grid grid-cols-2 gap-[18px]">
-          <Input name="name" label="Nome da loja" defaultValue={settings.name} />
+          <Input
+            name="name"
+            label="Nome da loja"
+            value={f.storeName}
+            onChange={(e) => f.setStoreName(e.target.value)}
+          />
           <Input
             name="whatsapp"
             label="WhatsApp para pedidos"
             prefix="+55"
-            defaultValue={settings.whatsapp ?? ""}
+            value={f.whatsapp}
+            onChange={(e) => f.setWhatsapp(e.target.value)}
           />
           <Input
             name="monogram"
             label="Monograma (até 3 letras)"
-            defaultValue={settings.monogram ?? ""}
             placeholder="Ex: MR"
             maxLength={3}
+            value={f.monogram}
+            onChange={(e) => f.setMonogram(e.target.value)}
           />
           <div className="col-span-1" />
           <div className="col-span-2">
             <Input
               name="description"
               label="Descrição curta"
-              defaultValue={settings.description ?? ""}
+              value={f.storeDescription}
+              onChange={(e) => f.setStoreDescription(e.target.value)}
             />
           </div>
         </div>
@@ -204,14 +212,16 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
             label="Google Analytics ID"
             hint="Ex: G-XXXXXXXXXX"
             placeholder="G-XXXXXXXXXX"
-            defaultValue={settings.analyticsId ?? ""}
+            value={f.analyticsId}
+            onChange={(e) => f.setAnalyticsId(e.target.value)}
           />
           <Input
             name="pixelId"
             label="Facebook Pixel ID"
             hint="Apenas números"
             placeholder="000000000000000"
-            defaultValue={settings.pixelId ?? ""}
+            value={f.pixelId}
+            onChange={(e) => f.setPixelId(e.target.value)}
           />
         </div>
       </Card>

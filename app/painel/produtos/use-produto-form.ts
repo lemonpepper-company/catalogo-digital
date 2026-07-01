@@ -17,6 +17,9 @@ export function useProdutoForm(
   const editing = !!product;
   const boundAction = editing ? updateProduct : createProduct;
 
+  const [name, setName] = useState(product?.name ?? '');
+  const [description, setDescription] = useState(product?.description ?? '');
+  const [stock, setStock] = useState(product?.stock?.toString() ?? '0');
   const [existingPhotos, setExistingPhotos] = useState<string[]>(
     product?.images ?? []
   );
@@ -114,6 +117,12 @@ export function useProdutoForm(
     state,
     formAction,
     pending,
+    name,
+    setName,
+    description,
+    setDescription,
+    stock,
+    setStock,
     existingPhotos,
     newPhotos,
     photosFull,

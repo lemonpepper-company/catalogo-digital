@@ -16,6 +16,12 @@ export const MSG_VARS = [
 type State = { error: string } | { ok: true } | null;
 
 export function useConfiguracoes(settings: StoreSettings) {
+  const [storeName, setStoreName] = useState(settings.name);
+  const [whatsapp, setWhatsapp] = useState(settings.whatsapp ?? '');
+  const [monogram, setMonogram] = useState(settings.monogram ?? '');
+  const [storeDescription, setStoreDescription] = useState(settings.description ?? '');
+  const [analyticsId, setAnalyticsId] = useState(settings.analyticsId ?? '');
+  const [pixelId, setPixelId] = useState(settings.pixelId ?? '');
   const [accent, setAccent] = useState(settings.accentColor);
   const [msgTpl, setMsgTpl] = useState(settings.messageTemplate ?? MSG_DEFAULT);
   const [logo, setLogoState] = useState<File | null>(null);
@@ -71,6 +77,18 @@ export function useConfiguracoes(settings: StoreSettings) {
 
   return {
     settings,
+    storeName,
+    setStoreName,
+    whatsapp,
+    setWhatsapp,
+    monogram,
+    setMonogram,
+    storeDescription,
+    setStoreDescription,
+    analyticsId,
+    setAnalyticsId,
+    pixelId,
+    setPixelId,
     accent,
     setAccent,
     msgTpl,

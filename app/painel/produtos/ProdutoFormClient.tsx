@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { Upload, Star, Trash2, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -124,7 +124,8 @@ export function ProdutoFormClient({
             <Input
               name="name"
               label="Nome do produto"
-              defaultValue={product?.name ?? ""}
+              value={f.name}
+              onChange={(e) => f.setName(e.target.value)}
               placeholder="Ex: Vestido midi linho"
             />
           </div>
@@ -133,7 +134,8 @@ export function ProdutoFormClient({
               name="description"
               label="Descrição"
               rows={3}
-              defaultValue={product?.description ?? ""}
+              value={f.description}
+              onChange={(e) => f.setDescription(e.target.value)}
               placeholder="Conte sobre o caimento, tecido e cuidados…"
             />
           </div>
@@ -191,7 +193,8 @@ export function ProdutoFormClient({
             name="stock"
             label="Quantidade em estoque"
             type="number"
-            defaultValue={product?.stock?.toString() ?? "0"}
+            value={f.stock}
+            onChange={(e) => f.setStock(e.target.value)}
           />
         </div>
         <ToggleRow
@@ -319,21 +322,38 @@ function ChipEditor({
 }
 
 function ChipInput({ onAdd }: { onAdd: (v: string) => void }) {
+  const [value, setValue] = useState("");
+
+  const add = () => {
+    const v = value.trim();
+    if (v) {
+      onAdd(v);
+      setValue("");
+    }
+  };
+
   return (
-    <input
-      placeholder="Novo…"
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          const v = (e.target as HTMLInputElement).value.trim();
-          if (v) {
-            onAdd(v);
-            (e.target as HTMLInputElement).value = "";
+    <div className="flex items-center gap-1.5">
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Novo…"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            add();
           }
-        }
-      }}
-      className="w-24 h-8 px-3 rounded-pill border border-sand bg-white font-body text-[13px] text-obsidian outline-none focus:border-obsidian"
-    />
+        }}
+        className="w-24 h-8 px-3 rounded-pill border border-sand bg-white font-body text-[13px] text-obsidian outline-none focus:border-obsidian transition-colors"
+      />
+      <button
+        type="button"
+        onClick={add}
+        className="w-8 h-8 rounded-full bg-obsidian text-white flex items-center justify-center hover:bg-obsidian/80 transition-colors flex-shrink-0"
+      >
+        <Plus size={14} />
+      </button>
+    </div>
   );
 }
 
@@ -345,16 +365,30 @@ function ColorEditor({
   selected: { label: string; hex: string }[];
   setSelected: (s: { label: string; hex: string }[]) => void;
 }) {
+  const [pickerHex, setPickerHex] = useState("#000000");
+  const [pickerActive, setPickerActive] = useState(false);
+
+  const fashionLabels = new Set(FASHION_COLORS.map((c) => c.name));
+  const customColors = selected.filter((c) => !fashionLabels.has(c.label));
+
   const toggle = (label: string, hex: string) => {
     const exists = selected.some((c) => c.label === label);
     setSelected(
       exists ? selected.filter((c) => c.label !== label) : [...selected, { label, hex }]
     );
   };
+
+  const addCustom = () => {
+    if (!selected.some((c) => c.hex === pickerHex)) {
+      setSelected([...selected, { label: `custom-${pickerHex.slice(1)}`, hex: pickerHex }]);
+    }
+    setPickerActive(false);
+  };
+
   return (
     <div className="py-1.5 pb-4">
       <div className="font-body font-medium text-[13px] text-obsidian mb-2">Cores</div>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 items-center">
         {FASHION_COLORS.map((c) => {
           const isSel = selected.some((s) => s.label === c.name);
           return (
@@ -377,6 +411,53 @@ function ColorEditor({
             />
           );
         })}
+
+        {customColors.map((c) => (
+          <button
+            key={c.label}
+            type="button"
+            onClick={() => toggle(c.label, c.hex)}
+            title={c.hex}
+            className="w-9 h-9 rounded-full transition-all duration-200"
+            style={{
+              background: c.hex,
+              border: "2px solid var(--color-primary)",
+              outline: "2px solid #fff",
+              outlineOffset: "-4px",
+              boxSizing: "border-box",
+            }}
+          />
+        ))}
+
+        <div className="flex items-center gap-2">
+          <label
+            className="relative w-9 h-9 rounded-full border border-dashed border-sand bg-linen flex items-center justify-center cursor-pointer hover:bg-surface-hover transition-colors overflow-hidden"
+            style={pickerActive ? { background: pickerHex, border: "none" } : {}}
+            title="Adicionar cor personalizada"
+          >
+            {!pickerActive && (
+              <Plus size={16} className="text-graphite pointer-events-none" />
+            )}
+            <input
+              type="color"
+              value={pickerHex}
+              onChange={(e) => {
+                setPickerHex(e.target.value);
+                setPickerActive(true);
+              }}
+              className="sr-only"
+            />
+          </label>
+          {pickerActive && (
+            <button
+              type="button"
+              onClick={addCustom}
+              className="font-body font-medium text-[13px] text-obsidian hover:underline"
+            >
+              + Adicionar
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

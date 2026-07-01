@@ -17,8 +17,15 @@ interface CadastroFormProps {
 }
 
 export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
-  const { slug, setSlug, handleStoreNameChange, state, action, pending } =
-    useCadastroForm(stepLoja)
+  const {
+    fullName, setFullName,
+    email, setEmail,
+    password, setPassword,
+    confirmPassword, setConfirmPassword,
+    storeName, handleStoreNameChange,
+    slug, setSlug,
+    state, action, pending,
+  } = useCadastroForm(stepLoja)
 
   return (
     <div className="min-h-screen bg-ivory flex items-center justify-center px-8 py-8">
@@ -76,6 +83,8 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
                       placeholder="Como você se chama"
                       autoComplete="name"
                       className={inputBase}
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                     />
                   </div>
                 </div>
@@ -92,6 +101,8 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
                       placeholder="voce@email.com"
                       autoComplete="email"
                       className={inputBase}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
                 </div>
@@ -104,6 +115,8 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
                     name="password"
                     placeholder="Crie uma senha"
                     autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
 
@@ -115,6 +128,8 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
                     name="confirm_password"
                     placeholder="Repita a senha"
                     autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                   />
                 </div>
               </div>
@@ -140,8 +155,9 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
                     name="store_name"
                     placeholder="Ex.: Ateliê Mira"
                     autoComplete="organization"
-                    onChange={(e) => handleStoreNameChange(e.target.value)}
                     className={inputBase}
+                    value={storeName}
+                    onChange={(e) => handleStoreNameChange(e.target.value)}
                   />
                 </div>
               </div>

@@ -58,6 +58,12 @@ export default function LandingPage() {
               Depoimentos
             </NextLink>
             <NextLink
+              href="/login"
+              className="font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors whitespace-nowrap"
+            >
+              Entrar
+            </NextLink>
+            <NextLink
               href="/cadastro"
               className="inline-flex items-center justify-center gap-2 h-9 sm:h-11 px-4 sm:px-6 rounded-btn bg-gold text-white font-display font-medium text-[13px] sm:text-[15px] hover:bg-gold-hover transition-colors whitespace-nowrap"
             >

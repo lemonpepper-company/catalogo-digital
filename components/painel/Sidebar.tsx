@@ -8,8 +8,10 @@ import {
   Layers,
   Settings,
   ExternalLink,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { signOut } from "@/app/actions/auth";
 
 interface SidebarProps {
   name: string;
@@ -108,22 +110,34 @@ export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
         />
       </nav>
 
-      {catalogHref && (
-        <div className="mt-auto p-3.5 rounded-card bg-linen border border-sand/50">
-          <div className="font-body text-[12px] text-graphite leading-relaxed">
-            Catálogo público em{" "}
+      <div className="mt-auto flex flex-col gap-3">
+        {catalogHref && (
+          <div className="p-3.5 rounded-card bg-linen border border-sand/50">
+            <p className="font-body text-[12px] text-graphite mb-1">
+              Catálogo público em
+            </p>
             <a
               href={catalogHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-obsidian inline-flex items-center gap-1 hover:underline"
+              className="font-body font-medium text-[12px] text-obsidian flex items-center gap-1 hover:underline min-w-0"
             >
-              {catalogLabel}
-              <ExternalLink size={11} />
+              <span className="truncate">{catalogLabel}</span>
+              <ExternalLink size={11} className="flex-shrink-0" />
             </a>
           </div>
-        </div>
-      )}
+        )}
+
+        <form action={signOut}>
+          <button
+            type="submit"
+            className="flex items-center gap-3 w-full px-3.5 py-[11px] rounded-btn font-body text-[15px] text-graphite hover:bg-surface-hover transition-all duration-200"
+          >
+            <LogOut size={19} />
+            Sair
+          </button>
+        </form>
+      </div>
     </aside>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Lock, Eye, EyeOff } from 'lucide-react'
 
 const inputWrap =
-  'flex items-center gap-2 h-12 px-4 bg-white border border-sand rounded-input focus-within:outline focus-within:outline-2 focus-within:outline-obsidian focus-within:outline-offset-2 focus-within:border-obsidian transition-all'
+  'flex items-center gap-2 h-12 px-4 bg-white border border-sand rounded-input focus-within:border-obsidian focus-within:ring-2 focus-within:ring-obsidian focus-within:ring-offset-2 transition-all'
 const inputBase =
   'flex-1 border-none outline-none bg-transparent font-body text-[15px] text-obsidian placeholder:text-inactive min-w-0'
 
@@ -12,12 +12,18 @@ interface PasswordInputProps {
   name: string
   placeholder?: string
   autoComplete?: string
+  value?: string
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void
 }
 
 export function PasswordInput({
   name,
   placeholder = 'Sua senha',
   autoComplete = 'current-password',
+  value,
+  onChange,
+  onKeyDown,
 }: PasswordInputProps) {
   const [show, setShow] = useState(false)
 
@@ -30,6 +36,9 @@ export function PasswordInput({
         placeholder={placeholder}
         autoComplete={autoComplete}
         className={inputBase}
+        value={value}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
       />
       <button
         type="button"

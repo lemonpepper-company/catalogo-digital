@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import { ChevronLeft, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -23,9 +23,30 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
     product.colors[0]?.label ?? null
   );
   const [qty, setQty] = useState(1);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const pointerStartX = useRef<number | null>(null);
+
+  const rawImages = product.images ?? [];
+  const images = rawImages.length > 0 ? rawImages : [product.image];
 
   const needsSize = product.sizes.length > 1;
   const canAdd = !needsSize || !!selectedSize;
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    pointerStartX.current = e.clientX;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerStartX.current === null) return;
+    const delta = e.clientX - pointerStartX.current;
+    if (delta < -50 && currentIndex < images.length - 1) {
+      setCurrentIndex((i) => i + 1);
+    } else if (delta > 50 && currentIndex > 0) {
+      setCurrentIndex((i) => i - 1);
+    }
+    pointerStartX.current = null;
+  };
 
   return (
     <div className="h-full relative flex flex-col">
@@ -42,15 +63,59 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
       </button>
 
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
-        <div className="relative w-full bg-linen" style={{ aspectRatio: "4/5" }}>
-          <Image
-            src={product.image}
-            alt={product.name}
-            fill
-            sizes="(min-width: 768px) 384px, 100vw"
-            className="object-cover"
-            priority
-          />
+        <div
+          className="relative w-full bg-linen overflow-hidden select-none"
+          style={{ aspectRatio: "4/5", touchAction: "pan-y" }}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+        >
+          <div
+            className="flex h-full transition-transform duration-300 ease-out"
+            style={{
+              width: `${images.length * 100}%`,
+              transform: `translateX(-${currentIndex * (100 / images.length)}%)`,
+            }}
+          >
+            {images.map((src, i) => (
+              <div
+                key={i}
+                className="relative h-full flex-shrink-0"
+                style={{ width: `${100 / images.length}%` }}
+              >
+                <Image
+                  src={src}
+                  alt={`${product.name} ${i + 1}`}
+                  fill
+                  sizes="(min-width: 768px) 384px, 100vw"
+                  className="object-cover"
+                  priority={i === 0}
+                  draggable={false}
+                />
+              </div>
+            ))}
+          </div>
+
+          {images.length > 1 && (
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => setCurrentIndex(i)}
+                  aria-label={`Foto ${i + 1}`}
+                  className="rounded-full transition-all duration-200"
+                  style={{
+                    height: "6px",
+                    width: i === currentIndex ? "20px" : "6px",
+                    background:
+                      i === currentIndex
+                        ? "rgba(255,255,255,1)"
+                        : "rgba(255,255,255,0.5)",
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="px-4 py-5 flex flex-col gap-[18px]">

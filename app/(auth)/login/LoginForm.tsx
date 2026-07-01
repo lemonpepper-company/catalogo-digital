@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef } from 'react'
 import Link from 'next/link'
 import { Mail, ArrowLeft } from 'lucide-react'
 import { useLoginForm } from './use-login-form'
@@ -7,7 +8,7 @@ import { PasswordInput } from '@/components/ui/PasswordInput'
 import { signInWithGoogle } from '@/app/actions/auth'
 
 const inputWrap =
-  'flex items-center gap-2 h-12 px-4 bg-white border border-sand rounded-input focus-within:outline focus-within:outline-2 focus-within:outline-obsidian focus-within:outline-offset-2 focus-within:border-obsidian transition-all'
+  'flex items-center gap-2 h-12 px-4 bg-white border border-sand rounded-input focus-within:border-obsidian focus-within:ring-2 focus-within:ring-obsidian focus-within:ring-offset-2 transition-all'
 const inputBase =
   'flex-1 border-none outline-none bg-transparent font-body text-[15px] text-obsidian placeholder:text-inactive min-w-0'
 
@@ -17,7 +18,16 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ next, resetSuccess }: LoginFormProps) {
-  const { state, action, pending } = useLoginForm()
+  const { state, action, pending, email, setEmail, password, setPassword } = useLoginForm()
+  const formRef = useRef<HTMLFormElement>(null)
+
+  function focusPassword() {
+    formRef.current?.querySelector<HTMLInputElement>('input[name="password"]')?.focus()
+  }
+
+  function submitForm() {
+    if (!pending) formRef.current?.requestSubmit()
+  }
 
   return (
     <div className="min-h-screen bg-ivory flex items-center justify-center px-8">
@@ -58,7 +68,7 @@ export function LoginForm({ next, resetSuccess }: LoginFormProps) {
             </div>
           )}
 
-          <form action={action} className="flex flex-col gap-6">
+          <form ref={formRef} action={action} className="flex flex-col gap-6">
             {next && <input type="hidden" name="next" value={next} />}
 
             <div className="flex flex-col gap-2">
@@ -73,6 +83,9 @@ export function LoginForm({ next, resetSuccess }: LoginFormProps) {
                   placeholder="voce@email.com"
                   autoComplete="email"
                   className={inputBase}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); focusPassword() } }}
                 />
               </div>
             </div>
@@ -93,6 +106,9 @@ export function LoginForm({ next, resetSuccess }: LoginFormProps) {
                 name="password"
                 placeholder="Sua senha"
                 autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitForm() } }}
               />
             </div>
 

@@ -82,6 +82,7 @@ export function mapPublicProduct(
     price: formatCents(row.price_cents),
     category: categoryName ?? "Todos",
     image: row.images?.[0] ?? PLACEHOLDER_IMAGE,
+    images: row.images ?? [],
     desc: row.description ?? "",
     sizes: row.sizes ?? [],
     soldSizes: row.sold_sizes ?? [],
