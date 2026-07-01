@@ -33,7 +33,12 @@ jobs:
             Título: ${{ github.event.issue.title }}
             Descrição: ${{ github.event.issue.body }}
 
-            Analise o repositório, encontre a causa raiz do bug e implemente a correção mínima necessária diretamente nos arquivos.
+            Contexto do projeto:
+            - Leia AGENTS.md e docs/ARCHITECTURE.md antes de explorar o código
+            - Frontend: Next.js App Router em app/, actions em app/actions/, componentes do painel em app/painel/
+            - Stack: TypeScript, Supabase, Tailwind, shadcn/ui
+
+            Sua tarefa: encontre a causa raiz do bug e implemente a correção mínima necessária editando os arquivos diretamente.
 
             O título do PR deve ser: fix: <descrição curta do bug>
             O corpo do PR deve incluir: Closes #${{ github.event.issue.number }}
@@ -68,4 +73,4 @@ jobs:
                 ]
               }
             }
-          claude_args: '--max-turns 30'
+          claude_args: '--max-turns 50'
