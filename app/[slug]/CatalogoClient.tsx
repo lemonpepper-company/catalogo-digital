@@ -27,6 +27,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
     filteredProducts,
     activeProducts,
     bagCount,
+    hasWhatsapp,
     handleAdd,
     handleQty,
     handleRemove,
@@ -93,6 +94,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
       <BagDrawer
         open={bagOpen}
         items={cart}
+        canCheckout={hasWhatsapp}
         onClose={() => setBagOpen(false)}
         onQty={handleQty}
         onRemove={handleRemove}

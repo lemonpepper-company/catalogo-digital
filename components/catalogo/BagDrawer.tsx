@@ -8,6 +8,7 @@ import { formatMoney, parsePrice } from "@/lib/utils";
 interface BagDrawerProps {
   open: boolean;
   items: CartItem[];
+  canCheckout?: boolean;
   onClose: () => void;
   onQty: (key: string, qty: number) => void;
   onRemove: (key: string) => void;
@@ -17,6 +18,7 @@ interface BagDrawerProps {
 export function BagDrawer({
   open,
   items,
+  canCheckout = true,
   onClose,
   onQty,
   onRemove,
@@ -151,9 +153,20 @@ export function BagDrawer({
                 {formatMoney(total)}
               </span>
             </div>
+            {!canCheckout && (
+              <p className="font-body text-[13px] text-graphite text-center">
+                Esta loja ainda não configurou o WhatsApp.
+              </p>
+            )}
             <button
               onClick={onCheckout}
-              className="w-full h-[52px] rounded-btn bg-gold text-white font-display font-medium text-[16px] flex items-center justify-center gap-2.5 hover:bg-gold-hover transition-colors"
+              disabled={!canCheckout}
+              className={[
+                "w-full h-[52px] rounded-btn font-display font-medium text-[16px] flex items-center justify-center gap-2.5 transition-colors",
+                canCheckout
+                  ? "bg-gold text-white hover:bg-gold-hover"
+                  : "bg-linen text-inactive cursor-not-allowed",
+              ].join(" ")}
             >
               <MessageCircle size={18} />
               Enviar pedido via WhatsApp →
