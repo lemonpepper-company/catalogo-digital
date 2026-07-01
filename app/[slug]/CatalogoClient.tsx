@@ -1,15 +1,20 @@
 "use client";
 
-import { STORE } from "@/lib/data";
 import { Pill } from "@/components/ui/Pill";
 import { Toast } from "@/components/ui/Toast";
 import { StoreHeader } from "@/components/catalogo/StoreHeader";
 import { ProductCard } from "@/components/catalogo/ProductCard";
 import { ProductDetail } from "@/components/catalogo/ProductDetail";
 import { BagDrawer } from "@/components/catalogo/BagDrawer";
+import type { Product, Store } from "@/lib/types";
 import { useCatalogo } from "./use-catalogo";
 
-export function CatalogoClient() {
+interface CatalogoClientProps {
+  store: Store;
+  products: Product[];
+}
+
+export function CatalogoClient({ store, products }: CatalogoClientProps) {
   const {
     activeCategory,
     setActiveCategory,
@@ -26,7 +31,7 @@ export function CatalogoClient() {
     handleQty,
     handleRemove,
     handleCheckout,
-  } = useCatalogo();
+  } = useCatalogo({ store, products });
 
   if (openProduct) {
     return (
@@ -46,15 +51,14 @@ export function CatalogoClient() {
   return (
     <div className="min-h-screen bg-ivory relative">
       <StoreHeader
-        store={STORE}
+        store={store}
         activeProductCount={activeProducts.length}
         bagCount={bagCount}
         onOpenBag={() => setBagOpen(true)}
       />
 
-      {/* Category pills sticky below header */}
       <div className="sticky top-[69px] z-10 bg-ivory flex gap-2 px-4 py-3.5 overflow-x-auto no-scrollbar">
-        {STORE.categories.map((cat) => (
+        {store.categories.map((cat) => (
           <Pill
             key={cat}
             active={activeCategory === cat}
@@ -65,15 +69,26 @@ export function CatalogoClient() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 px-4 pb-8 pt-1 sm:grid-cols-3 lg:grid-cols-4">
-        {filteredProducts.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            onOpen={setOpenProduct}
-          />
-        ))}
-      </div>
+      {filteredProducts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 px-4 py-24 text-center">
+          <p className="font-display font-medium text-[16px] text-obsidian">
+            Nenhuma peça disponível no momento
+          </p>
+          <p className="font-body text-[14px] text-graphite">
+            Volte em breve para conferir as novidades.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 px-4 pb-8 pt-1 sm:grid-cols-3 lg:grid-cols-4">
+          {filteredProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              onOpen={setOpenProduct}
+            />
+          ))}
+        </div>
+      )}
 
       <BagDrawer
         open={bagOpen}
