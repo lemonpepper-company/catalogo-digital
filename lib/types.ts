@@ -30,6 +30,7 @@ export interface Store {
   catalogUrl: string;
   analyticsId?: string;
   pixelId?: string;
+  messageTemplate?: string | null;
 }
 
 export interface CartItem {

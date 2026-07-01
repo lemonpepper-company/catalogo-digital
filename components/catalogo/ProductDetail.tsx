@@ -47,7 +47,7 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
             src={product.image}
             alt={product.name}
             fill
-            sizes="100vw"
+            sizes="(min-width: 768px) 384px, 100vw"
             className="object-cover"
             priority
           />

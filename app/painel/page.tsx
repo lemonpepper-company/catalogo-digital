@@ -17,7 +17,7 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false });
 
   const products = (data ?? []).map(mapProduct);
-  const catalogUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/catalogo/${store.slug}`;
+  const catalogUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/${store.slug}`;
 
   return (
     <DashboardClient

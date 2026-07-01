@@ -97,7 +97,7 @@ export default function LandingPage() {
                   Criar meu catálogo grátis
                 </NextLink>
                 <NextLink
-                  href="/catalogo"
+                  href="/atelie-mira"
                   className="inline-flex items-center gap-2 h-[52px] px-8 rounded-btn border border-sand bg-transparent text-obsidian font-display font-medium text-[16px] hover:bg-surface-hover transition-colors"
                 >
                   Ver um catálogo
@@ -499,7 +499,7 @@ export default function LandingPage() {
                 {[
                   { label: "Recursos", href: "#recursos" },
                   { label: "Preços", href: "#precos" },
-                  { label: "Ver um catálogo", href: "/catalogo" },
+                  { label: "Ver um catálogo", href: "/atelie-mira" },
                   { label: "Painel do lojista", href: "/painel" },
                 ].map((l) => (
                   <NextLink

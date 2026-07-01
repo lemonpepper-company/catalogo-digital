@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { PRODUCTS, STORE } from "@/lib/data";
-import { buildWhatsAppMessage } from "@/lib/utils";
-import type { CartItem, Product } from "@/lib/types";
+import { renderWhatsAppMessage, normalizeWhatsapp } from "@/lib/utils";
+import type { CartItem, Product, Store } from "@/lib/types";
 
-export function useCatalogo() {
+interface UseCatalogoArgs {
+  store: Store;
+  products: Product[];
+}
+
+export function useCatalogo({ store, products }: UseCatalogoArgs) {
   const [activeCategory, setActiveCategory] = useState("Todos");
   const [openProduct, setOpenProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -19,11 +23,11 @@ export function useCatalogo() {
 
   const filteredProducts =
     activeCategory === "Todos"
-      ? PRODUCTS
-      : PRODUCTS.filter((p) => p.category === activeCategory);
+      ? products
+      : products.filter((p) => p.category === activeCategory);
 
-  const activeProducts = PRODUCTS.filter((p) => !p.soldOut);
   const bagCount = cart.reduce((s, it) => s + it.qty, 0);
+  const hasWhatsapp = !!store.whatsapp;
 
   const handleAdd = useCallback(
     (product: Product, size: string | null, color: string | null, qty: number) => {
@@ -56,13 +60,17 @@ export function useCatalogo() {
   }, []);
 
   const handleCheckout = useCallback(() => {
-    const msg = buildWhatsAppMessage(cart);
+    if (!store.whatsapp) {
+      flash("Esta loja ainda não configurou o WhatsApp.");
+      return;
+    }
+    const msg = renderWhatsAppMessage(store.messageTemplate, cart);
     flash("Abrindo o WhatsApp…");
     window.open(
-      `https://wa.me/${STORE.whatsapp}?text=${encodeURIComponent(msg)}`,
+      `https://wa.me/${normalizeWhatsapp(store.whatsapp)}?text=${encodeURIComponent(msg)}`,
       "_blank"
     );
-  }, [cart, flash]);
+  }, [cart, store.whatsapp, store.messageTemplate, flash]);
 
   return {
     activeCategory,
@@ -74,8 +82,9 @@ export function useCatalogo() {
     setBagOpen,
     toast,
     filteredProducts,
-    activeProducts,
+    activeProducts: products,
     bagCount,
+    hasWhatsapp,
     handleAdd,
     handleQty,
     handleRemove,

@@ -52,7 +52,9 @@ export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
       : pathname.startsWith(path);
 
   const initials = monogram ?? name.slice(0, 2).toUpperCase();
-  const catalogUrl = slug ? `catalogo.app/${slug}` : null;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const catalogHref = slug ? `${siteUrl}/${slug}` : null;
+  const catalogLabel = catalogHref?.replace(/^https?:\/\//, "") ?? null;
 
   return (
     <aside className="w-[248px] flex-shrink-0 border-r border-sand/50 p-5 flex flex-col gap-6 h-full">
@@ -106,17 +108,17 @@ export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
         />
       </nav>
 
-      {catalogUrl && (
+      {catalogHref && (
         <div className="mt-auto p-3.5 rounded-card bg-linen border border-sand/50">
           <div className="font-body text-[12px] text-graphite leading-relaxed">
             Catálogo público em{" "}
             <a
-              href={`https://${catalogUrl}`}
+              href={catalogHref}
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-obsidian inline-flex items-center gap-1 hover:underline"
             >
-              {catalogUrl}
+              {catalogLabel}
               <ExternalLink size={11} />
             </a>
           </div>
