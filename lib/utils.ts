@@ -6,34 +6,54 @@ export function formatMoney(value: number): string {
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
 }
 
-export function buildWhatsAppMessage(
-  items: Array<{
-    product: { name: string; price: string };
-    size: string | null;
-    color: string | null;
-    qty: number;
-  }>
+type WhatsAppItem = {
+  product: { name: string; price: string };
+  size: string | null;
+  color: string | null;
+  qty: number;
+};
+
+export const WHATSAPP_GREETING = "Olá! Gostaria de fazer um pedido:";
+const WHATSAPP_SEPARATOR = "━━━━━━━━━━━━━━━━━";
+
+export function cartTotal(items: WhatsAppItem[]): number {
+  return items.reduce((s, it) => s + parsePrice(it.product.price) * it.qty, 0);
+}
+
+// Bloco numerado de itens (usado no {itens} do template e no formato padrão).
+export function formatItemsBlock(items: WhatsAppItem[]): string {
+  return items
+    .map((it, i) => {
+      const unit = parsePrice(it.product.price);
+      const lines = [
+        `${String(i + 1).padStart(2, "0")}. ${it.product.name}`,
+        `    Quantidade: ${it.qty}x | Valor unitário: ${formatMoney(unit)}`,
+      ];
+      if (it.size) lines.push(`    Tamanho: ${it.size}`);
+      if (it.color) lines.push(`    Cor: ${it.color}`);
+      lines.push(`    Subtotal: ${formatMoney(unit * it.qty)}`);
+      return lines.join("\n");
+    })
+    .join("\n\n");
+}
+
+export function buildWhatsAppMessage(items: WhatsAppItem[]): string {
+  const total = cartTotal(items);
+  return `${WHATSAPP_GREETING}\n\n${formatItemsBlock(items)}\n\n${WHATSAPP_SEPARATOR}\n*Total: ${formatMoney(total)}*\n${WHATSAPP_SEPARATOR}`;
+}
+
+// Renderiza a mensagem a partir do template da loja. Template nulo/vazio → formato padrão (§8).
+// Variáveis desconhecidas ({foo}) são mantidas literais.
+export function renderWhatsAppMessage(
+  template: string | null | undefined,
+  items: WhatsAppItem[]
 ): string {
-  const total = items.reduce(
-    (s, it) => s + parsePrice(it.product.price) * it.qty,
-    0
-  );
-  const lines = ["Olá! Gostaria de fazer um pedido:", ""];
-  items.forEach((it, i) => {
-    const unit = parsePrice(it.product.price);
-    lines.push(`${String(i + 1).padStart(2, "0")}. ${it.product.name}`);
-    lines.push(
-      `    Quantidade: ${it.qty}x | Valor unitário: ${formatMoney(unit)}`
-    );
-    if (it.size) lines.push(`    Tamanho: ${it.size}`);
-    if (it.color) lines.push(`    Cor: ${it.color}`);
-    lines.push(`    Subtotal: ${formatMoney(unit * it.qty)}`);
-    lines.push("");
-  });
-  lines.push("━━━━━━━━━━━━━━━━━");
-  lines.push(`*Total: ${formatMoney(total)}*`);
-  lines.push("━━━━━━━━━━━━━━━━━");
-  return lines.join("\n");
+  const trimmed = template?.trim();
+  if (!trimmed) return buildWhatsAppMessage(items);
+  return trimmed
+    .replaceAll("{saudacao}", WHATSAPP_GREETING)
+    .replaceAll("{itens}", formatItemsBlock(items))
+    .replaceAll("{total}", formatMoney(cartTotal(items)));
 }
 
 export function cn(...classes: (string | undefined | null | false)[]): string {

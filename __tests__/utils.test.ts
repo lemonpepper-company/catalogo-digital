@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parsePrice, formatMoney, buildWhatsAppMessage, cn, parseReaisToCents, formatCents } from "@/lib/utils";
+import { parsePrice, formatMoney, buildWhatsAppMessage, renderWhatsAppMessage, formatItemsBlock, WHATSAPP_GREETING, cn, parseReaisToCents, formatCents } from "@/lib/utils";
 
 describe("parsePrice", () => {
   it("parses a Brazilian real price string", () => {
@@ -114,6 +114,63 @@ describe("buildWhatsAppMessage", () => {
     ];
     const msg = buildWhatsAppMessage(items);
     expect(msg).toContain("Total");
+  });
+});
+
+describe("buildWhatsAppMessage — formato padrão (§8)", () => {
+  it("mantém o formato exato do Escopo §8", () => {
+    const items = [
+      { product: { name: "Produto Exemplo", price: "R$ 50,00" }, size: "M", color: "Preto", qty: 2 },
+    ];
+    const expected = [
+      "Olá! Gostaria de fazer um pedido:",
+      "",
+      "01. Produto Exemplo",
+      `    Quantidade: 2x | Valor unitário: ${formatMoney(50)}`,
+      "    Tamanho: M",
+      "    Cor: Preto",
+      `    Subtotal: ${formatMoney(100)}`,
+      "",
+      "━━━━━━━━━━━━━━━━━",
+      `*Total: ${formatMoney(100)}*`,
+      "━━━━━━━━━━━━━━━━━",
+    ].join("\n");
+    expect(buildWhatsAppMessage(items)).toBe(expected);
+  });
+});
+
+describe("renderWhatsAppMessage (CAT-07, CAT-08)", () => {
+  const items = [
+    { product: { name: "Vestido", price: "R$ 100,00" }, size: "M", color: "Areia", qty: 2 },
+    { product: { name: "Blusa", price: "R$ 50,00" }, size: null, color: null, qty: 1 },
+  ];
+
+  it("template nulo → formato padrão idêntico ao buildWhatsAppMessage (CAT-08)", () => {
+    expect(renderWhatsAppMessage(null, items)).toBe(buildWhatsAppMessage(items));
+  });
+
+  it("template vazio/espaços → formato padrão (CAT-08)", () => {
+    expect(renderWhatsAppMessage("   ", items)).toBe(buildWhatsAppMessage(items));
+  });
+
+  it("substitui {saudacao} pela saudação padrão (CAT-07)", () => {
+    expect(renderWhatsAppMessage("{saudacao}", items)).toBe(WHATSAPP_GREETING);
+  });
+
+  it("substitui {total} pelo total formatado (CAT-07)", () => {
+    expect(renderWhatsAppMessage("Total: {total}", items)).toBe(`Total: ${formatMoney(250)}`);
+  });
+
+  it("substitui {itens} pelo bloco numerado com todos os itens (CAT-07)", () => {
+    const msg = renderWhatsAppMessage("Pedido:\n{itens}", items);
+    expect(msg).toContain("01. Vestido");
+    expect(msg).toContain("02. Blusa");
+    expect(msg).toBe(`Pedido:\n${formatItemsBlock(items)}`);
+  });
+
+  it("mantém variável desconhecida literal (CAT-08 edge case)", () => {
+    const msg = renderWhatsAppMessage("{foo} custa {total}", items);
+    expect(msg).toBe(`{foo} custa ${formatMoney(250)}`);
   });
 });
 
