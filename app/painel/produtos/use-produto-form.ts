@@ -43,8 +43,8 @@ export function useProdutoForm(
       formData.set("sizes", JSON.stringify(sizes));
       formData.set("soldSizes", JSON.stringify(soldSizes));
       formData.set("colors", JSON.stringify(colors));
-      const selected = catList.find((c) => c.id === category || c.name === category);
-      formData.set("categoryId", selected && selected.id !== selected.name ? selected.id : "");
+      const selected = catList.find((c) => c.id === category);
+      formData.set("categoryId", selected ? selected.id : "");
       formData.set("isActive", String(visible));
       formData.set("isNew", String(isNew));
       return boundAction(prev, formData);
@@ -89,15 +89,16 @@ export function useProdutoForm(
     const fd = new FormData();
     fd.set("name", v);
     const res = await createCategory(null, fd);
-    if (res && "error" in res) {
-      flash(res.error, "error");
+    if (!res || "error" in res || !res.id) {
+      flash(res && "error" in res ? res.error : "Erro ao criar categoria.", "error");
       return;
     }
+    const id = res.id;
     setCatList((prev) => [
       ...prev,
-      { id: v, name: v, position: prev.length, productCount: 0 },
+      { id, name: v, position: prev.length, productCount: 0 },
     ]);
-    setCategory(v);
+    setCategory(id);
     setQuickCat(false);
     setCatDraft("");
     flash("Categoria criada");
