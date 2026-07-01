@@ -2,7 +2,7 @@
 
 ## Duas superfícies
 
-1. **Catálogo público** (`/catalogo`) — vitrine para o cliente final, mobile-first. Sempre público, sem login. Grid de produtos + filtro por categoria + detalhe do produto com seleção de variação.
+1. **Catálogo público** (`/{slug}`) — vitrine para o cliente final, mobile-first. Sempre público, sem login. Grid de produtos + filtro por categoria + detalhe do produto com seleção de variação.
 
 2. **Painel do lojista** (`/painel`) — área administrativa desktop-first. Dashboard, Produtos (listagem/cadastro/edição), Categorias, Configurações.
 
@@ -33,7 +33,7 @@ Implementada com **Supabase Auth** + **`@supabase/ssr`** (cookies httpOnly). Sem
 
 ### Proteção de rotas (middleware)
 
-`middleware.ts` intercepta todas as rotas exceto `_next/`, `api/slug/`, `auth/callback`, `catalogo/` e `landing/`.
+`middleware.ts` intercepta rotas protegidas (`/painel`). Rotas públicas excluídas do matcher: `_next/`, `api/slug/`, `auth/callback`, `landing/`, e qualquer rota com extensão de arquivo.
 
 | Situação | Destino |
 |---|---|
@@ -49,13 +49,26 @@ Implementada com **Supabase Auth** + **`@supabase/ssr`** (cookies httpOnly). Sem
 ### Schema (`supabase/migrations/`)
 
 ```sql
-profiles (id → auth.users, full_name, created_at)
-stores   (id, owner_id → profiles, name, slug unique, plan, trial_ends_at, is_active, created_at)
+profiles   (id → auth.users, full_name, created_at)
+stores     (id, owner_id → profiles, name, slug unique, plan, trial_ends_at, is_active,
+            whatsapp, accent_color, logo_url, description, monogram,
+            analytics_id, pixel_id, message_template, created_at)
+categories (id, store_id → stores, name, position, created_at)
+products   (id, store_id → stores, name, price_cents, description, category_id → categories,
+            sizes[], sold_sizes[], colors jsonb, images[], stock, is_active, is_new, created_at)
 ```
 
-RLS habilitado em ambas as tabelas. Políticas:
+RLS habilitado em todas as tabelas. Políticas:
 - `profiles` — usuário lê/escreve apenas a própria linha
-- `stores` — usuário lê/escreve apenas a própria loja; leitura pública de `slug` (para verificação de disponibilidade)
+- `stores` — usuário lê/escreve apenas a própria loja; leitura pública de `slug` (para verificação de disponibilidade e catálogo)
+- `categories` — authenticated: escrita apenas da própria loja; anon: leitura pública
+- `products` — authenticated: escrita apenas da própria loja; anon: leitura apenas de produtos ativos (`is_active=true AND stock>0`)
+
+### Storage
+
+- Bucket `product-images` (público): imagens de produtos
+- Upload permitido apenas pelo dono da loja (path `{store_id}/{filename}`)
+- Leitura pública irrestrita
 
 ### Configuração local
 
@@ -80,19 +93,29 @@ Emails de confirmação ficam em **Mailpit**: `http://localhost:54324`
 
 | Arquivo | Propósito |
 |---|---|
-| `lib/data.ts` | Mock data (STORE, PRODUCTS) — ainda usado pelo catálogo público |
+| `lib/data.ts` | Mock data legada (STORE, PRODUCTS) — mantida apenas para referência, não usada em produção |
 | `lib/types.ts` | Tipos TypeScript do domínio |
-| `lib/utils.ts` | `parsePrice`, `formatMoney`, `buildWhatsAppMessage` |
+| `lib/utils.ts` | `parsePrice`, `formatMoney`, `buildWhatsAppMessage`, `formatCents` |
 | `lib/auth/slugify.ts` | `slugify()` e `isValidSlug()` com testes |
+| `lib/plan-limits.ts` | `getPlanLimits()`, `isTrialActive()` — limites por plano (Starter/Pro) |
 | `lib/supabase/client.ts` | `createBrowserClient` para componentes client-side |
 | `lib/supabase/server.ts` | `createServerClient` para Server Components e Actions |
+| `lib/server/store.ts` | `getCurrentStore()`, `mapProduct()` — busca a loja do usuário autenticado |
+| `lib/server/catalog.ts` | `getPublicCatalog()` — busca catálogo público por slug (com RLS anon) |
+| `lib/server/upload.ts` | `uploadPhotos()`, `uploadToBucket()`, `publicUrlToPath()` — Supabase Storage |
+| `lib/image-compress.ts` | Compressão de imagens no cliente antes do upload |
+| `lib/validation/painel.ts` | Schemas Zod para produtos, categorias, configurações da loja |
 | `middleware.ts` | Proteção de rotas e redirecionamentos por estado de auth |
 | `app/actions/auth.ts` | Server Actions: `signUp`, `signIn`, `signInWithGoogle`, `createStore`, `selectPlan`, `requestPasswordReset`, `resetPassword`, `resendConfirmation`, `signOut` |
+| `app/actions/produtos.ts` | Server Actions: `createProduct`, `updateProduct`, `deleteProduct`, `toggleProductActive` |
+| `app/actions/categorias.ts` | Server Actions: `createCategory`, `updateCategory`, `deleteCategory` |
+| `app/actions/store.ts` | Server Actions: `updateStoreSettings` |
 | `app/auth/callback/route.ts` | Route Handler OAuth/PKCE: cria `profiles` + `stores` após confirmação |
 | `app/api/slug/check/route.ts` | Endpoint público de verificação de slug disponível |
 | `app/globals.css` | Tokens CSS como custom properties |
 | `tailwind.config.ts` | Mapeamento dos tokens para classes Tailwind |
-| `components/ui/` | Primitivos reutilizáveis (Button, Badge, Pill, Input, Switch, PasswordInput, SlugInput…) |
+| `components/ui/` | Primitivos reutilizáveis (Button, Badge, Pill, Input, Switch, PasswordInput, SlugInput, StatCard…) |
+| `components/catalogo/` | Componentes do catálogo público (BagDrawer, ProductCard, ProductDetail, StoreHeader, CatalogExpired) |
 | `supabase/config.toml` | Configuração do Supabase local (auth, email, rate limits) |
 | `supabase/migrations/` | Migrations SQL versionadas |
 | `docs/DESIGN_SYSTEM.md` | Design system completo |
@@ -112,23 +135,28 @@ Route group sem layout próprio. URLs sem o prefixo `(auth)`.
 | `/redefinir-senha` | Nova senha (requer token do email) |
 | `/escolha-de-plano` | Starter (R$49/mês) ou Pro (R$99/mês), 14 dias grátis |
 
+## Catálogo público (`app/[slug]/`)
+
+Route dinâmica na raiz. Sem autenticação. `force-dynamic` para sempre buscar dados frescos.
+
+| Rota | Descrição |
+|---|---|
+| `/{slug}` | Catálogo da loja — grid de produtos, filtro por categoria, sacola, checkout WhatsApp |
+| `/{slug}` (loja oculta) | Exibe `CatalogExpired` quando trial expirou e loja sem plano ativo |
+| `/{slug}` (not found) | `notFound()` quando slug não existe |
+
+A função `getPublicCatalog(slug)` em `lib/server/catalog.ts` encapsula toda a lógica de visibilidade.
+
 ---
 
-## Estado atual
+## Estado atual (jun/2026)
 
-- **Autenticação**: completa — cadastro, login, OAuth Google, recuperação de senha, confirmação de email, seleção de plano
-- **Catálogo público** (`/catalogo`): ainda usa mock data de `lib/data.ts`
-- **Painel** (`/painel`): sessão verificada; conteúdo das seções (produtos, categorias, configurações) ainda mockado
-- Toasts, modais e toggles funcionam com React state local
+- **Autenticação**: completa — cadastro 2 etapas, login email/senha, Google OAuth, recuperação/redefinição de senha, confirmação de email, seleção de plano
+- **Painel do lojista** (`/painel`): totalmente conectado ao Supabase — dashboard, produtos (CRUD + upload de fotos), categorias (CRUD + limites de plano), configurações da loja
+- **Catálogo público** (`/[slug]`): dados reais do Supabase via RLS anon — grid de produtos, detalhe, sacola (drawer), checkout WhatsApp com template customizável, página de loja expirada
+- **Limites de plano**: `getPlanLimits()` aplicado em Server Actions de produtos e categorias
+- **Storage**: bucket `product-images` com upload, compressão no cliente e remoção de imagens antigas ao editar
 
-## Próximos passos (backend do painel)
+## Próximo passo
 
-Substituir dados de `lib/data.ts` por Server Components que leem do Supabase. Padrão a seguir:
-
-```
-app/painel/produtos/page.tsx          ← Server Component, busca produtos
-app/painel/produtos/use-produto-form.ts ← hook client, useActionState
-app/actions/produtos.ts               ← Server Actions (create, update, delete)
-```
-
-A tipagem em `lib/types.ts` já representa o contrato esperado do banco.
+Integração de pagamento (Stripe ou Pagar.me) — cobrança recorrente no dia 15 do trial, webhooks para ativação/cancelamento de plano.
