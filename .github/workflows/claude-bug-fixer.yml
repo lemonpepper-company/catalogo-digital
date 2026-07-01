@@ -22,12 +22,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure git and gh CLI
-        run: |
-          git config --global user.email "claude-bot@users.noreply.github.com"
-          git config --global user.name "Claude Bot"
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-
       - name: Run Claude Bug Fixer
         uses: anthropics/claude-code-action@v1
         with:
@@ -39,9 +33,10 @@ jobs:
             Título: ${{ github.event.issue.title }}
             Descrição: ${{ github.event.issue.body }}
 
-            Analise o repositório, encontre a causa raiz do bug e implemente a correção mínima necessária.
+            Analise o repositório, encontre a causa raiz do bug e implemente a correção mínima necessária diretamente nos arquivos.
 
-            Ao finalizar as alterações, crie o Pull Request linkando a issue com "Closes #${{ github.event.issue.number }}" no corpo.
+            O título do PR deve ser: fix: <descrição curta do bug>
+            O corpo do PR deve incluir: Closes #${{ github.event.issue.number }}
 
             Diretrizes:
             - Faça apenas as mudanças necessárias para corrigir o bug — sem refatorações extras
@@ -51,15 +46,6 @@ jobs:
             {
               "permissions": {
                 "allow": [
-                  "Bash(git checkout -b *)",
-                  "Bash(git add *)",
-                  "Bash(git commit *)",
-                  "Bash(git push *)",
-                  "Bash(git status)",
-                  "Bash(git diff *)",
-                  "Bash(git log *)",
-                  "Bash(gh pr create *)",
-                  "Bash(gh issue comment *)",
                   "Bash(ls *)",
                   "Bash(find *)",
                   "Bash(grep *)",
@@ -71,11 +57,15 @@ jobs:
                   "Bash(python3 *)",
                   "Bash(sed *)",
                   "Bash(awk *)",
+                  "Bash(gh issue comment *)",
                   "Edit",
                   "Write",
                   "MultiEdit"
                 ],
-                "deny": []
+                "deny": [
+                  "Bash(git *)",
+                  "Bash(gh pr *)"
+                ]
               }
             }
           claude_args: '--max-turns 30'
