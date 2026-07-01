@@ -8,7 +8,7 @@ O sistema tem duas superfícies:
 
 | Superfície | Rota | Audiência |
 |---|---|---|
-| **Catálogo público (Vitrine)** | `/catalogo` | Cliente final — mobile-first |
+| **Catálogo público (Vitrine)** | `/{slug}` | Cliente final — mobile-first |
 | **Painel do lojista** | `/painel/**` | Lojista (B2B) — desktop-first |
 
 ### Tema visual
@@ -20,7 +20,8 @@ O sistema tem duas superfícies:
 - **Next.js 16** (App Router, Turbopack)
 - **React 19**
 - **TypeScript** (strict mode)
-- **Tailwind CSS v3** (sem CSS Modules nem styled-components)
+- **Tailwind CSS v3**
+- **Supabase** (Auth, PostgreSQL, Storage)
 - **Lucide React** (ícones outline)
 - **Vitest + Testing Library** (testes unitários)
 
@@ -28,9 +29,10 @@ O sistema tem duas superfícies:
 
 | Arquivo | Descrição |
 |---|---|
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Superfícies, arquivos-chave, estado atual, roadmap de backend |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Superfícies, schema do banco, arquivos-chave, estado atual |
 | [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) | Convenções de código, stack, regras de estilo |
-| [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) | Design system completo — paleta, tipografia, espaçamento, componentes, tokens CSS |
+| [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) | Design system — paleta, tipografia, espaçamento, componentes, tokens CSS |
+| [`docs/roadmap/Escopo.md`](docs/roadmap/Escopo.md) | Escopo do produto V1, funcionalidades e roadmap |
 
 ---
 
@@ -38,31 +40,45 @@ O sistema tem duas superfícies:
 
 ```
 app/
-  landing/            # Landing page de marketing
-  login/              # Login do lojista
-  cadastro/           # Criação de conta
-  planos/             # Página de planos
-  catalogo/           # Vitrine pública (mobile-first)
+  landing/              # Landing page de marketing
+  (auth)/
+    login/              # Login (email/senha + Google OAuth)
+    cadastro/           # Criação de conta (2 etapas)
+    verificar-email/    # Aguarda confirmação de email
+    recuperar-senha/    # Reset de senha
+    redefinir-senha/    # Nova senha via token
+    escolha-de-plano/   # Seleção de plano (Starter/Pro)
+  [slug]/               # Catálogo público da loja (mobile-first)
   painel/
-    page.tsx          # Dashboard
-    produtos/         # Listagem, novo produto, edição
-    categorias/       # Gestão de categorias
-    configuracoes/    # Identidade, cor de destaque, integrações
+    page.tsx            # Dashboard
+    produtos/           # Listagem, novo produto, edição
+    categorias/         # Gestão de categorias
+    configuracoes/      # Identidade, cor, WhatsApp, integrações
+  actions/              # Server Actions (auth, produtos, categorias, store)
+  api/slug/check/       # Endpoint público de verificação de slug
+  auth/callback/        # Route Handler OAuth/PKCE
 components/
-  ui/                 # Primitivos reutilizáveis (Button, Badge, Pill, Input…)
-  catalogo/           # Componentes específicos da vitrine
-  painel/             # Componentes específicos do painel
+  ui/                   # Primitivos reutilizáveis (Button, Badge, Pill, Input…)
+  catalogo/             # Componentes da vitrine (BagDrawer, ProductCard, StoreHeader…)
 lib/
-  data.ts             # Mock data (produtos, loja)
-  types.ts            # Tipos TypeScript
-  utils.ts            # parsePrice, formatMoney, buildWhatsAppMessage, cn
-__tests__/            # Suíte de testes unitários
+  server/               # Funções server-side (store, catalog, upload)
+  supabase/             # Clients Supabase (browser + server)
+  auth/                 # slugify, isValidSlug
+  validation/           # Schemas Zod (painel)
+  types.ts              # Tipos TypeScript do domínio
+  utils.ts              # parsePrice, formatMoney, buildWhatsAppMessage
+  plan-limits.ts        # getPlanLimits, isTrialActive
+supabase/
+  migrations/           # Migrations SQL versionadas
+  config.toml           # Configuração local (auth, email, rate limits)
+__tests__/              # Suíte de testes unitários
 ```
 
 ## Pré-requisitos
 
 - Node.js 20.9+
-- npm, yarn ou pnpm
+- [Supabase CLI](https://supabase.com/docs/guides/cli) (para desenvolvimento local)
+- Docker (necessário para o Supabase local)
 
 ## Instalação
 
@@ -70,7 +86,27 @@ __tests__/            # Suíte de testes unitários
 npm install
 ```
 
+## Variáveis de ambiente
+
+Copie `.env.example` para `.env.local` e preencha:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key do supabase start>
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
 ## Executar em desenvolvimento
+
+**1. Suba o Supabase local:**
+
+```bash
+supabase start
+```
+
+Isso sobe Postgres + Auth + Storage. Os emails de confirmação ficam em **Mailpit**: [http://localhost:54324](http://localhost:54324).
+
+**2. Suba o Next.js:**
 
 ```bash
 npm run dev
@@ -83,16 +119,16 @@ Acesse em [http://localhost:3000](http://localhost:3000). O root redireciona par
 | Rota | Descrição |
 |---|---|
 | `/landing` | Landing page de marketing |
-| `/catalogo` | Vitrine pública — Ateliê Mira (mock) |
+| `/cadastro` | Criação de conta (2 etapas) |
+| `/login` | Login do lojista |
+| `/escolha-de-plano` | Seleção de plano (Starter/Pro) |
 | `/painel` | Dashboard do lojista |
 | `/painel/produtos` | Listagem de produtos |
 | `/painel/produtos/novo` | Cadastro de produto |
 | `/painel/produtos/[id]` | Edição de produto |
 | `/painel/categorias` | Gestão de categorias |
 | `/painel/configuracoes` | Configurações da loja |
-| `/login` | Tela de login |
-| `/cadastro` | Tela de criação de conta |
-| `/planos` | Planos de assinatura |
+| `/{slug}` | Catálogo público da loja |
 
 ## Build de produção
 
@@ -103,40 +139,33 @@ npm run start
 
 ## Testes
 
-### Executar todos os testes
-
 ```bash
-npm test
+npm test                  # todos os testes
+npm test -- --watch       # modo watch
+npm run test:ui           # interface visual (Vitest UI)
+npm run test:coverage     # relatório de cobertura (gerado em coverage/)
 ```
-
-### Modo watch (interativo)
-
-```bash
-npm test -- --watch
-```
-
-### Interface visual (Vitest UI)
-
-```bash
-npm run test:ui
-```
-
-### Cobertura de código
-
-```bash
-npm run test:coverage
-```
-
-Os relatórios de cobertura são gerados em `coverage/`.
 
 ### O que está coberto
 
 | Arquivo de teste | O que testa |
 |---|---|
-| `__tests__/utils.test.ts` | `parsePrice`, `formatMoney`, `buildWhatsAppMessage`, `cn` |
-| `__tests__/Button.test.tsx` | Variantes, eventos, estado disabled |
-| `__tests__/Pill.test.tsx` | Estado active/inactive, callbacks |
-| `__tests__/data.test.ts` | Integridade dos dados mock (STORE, PRODUCTS) |
+| `utils.test.ts` | `parsePrice`, `formatMoney`, `buildWhatsAppMessage`, `formatCents` |
+| `slugify.test.ts` | `slugify()`, `isValidSlug()` |
+| `plan-limits.test.ts` | `getPlanLimits()`, `isTrialActive()` |
+| `catalog.test.ts` | `mapPublicStore()`, `mapPublicProduct()`, visibilidade |
+| `painel-validation.test.ts` | Schemas Zod de produtos, categorias, configurações |
+| `upload.test.ts` | `publicUrlToPath()`, helpers de Storage |
+| `Button.test.tsx` | Variantes, eventos, estado disabled |
+| `Pill.test.tsx` | Estado active/inactive, callbacks |
+| `Switch.test.tsx` | Toggle, callbacks |
+| `SlugInput.test.tsx` | Validação e feedback de slug |
+| `StoreHeader.test.tsx` | Renderização do header do catálogo |
+| `BagDrawer.test.tsx` | Sacola — itens, quantidades, total |
+| `ConfiguracoesClient.test.tsx` | Formulário de configurações da loja |
+| `Sidebar.test.tsx` | Navegação do painel |
+| `data.test.ts` | Integridade dos dados mock legados |
+| `next-config.test.ts` | Configuração do Next.js |
 
 ## Lint
 
@@ -144,22 +173,9 @@ Os relatórios de cobertura são gerados em `coverage/`.
 npm run lint
 ```
 
-## Navegação mockada
-
-Toda a navegação está mockada. Não há chamadas de API reais — os dados são servidos por `lib/data.ts`. O backend será implementado posteriormente.
-
-Comportamentos mockados:
-- Login / cadastro: links navegam diretamente para `/painel`
-- Salvar produto, configurações: exibe toast de sucesso sem persistência
-- Excluir produto: remove do estado local (React state)
-- Link do catálogo: usa `navigator.clipboard` para copiar
-- Pedido via WhatsApp: abre `https://wa.me/...` real com a mensagem montada
-
 ## Design tokens
 
 Os tokens ficam em `app/globals.css` como variáveis CSS. O `tailwind.config.ts` mapeia as mesmas cores e espaçamentos como classes utilitárias.
-
-Cores principais:
 
 | Token | Valor | Uso |
 |---|---|---|
@@ -172,8 +188,8 @@ Cores principais:
 
 ## Fontes
 
-**Sora** (display, headings, botões) + **DM Sans** (body, descrições, preços), carregadas via `next/font/google`. Para auto-hospedagem, substitua os `@font-face` em `app/globals.css`.
+**Sora** (display, headings, botões) + **DM Sans** (body, descrições, preços), carregadas via `next/font/google`.
 
 ## Ícones
 
-**Lucide React** — outline, ~2px stroke. Substitua pelo seu set de ícones se necessário.
+**Lucide React** — outline, ~2px stroke. Importar individualmente: `import { X } from 'lucide-react'`.
