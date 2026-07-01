@@ -2,10 +2,13 @@ name: Claude Bug Fixer
 
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
 
 jobs:
   fix-bug:
+    if: |
+      (github.event.action == 'labeled' && github.event.label.name == 'bug') ||
+      (github.event.action == 'opened' && contains(toJSON(github.event.issue.labels), '"name":"bug"'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -26,24 +29,45 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           label_trigger: bug
           prompt: |
-            Você foi acionado porque esta issue foi marcada como bug.
+            Você foi acionado porque a issue #${{ github.event.issue.number }} foi marcada como bug.
+
+            Título: ${{ github.event.issue.title }}
+            Descrição: ${{ github.event.issue.body }}
 
             Contexto do projeto:
             - Leia AGENTS.md e docs/ARCHITECTURE.md antes de explorar o código
             - Frontend: Next.js App Router em app/, actions em app/actions/, componentes do painel em app/painel/
             - Stack: TypeScript, Supabase, Tailwind, shadcn/ui
 
-            Sua tarefa:
-            1. Leia AGENTS.md para entender o projeto
-            2. Encontre o código relacionado ao bug descrito na issue
-            3. Implemente a correção mínima necessária
-
-            O PR deve ter:
-            - Título: fix: <descrição curta do bug>
-            - Corpo com "Closes #<número da issue>" e explicação da causa raiz
+            Sua tarefa: encontre a causa raiz do bug e implemente a correção mínima necessária editando os arquivos.
 
             Diretrizes:
             - Faça apenas as mudanças necessárias para corrigir o bug — sem refatorações extras
             - Mantenha consistência com o estilo de código existente
-            - Se o bug não for reproduzível ou a causa não for clara, comente na issue pedindo mais informações
+            - Se o bug não for reproduzível ou a causa não for clara, não modifique nenhum arquivo
           claude_args: '--max-turns 50'
+
+      - name: Create PR with Claude's changes
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo "Sem mudanças — Claude não encontrou o bug ou pediu mais informações."
+            exit 0
+          fi
+
+          git config user.email "claude-bot@users.noreply.github.com"
+          git config user.name "Claude Bot"
+
+          BRANCH="fix/bug-issue-${{ github.event.issue.number }}"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "fix: ${{ github.event.issue.title }}"
+          git push origin "$BRANCH"
+
+          gh pr create \
+            --title "fix: ${{ github.event.issue.title }}" \
+            --body "Closes #${{ github.event.issue.number }}" \
+            --base main \
+            --head "$BRANCH"
