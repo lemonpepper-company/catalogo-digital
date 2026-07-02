@@ -17,8 +17,9 @@ Linkar ambas no footer da landing page.
 
 ## Controlador dos Dados
 
-Identificado via CPF do responsável (armazenado fora deste documento por segurança).  
-Nome do serviço: **Vtrine Digital**.
+**Nome:** Wagner Azevedo Dutra  
+**Email de contato:** contato@vtrinedigital.com.br  
+**Serviço:** Vtrine Digital
 
 ---
 
@@ -69,7 +70,7 @@ app/
 ## Conteúdo — Política de Privacidade
 
 ### 1. Quem somos
-Identificação do controlador dos dados (Vtrine Digital, com CPF/nome do responsável), endereço de contato por email.
+Controlador dos dados: **Wagner Azevedo Dutra**, responsável pelo serviço **Vtrine Digital**. Contato: contato@vtrinedigital.com.br
 
 ### 2. Dados que coletamos
 - **Dados de conta:** nome completo, endereço de email, senha (hash gerenciado pelo Supabase)
@@ -106,7 +107,7 @@ Nos termos da LGPD (Art. 18), o titular pode solicitar:
 - Portabilidade
 - Revogação do consentimento
 
-Contato: email de suporte (a definir no momento da implementação).
+Contato: contato@vtrinedigital.com.br
 
 ---
 
