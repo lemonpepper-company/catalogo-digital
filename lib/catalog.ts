@@ -107,6 +107,32 @@ export function computePills(
   return ["Todos", ...withProducts];
 }
 
+// Normaliza texto para busca: minúsculas + remove acentos (mesmo padrão de slugify).
+export function normalizeSearch(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
+// Filtro do catálogo: interseção categoria ∩ nome. Termo vazio/em branco = sem
+// filtro de nome. Busca por substring do nome, case- e accent-insensitive.
+export function filterCatalog(
+  products: Product[],
+  activeCategory: string,
+  query: string
+): Product[] {
+  const byCategory =
+    activeCategory === "Todos"
+      ? products
+      : products.filter((p) => p.category === activeCategory);
+
+  const term = normalizeSearch(query.trim());
+  if (term === "") return byCategory;
+
+  return byCategory.filter((p) => normalizeSearch(p.name).includes(term));
+}
+
 // Decisão pura de visibilidade + montagem do catálogo. Sem I/O — testável direto.
 export function resolveCatalog(
   storeRow: PublicStoreRow | null,

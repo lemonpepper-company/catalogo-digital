@@ -6,10 +6,13 @@ import {
   mapPublicProduct,
   computePills,
   resolveCatalog,
+  normalizeSearch,
+  filterCatalog,
   type PublicStoreRow,
   type PublicProductRow,
   type PublicCategoryRow,
 } from "@/lib/catalog";
+import type { Product } from "@/lib/types";
 
 const storeRow: PublicStoreRow = {
   id: "s1",
@@ -112,6 +115,64 @@ describe("computePills (CAT-02)", () => {
   it("omite categoria sem produtos", () => {
     const pills = computePills([catVestidos, catBlusas], []);
     expect(pills).toEqual(["Todos"]);
+  });
+});
+
+function vm(overrides: Partial<Product>): Product {
+  return {
+    id: "p1",
+    name: "Vestido Longo",
+    price: "R$ 289,90",
+    category: "Vestidos",
+    image: "x.jpg",
+    desc: "",
+    sizes: [],
+    soldSizes: [],
+    colors: [],
+    ...overrides,
+  };
+}
+
+describe("normalizeSearch", () => {
+  it("baixa a caixa e remove acentos", () => {
+    expect(normalizeSearch("Véstido")).toBe("vestido");
+    expect(normalizeSearch("SEDA")).toBe("seda");
+  });
+});
+
+describe("filterCatalog (CAT-B02..B05)", () => {
+  const catalog: Product[] = [
+    vm({ id: "a", name: "Vestido Longo", category: "Vestidos" }),
+    vm({ id: "b", name: "Blusa de Seda", category: "Blusas" }),
+    vm({ id: "c", name: "Vestido de Seda", category: "Vestidos" }),
+  ];
+
+  it("casa substring do nome ignorando caixa (CAT-B02)", () => {
+    expect(filterCatalog(catalog, "Todos", "VEST").map((p) => p.id)).toEqual([
+      "a",
+      "c",
+    ]);
+  });
+
+  it("casa nome ignorando acentos (CAT-B02)", () => {
+    const withAccent = [vm({ id: "x", name: "Véstido de Festa", category: "Vestidos" })];
+    expect(filterCatalog(withAccent, "Todos", "vest")).toHaveLength(1);
+  });
+
+  it("interseção categoria ∩ nome (CAT-B03)", () => {
+    // "seda" existe em Blusas e Vestidos; categoria Blusas deve retornar só a blusa
+    expect(filterCatalog(catalog, "Blusas", "seda").map((p) => p.id)).toEqual(["b"]);
+  });
+
+  it("termo só com espaços = sem filtro de nome (CAT-B04)", () => {
+    expect(filterCatalog(catalog, "Vestidos", "   ").map((p) => p.id)).toEqual([
+      "a",
+      "c",
+    ]);
+  });
+
+  it("termo sem correspondência retorna vazio (CAT-B05)", () => {
+    expect(filterCatalog(catalog, "Todos", "sapato")).toEqual([]);
   });
 });
 

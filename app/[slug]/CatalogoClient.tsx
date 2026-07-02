@@ -18,6 +18,10 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
   const {
     activeCategory,
     setActiveCategory,
+    searchOpen,
+    searchQuery,
+    setSearchQuery,
+    toggleSearch,
     openProduct,
     setOpenProduct,
     cart,
@@ -51,32 +55,42 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
 
   return (
     <div className="min-h-screen bg-ivory relative">
-      <StoreHeader
-        store={store}
-        activeProductCount={activeProducts.length}
-        bagCount={bagCount}
-        onOpenBag={() => setBagOpen(true)}
-      />
+      <div className="sticky top-0 z-10 bg-ivory">
+        <StoreHeader
+          store={store}
+          activeProductCount={activeProducts.length}
+          bagCount={bagCount}
+          onOpenBag={() => setBagOpen(true)}
+          searchOpen={searchOpen}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onToggleSearch={toggleSearch}
+        />
 
-      <div className="sticky top-[69px] z-10 bg-ivory flex gap-2 px-4 py-3.5 overflow-x-auto no-scrollbar">
-        {store.categories.map((cat) => (
-          <Pill
-            key={cat}
-            active={activeCategory === cat}
-            onClick={() => setActiveCategory(cat)}
-          >
-            {cat}
-          </Pill>
-        ))}
+        <div className="bg-ivory flex gap-2 px-4 py-3.5 overflow-x-auto no-scrollbar">
+          {store.categories.map((cat) => (
+            <Pill
+              key={cat}
+              active={activeCategory === cat}
+              onClick={() => setActiveCategory(cat)}
+            >
+              {cat}
+            </Pill>
+          ))}
+        </div>
       </div>
 
       {filteredProducts.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 px-4 py-24 text-center">
           <p className="font-display font-medium text-[16px] text-obsidian">
-            Nenhuma peça disponível no momento
+            {searchQuery.trim()
+              ? "Nenhuma peça encontrada"
+              : "Nenhuma peça disponível no momento"}
           </p>
           <p className="font-body text-[14px] text-graphite">
-            Volte em breve para conferir as novidades.
+            {searchQuery.trim()
+              ? "Tente buscar por outro nome."
+              : "Volte em breve para conferir as novidades."}
           </p>
         </div>
       ) : (
