@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { renderWhatsAppMessage, normalizeWhatsapp } from "@/lib/utils";
+import { filterCatalog } from "@/lib/catalog";
 import type { CartItem, Product, Store } from "@/lib/types";
 
 interface UseCatalogoArgs {
@@ -11,6 +12,8 @@ interface UseCatalogoArgs {
 
 export function useCatalogo({ store, products }: UseCatalogoArgs) {
   const [activeCategory, setActiveCategory] = useState("Todos");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [openProduct, setOpenProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [bagOpen, setBagOpen] = useState(false);
@@ -21,10 +24,15 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     setTimeout(() => setToast(null), 2200);
   }, []);
 
-  const filteredProducts =
-    activeCategory === "Todos"
-      ? products
-      : products.filter((p) => p.category === activeCategory);
+  // Alterna o campo de busca; ao fechar, limpa o termo (CAT-B06).
+  const toggleSearch = useCallback(() => {
+    setSearchOpen((open) => {
+      if (open) setSearchQuery("");
+      return !open;
+    });
+  }, []);
+
+  const filteredProducts = filterCatalog(products, activeCategory, searchQuery);
 
   const bagCount = cart.reduce((s, it) => s + it.qty, 0);
   const hasWhatsapp = !!store.whatsapp;
@@ -75,6 +83,10 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
   return {
     activeCategory,
     setActiveCategory,
+    searchOpen,
+    searchQuery,
+    setSearchQuery,
+    toggleSearch,
     openProduct,
     setOpenProduct,
     cart,
