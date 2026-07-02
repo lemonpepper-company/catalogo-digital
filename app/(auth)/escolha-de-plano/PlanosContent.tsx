@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
+import { VtrineLogo } from "@/components/ui/VtrineLogo";
 import { selectPlan } from "@/app/actions/auth";
 import { starterFeatures, proFeatures } from "./data";
 
@@ -9,13 +10,8 @@ export function PlanosContent() {
       <div className="w-full max-w-[860px]">
         {/* Logo */}
         <div className="flex justify-center mb-9">
-          <Link href="/landing" className="flex items-center gap-2.5">
-            <div className="w-[34px] h-[34px] rounded-[9px] bg-obsidian flex items-center justify-center">
-              <span className="w-2.5 h-2.5 rounded-full bg-gold block" />
-            </div>
-            <span className="font-display font-semibold text-[19px] text-obsidian tracking-tight">
-              Catálogo Digital
-            </span>
+          <Link href="/landing">
+            <VtrineLogo />
           </Link>
         </div>
 

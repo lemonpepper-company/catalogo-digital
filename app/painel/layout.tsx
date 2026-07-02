@@ -4,7 +4,8 @@ import { Sidebar } from '@/components/painel/Sidebar'
 import { signOut } from '@/app/actions/auth'
 
 export const metadata = {
-  title: 'Painel — Catálogo Digital',
+  title: 'Painel — Vtrine Digital',
+  robots: { index: false, follow: false },
 }
 
 export default async function PainelLayout({

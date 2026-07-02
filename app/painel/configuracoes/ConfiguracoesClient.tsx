@@ -202,29 +202,9 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
         </div>
       </Card>
 
-      <Card>
-        <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
-          Integrações
-        </h2>
-        <div className="grid grid-cols-2 gap-[18px]">
-          <Input
-            name="analyticsId"
-            label="Google Analytics ID"
-            hint="Ex: G-XXXXXXXXXX"
-            placeholder="G-XXXXXXXXXX"
-            value={f.analyticsId}
-            onChange={(e) => f.setAnalyticsId(e.target.value)}
-          />
-          <Input
-            name="pixelId"
-            label="Facebook Pixel ID"
-            hint="Apenas números"
-            placeholder="000000000000000"
-            value={f.pixelId}
-            onChange={(e) => f.setPixelId(e.target.value)}
-          />
-        </div>
-      </Card>
+      {/* Integrações (Google Analytics + Facebook Pixel) — temporariamente ocultas da UI.
+          Os campos analytics_id e pixel_id continuam existindo no banco e sendo preservados.
+          Reativar quando a feature de injeção de scripts estiver pronta. */}
 
       <div className="flex justify-end gap-3 pb-6">
         <Button type="button" variant="ghost" onClick={() => history.back()}>

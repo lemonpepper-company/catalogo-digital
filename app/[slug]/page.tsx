@@ -16,9 +16,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (catalog.status === "not_found") {
     return { title: "Catálogo não encontrado" };
   }
+  const title = `${catalog.store.name} — Vitrine e catálogo | Vtrine Digital`;
+  const description =
+    catalog.store.description ||
+    `Veja o catálogo de ${catalog.store.name} e compre pelo WhatsApp.`;
   return {
-    title: `${catalog.store.name} — Catálogo Digital`,
-    description: catalog.store.description || undefined,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+    },
   };
 }
 

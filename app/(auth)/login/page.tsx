@@ -1,7 +1,7 @@
 import { LoginForm } from './LoginForm'
 
 export const metadata = {
-  title: 'Entrar — Catálogo Digital',
+  title: 'Entrar — Vtrine Digital',
 }
 
 export default async function LoginPage({

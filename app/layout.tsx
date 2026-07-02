@@ -16,10 +16,50 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vtrinedigital.com.br";
+
 export const metadata: Metadata = {
-  title: "Catálogo Digital — Sua vitrine no WhatsApp",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Vtrine Digital — Vitrine e catálogo online para vender no WhatsApp",
+    template: "%s | Vtrine Digital",
+  },
   description:
-    "Crie uma vitrine online premium e converta visitantes em compradores via WhatsApp.",
+    "Crie sua vitrine digital e catálogo de produtos em minutos. O cliente escolhe a peça e vai direto pro seu WhatsApp — sem carrinho, sem taxa, sem complicação.",
+  keywords: [
+    "vitrine digital",
+    "vitrine online",
+    "catálogo digital",
+    "catálogo online",
+    "catálogo de produtos",
+    "vender pelo whatsapp",
+    "loja virtual whatsapp",
+    "vtrine",
+    "vtrine digital",
+    "moda whatsapp",
+  ],
+  authors: [{ name: "Vtrine Digital" }],
+  creator: "Vtrine Digital",
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    url: siteUrl,
+    siteName: "Vtrine Digital",
+    title: "Vtrine Digital — Vitrine e catálogo online para vender no WhatsApp",
+    description:
+      "Crie sua vitrine digital e catálogo de produtos em minutos. O cliente escolhe a peça e vai direto pro seu WhatsApp — sem carrinho, sem taxa, sem complicação.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Vtrine Digital — Vitrine e catálogo online para vender no WhatsApp",
+    description:
+      "Crie sua vitrine digital e catálogo de produtos em minutos. O cliente escolhe a peça e vai direto pro seu WhatsApp.",
+    creator: "@vtrinedigital",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

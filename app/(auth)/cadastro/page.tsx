@@ -1,7 +1,7 @@
 import { CadastroForm } from './CadastroForm'
 
 export const metadata = {
-  title: 'Criar conta — Catálogo Digital',
+  title: 'Criar conta — Vtrine Digital',
 }
 
 export default async function CadastroPage({

@@ -20,8 +20,7 @@ export function useConfiguracoes(settings: StoreSettings) {
   const [whatsapp, setWhatsapp] = useState(settings.whatsapp ?? '');
   const [monogram, setMonogram] = useState(settings.monogram ?? '');
   const [storeDescription, setStoreDescription] = useState(settings.description ?? '');
-  const [analyticsId, setAnalyticsId] = useState(settings.analyticsId ?? '');
-  const [pixelId, setPixelId] = useState(settings.pixelId ?? '');
+  // analyticsId e pixelId removidos do estado local — UI temporariamente oculta
   const [accent, setAccent] = useState(settings.accentColor);
   const [msgTpl, setMsgTpl] = useState(settings.messageTemplate ?? MSG_DEFAULT);
   const [logo, setLogoState] = useState<File | null>(null);
@@ -85,10 +84,6 @@ export function useConfiguracoes(settings: StoreSettings) {
     setMonogram,
     storeDescription,
     setStoreDescription,
-    analyticsId,
-    setAnalyticsId,
-    pixelId,
-    setPixelId,
     accent,
     setAccent,
     msgTpl,

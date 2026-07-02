@@ -121,7 +121,7 @@ export const proFeatures = [
 export const faqs = [
   {
     q: "Preciso de maquininha ou gateway de pagamento?",
-    a: "Não. O pagamento é combinado com você direto no WhatsApp, como já acontece hoje. O Catálogo Digital cuida da vitrine e leva o cliente até a conversa — você fecha do seu jeito.",
+    a: "Não. O pagamento é combinado com você direto no WhatsApp, como já acontece hoje. A Vtrine cuida da vitrine e leva o cliente até a conversa — você fecha do seu jeito.",
   },
   {
     q: "Meus clientes precisam baixar algum aplicativo?",

@@ -160,3 +160,17 @@ A função `getPublicCatalog(slug)` em `lib/server/catalog.ts` encapsula toda a 
 ## Próximo passo
 
 Integração de pagamento (Stripe ou Pagar.me) — cobrança recorrente no dia 15 do trial, webhooks para ativação/cancelamento de plano.
+
+---
+
+## Integrações pendentes (UI oculta)
+
+### Google Analytics e Facebook Pixel
+
+Os campos `analytics_id` e `pixel_id` existem na tabela `stores` e são preservados no banco, mas a UI de configuração está temporariamente oculta (`app/painel/configuracoes/ConfiguracoesClient.tsx`).
+
+**Para reativar:**
+1. Descomentar o Card "Integrações" em `ConfiguracoesClient.tsx`
+2. Restaurar o estado `analyticsId`/`pixelId` em `use-configuracoes.ts`
+3. Restaurar a leitura de `formData.get("analyticsId")` e `formData.get("pixelId")` em `app/actions/store.ts`
+4. Implementar a injeção dos scripts no layout do catálogo público (`app/[slug]/layout.tsx` ou similar) — ainda não implementada

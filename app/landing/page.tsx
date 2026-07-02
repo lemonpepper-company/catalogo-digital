@@ -1,4 +1,5 @@
 import NextLink from "next/link";
+import { VtrineLogo } from "@/components/ui/VtrineLogo";
 import {
   CheckCircle2,
   Check,
@@ -18,7 +19,18 @@ import {
 } from "./data";
 
 export const metadata = {
-  title: "Catálogo Digital — Sua vitrine no WhatsApp",
+  title: "Vtrine Digital — Vitrine e catálogo online para vender no WhatsApp",
+  description:
+    "Monte uma vitrine bonita e catálogo de produtos em minutos. O cliente navega, escolhe e finaliza no WhatsApp. Sem carrinho, sem maquininha, sem taxa.",
+  openGraph: {
+    title: "Vtrine Digital — Vitrine e catálogo online para vender no WhatsApp",
+    description:
+      "Monte uma vitrine bonita e catálogo de produtos em minutos. O cliente navega, escolhe e finaliza no WhatsApp. Sem carrinho, sem maquininha, sem taxa.",
+    url: "/",
+  },
+  alternates: {
+    canonical: "/",
+  },
 };
 
 export default function LandingPage() {
@@ -29,13 +41,8 @@ export default function LandingPage() {
         className="fixed top-0 inset-x-0 z-50 border-b border-sand bg-ivory/[0.92] backdrop-blur"
       >
         <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12 h-[72px] flex items-center justify-between">
-          <NextLink href="#top" className="flex items-center gap-2.5">
-            <div className="w-[30px] h-[30px] rounded-[8px] bg-obsidian flex items-center justify-center flex-shrink-0">
-              <span className="w-[9px] h-[9px] rounded-full bg-gold block" />
-            </div>
-            <span className="font-display font-semibold text-[17px] text-obsidian tracking-tight">
-              Catálogo Digital
-            </span>
+          <NextLink href="#top">
+            <VtrineLogo size="sm" />
           </NextLink>
 
           <div className="flex items-center gap-4 md:gap-8">
@@ -483,13 +490,8 @@ export default function LandingPage() {
         <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-2 md:grid-cols-4 pb-12 gap-8">
             <div className="col-span-2 md:col-span-1">
-              <NextLink href="#top" className="flex items-center gap-2.5">
-                <div className="w-[30px] h-[30px] rounded-[8px] bg-obsidian flex items-center justify-center flex-shrink-0">
-                  <span className="w-[9px] h-[9px] rounded-full bg-gold block" />
-                </div>
-                <span className="font-display font-semibold text-[17px] text-obsidian tracking-tight">
-                  Catálogo Digital
-                </span>
+              <NextLink href="#top">
+                <VtrineLogo size="sm" />
               </NextLink>
               <p className="font-body text-[14px] text-graphite mt-4 max-w-[280px]">
                 A vitrine digital premium para lojistas que vendem pelo WhatsApp.
@@ -562,7 +564,7 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-sand pt-7 flex flex-col sm:flex-row gap-2 sm:gap-0 items-center justify-between font-body text-[13px] text-graphite">
-            <span>© 2026 Catálogo Digital. Todos os direitos reservados.</span>
+            <span>© 2026 Vtrine Digital. Todos os direitos reservados.</span>
             <span>Feito no Brasil</span>
           </div>
         </div>

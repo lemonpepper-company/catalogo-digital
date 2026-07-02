@@ -5,6 +5,7 @@ import { User, Mail, ArrowLeft, ArrowRight, Store } from 'lucide-react'
 import { useCadastroForm } from './use-cadastro-form'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { SlugInput } from '@/components/ui/SlugInput'
+import { VtrineLogo } from '@/components/ui/VtrineLogo'
 import { signInWithGoogle } from '@/app/actions/auth'
 
 const inputWrap =
@@ -32,13 +33,8 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
       <div className="w-full max-w-[440px]">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <Link href="/landing" className="flex items-center gap-2.5">
-            <div className="w-[34px] h-[34px] rounded-[9px] bg-obsidian flex items-center justify-center">
-              <span className="w-2.5 h-2.5 rounded-full bg-gold block" />
-            </div>
-            <span className="font-display font-semibold text-[19px] text-obsidian tracking-tight">
-              Catálogo Digital
-            </span>
+          <Link href="/landing">
+            <VtrineLogo />
           </Link>
         </div>
 

@@ -27,8 +27,9 @@ export async function updateStoreSettings(
     accentColor: formData.get("accentColor"),
     description: (formData.get("description") as string) || null,
     monogram: (formData.get("monogram") as string) || null,
-    analyticsId: (formData.get("analyticsId") as string) || null,
-    pixelId: (formData.get("pixelId") as string) || null,
+    // analyticsId e pixelId não vêm do formData (UI oculta) — preserva valores existentes no banco
+    analyticsId: store.analyticsId,
+    pixelId: store.pixelId,
     messageTemplate: (formData.get("messageTemplate") as string) || null,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };

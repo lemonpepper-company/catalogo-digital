@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { VtrineLogo } from '@/components/ui/VtrineLogo'
 import { useActionState, useState } from 'react'
 import { resetPassword } from '@/app/actions/auth'
 import { PasswordInput } from '@/components/ui/PasswordInput'
@@ -20,13 +21,8 @@ export default function RedefinirSenhaPage() {
     <div className="min-h-screen bg-ivory flex items-center justify-center px-8">
       <div className="w-full max-w-[420px]">
         <div className="flex justify-center mb-9">
-          <Link href="/landing" className="flex items-center gap-2.5">
-            <div className="w-[34px] h-[34px] rounded-[9px] bg-obsidian flex items-center justify-center">
-              <span className="w-2.5 h-2.5 rounded-full bg-gold block" />
-            </div>
-            <span className="font-display font-semibold text-[19px] text-obsidian tracking-tight">
-              Catálogo Digital
-            </span>
+          <Link href="/landing">
+            <VtrineLogo />
           </Link>
         </div>
 
