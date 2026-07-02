@@ -14,16 +14,19 @@ interface TabItemProps {
 
 function TabItem({ href, icon, label, active }: TabItemProps) {
   return (
-    <Link
-      href={href}
-      className={cn(
-        "flex flex-1 flex-col items-center justify-center gap-1 py-2",
-        "font-body text-[11px] transition-colors duration-200",
-        active ? "text-obsidian font-medium" : "text-graphite font-normal"
-      )}
-    >
-      {icon}
-      {label}
+    <Link href={href} className="flex flex-1 items-center justify-center py-2">
+      <span
+        className={cn(
+          "flex flex-col items-center gap-1 px-3.5 py-1.5 rounded-btn",
+          "font-body text-[11px] transition-colors duration-200",
+          active
+            ? "bg-linen text-obsidian font-medium"
+            : "text-graphite font-normal"
+        )}
+      >
+        {icon}
+        {label}
+      </span>
     </Link>
   );
 }
