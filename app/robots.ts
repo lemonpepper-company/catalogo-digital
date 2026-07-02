@@ -6,8 +6,17 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/landing"],
-        disallow: ["/painel", "/api/", "/(auth)/"],
+        allow: "/",
+        disallow: [
+          "/painel",
+          "/api/",
+          "/login",
+          "/cadastro",
+          "/recuperar-senha",
+          "/redefinir-senha",
+          "/verificar-email",
+          "/escolha-de-plano",
+        ],
       },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,
