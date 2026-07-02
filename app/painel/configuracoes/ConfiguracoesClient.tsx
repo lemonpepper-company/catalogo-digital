@@ -170,9 +170,9 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
             />
           ))}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center flex-wrap gap-3">
           <span
-            className="inline-flex h-11 items-center px-[22px] rounded-btn font-display font-medium text-[15px] text-white"
+            className="inline-flex min-h-11 items-center px-[22px] py-2.5 rounded-btn font-display font-medium text-[15px] text-white"
             style={{ background: f.accent }}
           >
             Comprar via WhatsApp
