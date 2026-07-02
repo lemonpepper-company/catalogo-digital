@@ -84,7 +84,7 @@ export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
       ) : (
         <>
           <Card className="bg-linen">
-            <div className="flex items-center gap-10 flex-wrap">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-10">
               {[
                 { value: active, label: "ativos", color: "bg-success" },
                 { value: soldOut, label: "esgotados", color: "bg-soldout" },
@@ -102,7 +102,7 @@ export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
           </Card>
 
           <Card pad={0} className="overflow-hidden">
-            <div className="flex items-center gap-4 px-5 py-3 bg-linen">
+            <div className="hidden lg:flex items-center gap-4 px-5 py-3 bg-linen">
               <span className="flex-1 font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
                 Produto
               </span>
@@ -124,72 +124,75 @@ export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
               return (
                 <div
                   key={p.id}
-                  className="flex items-center gap-4 px-5 py-3.5"
                   style={{
                     borderTop: i > 0 ? "0.5px solid var(--color-border)" : "none",
                   }}
                 >
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div
-                      className="relative w-[52px] h-16 rounded-[8px] overflow-hidden bg-linen flex-shrink-0"
-                      style={{ opacity: p.isActive ? 1 : 0.5 }}
-                    >
-                      {p.images[0] && (
-                        <Image
-                          src={p.images[0]}
-                          alt={p.name}
-                          fill
-                          sizes="52px"
-                          className="object-cover"
-                        />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-display font-medium text-[15px] text-obsidian truncate">
-                        {p.name}
+                  {/* Card mobile (abaixo de lg:) */}
+                  <div className="lg:hidden flex flex-col gap-3 px-5 py-4">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <ProductThumbnail
+                        src={p.images[0]}
+                        alt={p.name}
+                        active={p.isActive}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="font-display font-medium text-[15px] text-obsidian truncate">
+                          {p.name}
+                        </div>
+                        <div className="font-body text-[13px] text-graphite mt-0.5">
+                          {formatCents(p.priceCents)}
+                        </div>
                       </div>
-                      <div className="font-body text-[13px] text-graphite mt-0.5">
-                        {formatCents(p.priceCents)}
-                      </div>
+                      <ProductActions
+                        editHref={`/painel/produtos/${p.id}`}
+                        onDelete={() => setConfirm(p)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-3 pl-[68px]">
+                      <StockLabel stock={p.stock} tone={stockTone} />
+                      <VisibilityToggle
+                        active={p.isActive}
+                        onToggle={() => toggleActive(p)}
+                      />
                     </div>
                   </div>
 
-                  <div className="w-[120px] flex-shrink-0 text-right">
-                    <span className={cn("font-body text-[13px]", stockTone)}>
-                      {isSoldOut ? "Esgotado" : `${p.stock} em estoque`}
-                    </span>
-                  </div>
+                  {/* Linha desktop (lg: e acima) */}
+                  <div className="hidden lg:flex items-center gap-4 px-5 py-3.5">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <ProductThumbnail
+                        src={p.images[0]}
+                        alt={p.name}
+                        active={p.isActive}
+                      />
+                      <div className="min-w-0">
+                        <div className="font-display font-medium text-[15px] text-obsidian truncate">
+                          {p.name}
+                        </div>
+                        <div className="font-body text-[13px] text-graphite mt-0.5">
+                          {formatCents(p.priceCents)}
+                        </div>
+                      </div>
+                    </div>
 
-                  <div className="w-[140px] flex-shrink-0 flex items-center gap-2.5">
-                    <Switch
-                      checked={p.isActive}
-                      onChange={() => toggleActive(p)}
-                    />
-                    <span
-                      className={cn(
-                        "font-body text-[13px]",
-                        p.isActive ? "text-success" : "text-inactive"
-                      )}
-                    >
-                      {p.isActive ? "Ativo" : "Inativo"}
-                    </span>
-                  </div>
+                    <div className="w-[120px] flex-shrink-0 text-right">
+                      <StockLabel stock={p.stock} tone={stockTone} />
+                    </div>
 
-                  <div className="flex gap-1 flex-shrink-0 w-[76px]">
-                    <Link
-                      href={`/painel/produtos/${p.id}`}
-                      aria-label="Editar"
-                      className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-obsidian flex items-center justify-center hover:bg-surface-hover transition-colors"
-                    >
-                      <Pencil size={15} />
-                    </Link>
-                    <button
-                      onClick={() => setConfirm(p)}
-                      aria-label="Excluir"
-                      className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-error flex items-center justify-center hover:bg-error-surface transition-colors"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    <div className="w-[140px] flex-shrink-0">
+                      <VisibilityToggle
+                        active={p.isActive}
+                        onToggle={() => toggleActive(p)}
+                      />
+                    </div>
+
+                    <div className="w-[76px] flex-shrink-0">
+                      <ProductActions
+                        editHref={`/painel/produtos/${p.id}`}
+                        onDelete={() => setConfirm(p)}
+                      />
+                    </div>
                   </div>
                 </div>
               );
@@ -221,6 +224,84 @@ export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
       )}
 
       {toast && <Toast msg={toast.msg} tone={toast.tone} />}
+    </div>
+  );
+}
+
+function ProductThumbnail({
+  src,
+  alt,
+  active,
+}: {
+  src: string | undefined;
+  alt: string;
+  active: boolean;
+}) {
+  return (
+    <div
+      className="relative w-[52px] h-16 rounded-[8px] overflow-hidden bg-linen flex-shrink-0"
+      style={{ opacity: active ? 1 : 0.5 }}
+    >
+      {src && (
+        <Image src={src} alt={alt} fill sizes="52px" className="object-cover" />
+      )}
+    </div>
+  );
+}
+
+function StockLabel({ stock, tone }: { stock: number; tone: string }) {
+  return (
+    <span className={cn("font-body text-[13px]", tone)}>
+      {stock === 0 ? "Esgotado" : `${stock} em estoque`}
+    </span>
+  );
+}
+
+function VisibilityToggle({
+  active,
+  onToggle,
+}: {
+  active: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <Switch checked={active} onChange={onToggle} />
+      <span
+        className={cn(
+          "font-body text-[13px]",
+          active ? "text-success" : "text-inactive"
+        )}
+      >
+        {active ? "Ativo" : "Inativo"}
+      </span>
+    </div>
+  );
+}
+
+function ProductActions({
+  editHref,
+  onDelete,
+}: {
+  editHref: string;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="flex gap-1 flex-shrink-0">
+      <Link
+        href={editHref}
+        aria-label="Editar"
+        className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-obsidian flex items-center justify-center hover:bg-surface-hover transition-colors"
+      >
+        <Pencil size={15} />
+      </Link>
+      <button
+        onClick={onDelete}
+        aria-label="Excluir"
+        className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-error flex items-center justify-center hover:bg-error-surface transition-colors"
+      >
+        <Trash2 size={15} />
+      </button>
     </div>
   );
 }
