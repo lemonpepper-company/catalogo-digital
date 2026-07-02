@@ -40,12 +40,14 @@ export default function RedefinirSenhaPage() {
           {state?.error && (
             <div className="mb-5 px-4 py-3 bg-red-50 border border-red-200 rounded-input">
               <p className="font-body text-[13px] text-red-700">{state.error}</p>
-              <Link
-                href="/recuperar-senha"
-                className="font-body text-[13px] text-obsidian font-medium hover:underline mt-1 block"
-              >
-                Solicitar novo link →
-              </Link>
+              {state.error !== 'A nova senha deve ser diferente da senha atual.' && (
+                <Link
+                  href="/recuperar-senha"
+                  className="font-body text-[13px] text-obsidian font-medium hover:underline mt-1 block"
+                >
+                  Solicitar novo link →
+                </Link>
+              )}
             </div>
           )}
 

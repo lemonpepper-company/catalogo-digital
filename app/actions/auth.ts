@@ -244,6 +244,9 @@ export async function resetPassword(
   })
 
   if (error) {
+    if (error.code === 'same_password') {
+      return { error: 'A nova senha deve ser diferente da senha atual.' }
+    }
     return { error: 'Não foi possível redefinir a senha. Solicite um novo link.' }
   }
 
