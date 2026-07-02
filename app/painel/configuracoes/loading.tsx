@@ -22,7 +22,7 @@ export default function ConfiguracoesLoading() {
           <div className="w-[72px] h-[72px] rounded-full bg-sand/70 animate-pulse flex-shrink-0" />
           <Sk w="w-32" h="h-11" rounded="rounded-btn" />
         </div>
-        <div className="grid grid-cols-2 gap-[18px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-[18px]">
           <FieldSkeleton />
           <FieldSkeleton />
           <FieldSkeleton />
@@ -41,7 +41,7 @@ export default function ConfiguracoesLoading() {
 
       <div className="bg-white border border-sand/50 rounded-card p-6 flex flex-col gap-4">
         <Sk w="w-40" h="h-4" />
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <Sk w="w-full" h="h-48" rounded="rounded-input" />
           <Sk w="w-full" h="h-48" rounded="rounded-card" />
         </div>
@@ -49,7 +49,7 @@ export default function ConfiguracoesLoading() {
 
       <div className="bg-white border border-sand/50 rounded-card p-6 flex flex-col gap-4">
         <Sk w="w-24" h="h-4" />
-        <div className="grid grid-cols-2 gap-[18px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-[18px]">
           <FieldSkeleton />
           <FieldSkeleton />
         </div>

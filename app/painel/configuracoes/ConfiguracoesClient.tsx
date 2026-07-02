@@ -1,11 +1,12 @@
 "use client";
 
-import { Upload } from "lucide-react";
+import { Upload, ExternalLink, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Toast } from "@/components/ui/Toast";
 import { ACCENT_COLOR_OPTIONS } from "@/lib/data";
+import { signOut } from "@/app/actions/auth";
 import type { StoreSettings } from "@/lib/types";
 import { useConfiguracoes, MSG_VARS } from "./use-configuracoes";
 
@@ -42,14 +43,41 @@ function WhatsPreviewText({ text }: { text: string }) {
 
 export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
   const f = useConfiguracoes(settings);
+  const catalogUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/${settings.slug}`;
+  const catalogLabel = catalogUrl.replace(/^https?:\/\//, "");
 
   return (
-    <form action={f.formAction} className="max-w-form flex flex-col gap-5">
-      <h1 className="font-display font-semibold text-[28px] text-obsidian">
-        Configurações da loja
-      </h1>
-
+    <div className="max-w-form flex flex-col gap-5">
       <Card>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="min-w-0">
+            <div className="font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
+              Catálogo público
+            </div>
+            <a
+              href={catalogUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-display font-medium text-[15px] text-obsidian flex items-center gap-1.5 hover:underline mt-1 min-w-0"
+            >
+              <span className="truncate">{catalogLabel}</span>
+              <ExternalLink size={13} className="flex-shrink-0" />
+            </a>
+          </div>
+          <form action={signOut}>
+            <Button type="submit" variant="ghost" iconLeft={<LogOut size={18} />}>
+              Sair
+            </Button>
+          </form>
+        </div>
+      </Card>
+
+      <form action={f.formAction} className="flex flex-col gap-5">
+        <h1 className="font-display font-semibold text-[28px] text-obsidian">
+          Configurações da loja
+        </h1>
+
+        <Card>
         <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
           Identidade
         </h2>
@@ -80,7 +108,7 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
             />
           </label>
         </div>
-        <div className="grid grid-cols-2 gap-[18px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-[18px]">
           <Input
             name="name"
             label="Nome da loja"
@@ -102,8 +130,8 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
             value={f.monogram}
             onChange={(e) => f.setMonogram(e.target.value)}
           />
-          <div className="col-span-1" />
-          <div className="col-span-2">
+          <div className="hidden sm:block" />
+          <div className="sm:col-span-2">
             <Input
               name="description"
               label="Descrição curta"
@@ -162,7 +190,7 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
             · enviada no WhatsApp ao finalizar a sacola
           </span>
         </h2>
-        <div className="grid grid-cols-2 gap-6 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
           <div className="flex flex-col gap-3">
             <textarea
               ref={f.textareaRef}
@@ -215,7 +243,8 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
         </Button>
       </div>
 
-      {f.toast && <Toast msg={f.toast.msg} tone={f.toast.tone} />}
-    </form>
+        {f.toast && <Toast msg={f.toast.msg} tone={f.toast.tone} />}
+      </form>
+    </div>
   );
 }
