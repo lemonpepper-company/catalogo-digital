@@ -27,7 +27,7 @@ export function DashboardClient({
 
   return (
     <div className="flex flex-col gap-6 w-full lg:max-w-content">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <h1 className="font-display font-semibold text-[28px] text-obsidian">
             Olá, {storeName}
@@ -38,7 +38,7 @@ export function DashboardClient({
         </div>
         <Link
           href="/painel/produtos/novo"
-          className="inline-flex items-center gap-2 h-11 px-6 rounded-btn bg-obsidian text-white font-display font-medium text-[15px] hover:bg-[#1f1f1f] transition-colors"
+          className="inline-flex items-center justify-center gap-2 min-h-11 px-6 py-2.5 rounded-btn bg-obsidian text-white font-display font-medium text-[15px] hover:bg-[#1f1f1f] transition-colors"
         >
           <Plus size={18} />
           Cadastrar produto
@@ -57,11 +57,11 @@ export function DashboardClient({
 
       <Card>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <div className="font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
               Link do catálogo
             </div>
-            <div className="font-display font-medium text-[18px] text-obsidian mt-1.5">
+            <div className="font-display font-medium text-[18px] text-obsidian mt-1.5 break-all">
               {catalogUrl}
             </div>
           </div>
