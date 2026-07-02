@@ -45,7 +45,7 @@ export function DashboardClient({
         </Link>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard value={activeProducts.length} label="Produtos ativos" />
         <StatCard
           value={soldOutProducts.length}
@@ -56,7 +56,7 @@ export function DashboardClient({
       </div>
 
       <Card>
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
               Link do catálogo

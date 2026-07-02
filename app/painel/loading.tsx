@@ -35,14 +35,14 @@ export default function DashboardLoading() {
         <Sk w="w-44" h="h-11" rounded="rounded-btn" />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCardSkeleton />
         <StatCardSkeleton />
         <StatCardSkeleton />
       </div>
 
       <div className="bg-white border border-sand/50 rounded-card p-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex flex-col gap-2">
             <Sk w="w-20" h="h-3" />
             <Sk w="w-64" h="h-5" />
