@@ -23,7 +23,7 @@ function CategoryRowSkeleton({ first = false }: { first?: boolean }) {
 
 export default function CategoriasLoading() {
   return (
-    <div className="max-w-form flex flex-col gap-6">
+    <div className="w-full lg:max-w-form flex flex-col gap-6">
       <div className="flex items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
           <Sk w="w-32" h="h-7" />

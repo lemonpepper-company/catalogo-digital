@@ -36,7 +36,7 @@ export function CategoriasClient({
   } = useCategorias(categories, maxCategories);
 
   return (
-    <div className="max-w-form flex flex-col gap-6">
+    <div className="w-full lg:max-w-form flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <h1 className="font-display font-semibold text-[28px] text-obsidian">

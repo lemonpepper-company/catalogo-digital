@@ -13,7 +13,7 @@ function FieldSkeleton() {
 
 export default function ConfiguracoesLoading() {
   return (
-    <div className="max-w-form flex flex-col gap-5">
+    <div className="w-full lg:max-w-form flex flex-col gap-5">
       <Sk w="w-52" h="h-7" />
 
       <div className="bg-white border border-sand/50 rounded-card p-6 flex flex-col gap-5">

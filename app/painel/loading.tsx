@@ -26,7 +26,7 @@ function ProductRowSkeleton() {
 
 export default function DashboardLoading() {
   return (
-    <div className="flex flex-col gap-6 max-w-content">
+    <div className="flex flex-col gap-6 w-full lg:max-w-content">
       <div className="flex items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
           <Sk w="w-52" h="h-7" />

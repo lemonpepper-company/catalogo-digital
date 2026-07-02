@@ -31,7 +31,7 @@ export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
   } = useProdutos(products, maxProducts);
 
   return (
-    <div className="flex flex-col gap-6 max-w-content">
+    <div className="flex flex-col gap-6 w-full lg:max-w-content">
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="font-display font-semibold text-[28px] text-obsidian">
