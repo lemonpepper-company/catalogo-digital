@@ -95,7 +95,7 @@ Formulário dividido em duas seções sequenciais na mesma página.
 
 ### 3.3 Tela de escolha de plano (`/escolha-de-plano`) — fora do fluxo em modo demo
 
-> Mantida como referência para quando a cobrança for reativada. Hoje a rota existe e a Server Action `selectPlan` funciona, mas nenhuma loja nova chega até ela porque o cadastro já define `plan='pro'`.
+> Mantida como referência para quando a cobrança for reativada. Hoje a rota e a UI (`PlanosContent.tsx`) continuam exatamente como antes — Server Action `selectPlan` funciona — mas nenhuma loja nova chega até ela porque o cadastro já define `plan='pro'`. Como fica inacessível no fluxo, essa tela não foi revisada para o modo demo (preços continuam exibidos normalmente).
 
 Exibida uma única vez, logo após o cadastro. Inacessível se o lojista já escolheu um plano.
 
@@ -103,14 +103,12 @@ Exibida uma única vez, logo após o cadastro. Inacessível se o lojista já esc
 
 | | Starter | Pro |
 |---|---|---|
-| **Preço** | A definir | A definir |
+| **Preço** | R$ 49/mês | R$ 99/mês |
 | Produtos | Até 30 | Ilimitados |
 | Categorias | Até 5 | Ilimitadas |
 | Fotos/produto | Até 3 | Até 5 |
 | GA + Pixel | ✓ | ✓ |
 | Template WhatsApp | ✓ | ✓ |
-
-Na UI atual (`PlanosContent.tsx`), o valor do plano é exibido como "Em breve" em vez do preço.
 
 **Ação:** botão CTA em cada card → Server Action `selectPlan('starter' | 'pro')` → redireciona para `/painel`.
 

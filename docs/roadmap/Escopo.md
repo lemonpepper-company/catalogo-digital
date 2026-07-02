@@ -32,7 +32,7 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 |---|---|---|
 | Landing page | Hero, dor, como funciona, features, depoimentos, planos (sem preço, "Em breve"), FAQ, CTA final | ✅ Implementado |
 | Cadastro | Seção "Sua conta" + Seção "Sua loja" com preview do slug em tempo real | ✅ Implementado |
-| Escolha de plano | Cards Starter e Pro sem preço. Pulada no cadastro em modo demo — loja já nasce Pro. | ⏸️ Fora do fluxo (modo demo) |
+| Escolha de plano | Cards Starter R$49 e Pro R$99 (UI original, inalterada). Pulada no cadastro em modo demo — loja já nasce Pro e nunca chega nessa tela. | ⏸️ Fora do fluxo (modo demo) |
 | Login | E-mail + senha + Google OAuth + link esqueci senha + link cadastro em Gold Dust | ✅ Implementado |
 | Verificar e-mail | Aguarda confirmação; botão de reenvio com email via query param | ✅ Implementado |
 | Recuperar senha | Solicita email para reset | ✅ Implementado |
@@ -96,7 +96,7 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 |---|---|---|
 | Cadastro já com plano Pro | `plan='pro'`, `trial_ends_at=null` definidos na criação da loja (`/auth/callback` e `createStore`) | ✅ Implementado (modo demo) |
 | Trial de 14 dias | Substituído pelo modo demo — lógica de `trial_ends_at` continua no banco (agora nullable) e é tratada como "sem expiração" quando nula | ⏸️ Suspenso (modo demo) |
-| Tela de escolha de plano | Pulada no cadastro. Rota e Server Action `selectPlan` seguem existindo no código para quando a cobrança voltar. | ⏸️ Fora do fluxo (modo demo) |
+| Tela de escolha de plano | Pulada no cadastro. Rota, Server Action `selectPlan` e UI (`PlanosContent.tsx`) seguem inalteradas no código — ficam apenas inacessíveis no fluxo até a cobrança voltar. | ⏸️ Fora do fluxo (modo demo) |
 | Banner de trial | Não aparece para lojas em modo demo (`showTrialBanner = !store.plan`, e `plan` nunca é nulo) | ⏸️ Suspenso (modo demo) |
 | Loja oculta após expiração | Depende de `is_active`, não de `trial_ends_at` — segue funcionando para desativação manual | ✅ Implementado |
 | Integração de pagamento | Stripe ou Pagar.me — cobrança recorrente | ⏳ Pendente — retomado após a validação em modo demo |

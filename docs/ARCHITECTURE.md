@@ -133,7 +133,7 @@ Route group sem layout próprio. URLs sem o prefixo `(auth)`.
 | `/verificar-email` | Aguarda confirmação; botão de reenvio com email via query param |
 | `/recuperar-senha` | Solicita email para reset |
 | `/redefinir-senha` | Nova senha (requer token do email) |
-| `/escolha-de-plano` | Starter ou Pro, sem preço exibido ("Em breve"). Inacessível no fluxo normal em modo demo — toda loja nova já nasce com plano Pro |
+| `/escolha-de-plano` | Starter (R$49/mês) ou Pro (R$99/mês) — UI original, inalterada. Inacessível no fluxo normal em modo demo — toda loja nova já nasce com plano Pro |
 
 ## Catálogo público (`app/[slug]/`)
 
@@ -152,7 +152,7 @@ A função `getPublicCatalog(slug)` em `lib/server/catalog.ts` encapsula toda a 
 ## Estado atual (jul/2026)
 
 - **Autenticação**: completa — cadastro 2 etapas, login email/senha, recuperação/redefinição de senha, confirmação de email
-- **Modo demo**: cadastro pula a escolha de plano; toda loja nova nasce com `plan = 'pro'` e `trial_ends_at = null` (indeterminado). Preços ficam ocultos na landing e na página `/escolha-de-plano` (texto "Em breve")
+- **Modo demo**: cadastro pula a escolha de plano; toda loja nova nasce com `plan = 'pro'` e `trial_ends_at = null` (indeterminado). Preços ficam ocultos na landing (texto "Em breve"). A página `/escolha-de-plano` mantém a UI original com preços — não é revisada porque fica inacessível no fluxo
 - **Painel do lojista** (`/painel`): totalmente conectado ao Supabase — dashboard, produtos (CRUD + upload de fotos), categorias (CRUD + limites de plano), configurações da loja
 - **Catálogo público** (`/[slug]`): dados reais do Supabase via RLS anon — grid de produtos, detalhe, sacola (drawer), checkout WhatsApp com template customizável, página de loja expirada
 - **Limites de plano**: `getPlanLimits()` aplicado em Server Actions de produtos e categorias — como toda loja demo é Pro, os limites de Starter não se aplicam na prática
