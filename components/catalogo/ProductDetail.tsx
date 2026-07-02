@@ -49,11 +49,11 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
   };
 
   return (
-    <div className="h-full relative flex flex-col">
+    <div className="h-full relative flex flex-col md:flex-row overflow-y-auto no-scrollbar md:overflow-hidden">
       <button
         onClick={onBack}
         aria-label="Voltar"
-        className="absolute top-3.5 left-3.5 z-10 w-10 h-10 rounded-full flex items-center justify-center text-obsidian"
+        className="fixed md:absolute top-3.5 left-3.5 z-10 w-10 h-10 rounded-full flex items-center justify-center text-obsidian"
         style={{
           background: "rgba(249,249,247,0.9)",
           backdropFilter: "blur(4px)",
@@ -62,63 +62,63 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
         <ChevronLeft size={20} />
       </button>
 
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
+      <div
+        className="relative w-full md:w-[54%] md:h-full md:shrink-0 bg-linen overflow-hidden select-none"
+        style={{ aspectRatio: "4/5", touchAction: "pan-y" }}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+      >
         <div
-          className="relative w-full bg-linen overflow-hidden select-none"
-          style={{ aspectRatio: "4/5", touchAction: "pan-y" }}
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
+          className="flex h-full transition-transform duration-300 ease-out"
+          style={{
+            width: `${images.length * 100}%`,
+            transform: `translateX(-${currentIndex * (100 / images.length)}%)`,
+          }}
         >
-          <div
-            className="flex h-full transition-transform duration-300 ease-out"
-            style={{
-              width: `${images.length * 100}%`,
-              transform: `translateX(-${currentIndex * (100 / images.length)}%)`,
-            }}
-          >
-            {images.map((src, i) => (
-              <div
-                key={i}
-                className="relative h-full flex-shrink-0"
-                style={{ width: `${100 / images.length}%` }}
-              >
-                <Image
-                  src={src}
-                  alt={`${product.name} ${i + 1}`}
-                  fill
-                  sizes="(min-width: 768px) 384px, 100vw"
-                  className="object-cover"
-                  priority={i === 0}
-                  draggable={false}
-                />
-              </div>
-            ))}
-          </div>
-
-          {images.length > 1 && (
-            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-              {images.map((_, i) => (
-                <button
-                  key={i}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => setCurrentIndex(i)}
-                  aria-label={`Foto ${i + 1}`}
-                  className="rounded-full transition-all duration-200"
-                  style={{
-                    height: "6px",
-                    width: i === currentIndex ? "20px" : "6px",
-                    background:
-                      i === currentIndex
-                        ? "rgba(255,255,255,1)"
-                        : "rgba(255,255,255,0.5)",
-                  }}
-                />
-              ))}
+          {images.map((src, i) => (
+            <div
+              key={i}
+              className="relative h-full flex-shrink-0"
+              style={{ width: `${100 / images.length}%` }}
+            >
+              <Image
+                src={src}
+                alt={`${product.name} ${i + 1}`}
+                fill
+                sizes="(min-width: 768px) 50vw, 100vw"
+                className="object-cover"
+                priority={i === 0}
+                draggable={false}
+              />
             </div>
-          )}
+          ))}
         </div>
 
-        <div className="px-4 py-5 flex flex-col gap-[18px]">
+        {images.length > 1 && (
+          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => setCurrentIndex(i)}
+                aria-label={`Foto ${i + 1}`}
+                className="rounded-full transition-all duration-200"
+                style={{
+                  height: "6px",
+                  width: i === currentIndex ? "20px" : "6px",
+                  background:
+                    i === currentIndex
+                      ? "rgba(255,255,255,1)"
+                      : "rgba(255,255,255,0.5)",
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col flex-1 md:h-full md:min-h-0">
+        <div className="md:flex-1 md:overflow-y-auto md:min-h-0 px-4 py-5 md:px-6 md:py-6 flex flex-col gap-[18px]">
           <div className="flex flex-col gap-1.5">
             {product.isNew && (
               <div>
@@ -239,23 +239,23 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
             </p>
           </div>
         </div>
-      </div>
 
-      <div className="flex-shrink-0 p-4 bg-ivory border-t border-sand/50">
-        <button
-          onClick={() => canAdd && onAdd(product, selectedSize, selectedColor, qty)}
-          disabled={!canAdd}
-          className={[
-            "w-full h-[52px] rounded-btn flex items-center justify-center gap-2.5",
-            "font-display font-medium text-[16px] transition-all duration-200",
-            canAdd
-              ? "bg-gold text-white hover:bg-gold-hover"
-              : "bg-linen text-inactive cursor-not-allowed",
-          ].join(" ")}
-        >
-          <MessageCircle size={18} />
-          {canAdd ? "Adicionar à sacola" : "Selecione um tamanho"}
-        </button>
+        <div className="sticky bottom-0 md:static flex-shrink-0 p-4 bg-ivory border-t border-sand/50">
+          <button
+            onClick={() => canAdd && onAdd(product, selectedSize, selectedColor, qty)}
+            disabled={!canAdd}
+            className={[
+              "w-full h-[52px] rounded-btn flex items-center justify-center gap-2.5",
+              "font-display font-medium text-[16px] transition-all duration-200",
+              canAdd
+                ? "bg-gold text-white hover:bg-gold-hover"
+                : "bg-linen text-inactive cursor-not-allowed",
+            ].join(" ")}
+          >
+            <MessageCircle size={18} />
+            {canAdd ? "Adicionar à sacola" : "Selecione um tamanho"}
+          </button>
+        </div>
       </div>
     </div>
   );

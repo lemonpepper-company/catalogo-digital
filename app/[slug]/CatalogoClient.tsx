@@ -40,8 +40,13 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
 
   if (openProduct) {
     return (
-      <div className="fixed inset-0 bg-ivory z-20 md:flex md:justify-center">
-        <div className="w-full h-full md:max-w-sm">
+      <div
+        className="fixed inset-0 z-20 bg-ivory md:flex md:items-center md:justify-center md:bg-black/50 md:p-6"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setOpenProduct(null);
+        }}
+      >
+        <div className="w-full h-full bg-ivory md:h-[88vh] md:max-w-[920px] md:rounded-card md:overflow-hidden md:shadow-2xl">
           <ProductDetail
             product={openProduct}
             onBack={() => setOpenProduct(null)}
