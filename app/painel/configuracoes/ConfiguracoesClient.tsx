@@ -47,7 +47,7 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
   const catalogLabel = catalogUrl.replace(/^https?:\/\//, "");
 
   return (
-    <div className="max-w-form flex flex-col gap-5">
+    <div className="w-full lg:max-w-form flex flex-col gap-5">
       <Card>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="min-w-0">

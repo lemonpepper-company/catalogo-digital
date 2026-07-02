@@ -31,7 +31,7 @@ function ProductRowSkeleton({ first = false }: { first?: boolean }) {
 
 export default function ProdutosLoading() {
   return (
-    <div className="max-w-content flex flex-col gap-6">
+    <div className="w-full lg:max-w-content flex flex-col gap-6">
       <div className="flex items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
           <Sk w="w-28" h="h-7" />

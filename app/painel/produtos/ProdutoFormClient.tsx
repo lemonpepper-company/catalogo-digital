@@ -32,7 +32,7 @@ export function ProdutoFormClient({
   const f = useProdutoForm(categories, maxPhotos, product);
 
   return (
-    <form action={f.formAction} className="max-w-form flex flex-col gap-5">
+    <form action={f.formAction} className="w-full lg:max-w-form flex flex-col gap-5">
       <div className="flex items-center gap-3">
         <Link
           href="/painel/produtos"
