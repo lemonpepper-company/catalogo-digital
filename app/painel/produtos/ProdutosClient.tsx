@@ -32,7 +32,7 @@ export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
 
   return (
     <div className="flex flex-col gap-6 w-full lg:max-w-content">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <h1 className="font-display font-semibold text-[28px] text-obsidian">
             Produtos
@@ -44,13 +44,13 @@ export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
           </p>
         </div>
         {limitReached ? (
-          <span className="inline-flex items-center h-11 px-6 rounded-btn bg-linen text-graphite font-display font-medium text-[15px] cursor-not-allowed">
+          <span className="inline-flex items-center justify-center min-h-11 px-6 py-2.5 rounded-btn bg-linen text-graphite font-display font-medium text-[15px] cursor-not-allowed text-center">
             Limite atingido — faça upgrade
           </span>
         ) : (
           <Link
             href="/painel/produtos/novo"
-            className="inline-flex items-center gap-2 h-11 px-6 rounded-btn bg-obsidian text-white font-display font-medium text-[15px] hover:bg-[#1f1f1f] transition-colors"
+            className="inline-flex items-center justify-center gap-2 min-h-11 px-6 py-2.5 rounded-btn bg-obsidian text-white font-display font-medium text-[15px] hover:bg-[#1f1f1f] transition-colors"
           >
             <Plus size={18} />
             Novo produto
@@ -74,7 +74,7 @@ export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
             </div>
             <Link
               href="/painel/produtos/novo"
-              className="inline-flex items-center gap-2 h-11 px-6 rounded-btn bg-gold text-white font-display font-medium text-[15px] hover:bg-gold-hover transition-colors"
+              className="inline-flex items-center justify-center gap-2 min-h-11 px-6 py-2.5 rounded-btn bg-gold text-white font-display font-medium text-[15px] hover:bg-gold-hover transition-colors"
             >
               <Plus size={18} />
               Cadastrar primeiro produto →

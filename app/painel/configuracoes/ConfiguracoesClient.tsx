@@ -97,7 +97,7 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
               {settings.monogram ?? settings.name.slice(0, 2).toUpperCase()}
             </div>
           )}
-          <label className="inline-flex items-center gap-2 h-11 px-5 rounded-btn border border-sand bg-transparent text-obsidian font-display font-medium text-[15px] cursor-pointer hover:bg-surface-hover transition-colors">
+          <label className="inline-flex items-center gap-2 min-h-11 px-5 py-2.5 rounded-btn border border-sand bg-transparent text-obsidian font-display font-medium text-[15px] cursor-pointer hover:bg-surface-hover transition-colors">
             <Upload size={18} />
             {f.logo ? f.logo.name : "Enviar logo"}
             <input
