@@ -26,8 +26,7 @@ Implementada com **Supabase Auth** + **`@supabase/ssr`** (cookies httpOnly). Sem
 ### Fluxo de login
 
 ```
-/login → [email/senha ou Google OAuth]
-  → /auth/callback (OAuth) ou direto ao destino (email/senha)
+/login → [email/senha]
   → /painel (se tem plano) | /escolha-de-plano (sem plano) | /cadastro?step=loja (sem loja)
 ```
 
@@ -128,7 +127,7 @@ Route group sem layout próprio. URLs sem o prefixo `(auth)`.
 
 | Rota | Descrição |
 |---|---|
-| `/login` | Email/senha + botão Google OAuth |
+| `/login` | Email/senha |
 | `/cadastro` | Duas etapas: dados pessoais (`step` ausente) e dados da loja (`?step=loja`) |
 | `/verificar-email` | Aguarda confirmação; botão de reenvio com email via query param |
 | `/recuperar-senha` | Solicita email para reset |
@@ -151,7 +150,7 @@ A função `getPublicCatalog(slug)` em `lib/server/catalog.ts` encapsula toda a 
 
 ## Estado atual (jun/2026)
 
-- **Autenticação**: completa — cadastro 2 etapas, login email/senha, Google OAuth, recuperação/redefinição de senha, confirmação de email, seleção de plano
+- **Autenticação**: completa — cadastro 2 etapas, login email/senha, recuperação/redefinição de senha, confirmação de email, seleção de plano
 - **Painel do lojista** (`/painel`): totalmente conectado ao Supabase — dashboard, produtos (CRUD + upload de fotos), categorias (CRUD + limites de plano), configurações da loja
 - **Catálogo público** (`/[slug]`): dados reais do Supabase via RLS anon — grid de produtos, detalhe, sacola (drawer), checkout WhatsApp com template customizável, página de loja expirada
 - **Limites de plano**: `getPlanLimits()` aplicado em Server Actions de produtos e categorias
@@ -164,6 +163,17 @@ Integração de pagamento (Stripe ou Pagar.me) — cobrança recorrente no dia 1
 ---
 
 ## Integrações pendentes (UI oculta)
+
+### Google OAuth
+
+O botão "Entrar com Google" / "Criar conta com Google" está temporariamente oculto nas páginas `/login` e `/cadastro`. A Server Action `signInWithGoogle` em `app/actions/auth.ts` e o Route Handler `/auth/callback/route.ts` já existem e estão funcionais.
+
+**Para reativar:**
+1. Restaurar o bloco "ou" + `<form action={signInWithGoogle}>` em `app/(auth)/login/LoginForm.tsx`
+2. Restaurar o bloco "ou" + `<form action={signInWithGoogle}>` em `app/(auth)/cadastro/CadastroForm.tsx`
+3. Restaurar o import `signInWithGoogle` em ambos os arquivos
+4. Configurar o provider Google no Supabase (dashboard → Auth → Providers) e adicionar as credenciais OAuth do Google Cloud Console
+5. Ajustar `NEXT_PUBLIC_SITE_URL` para que o callback OAuth aponte para o ambiente correto
 
 ### Google Analytics e Facebook Pixel
 
