@@ -488,7 +488,7 @@ export default function LandingPage() {
       {/* ─── Footer ─── */}
       <footer className="bg-linen border-t border-sand pt-[72px] pb-10">
         <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 pb-12 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-5 pb-12 gap-8">
             <div className="col-span-2 md:col-span-1">
               <NextLink href="#top">
                 <VtrineLogo size="sm" />
@@ -544,6 +544,26 @@ export default function LandingPage() {
 
             <div>
               <h4 className="font-display font-medium text-[13px] text-obsidian mb-4">
+                Legal
+              </h4>
+              <div className="flex flex-col gap-[11px]">
+                <NextLink
+                  href="/politica-de-privacidade"
+                  className="font-body text-[14px] text-graphite hover:text-obsidian transition-colors"
+                >
+                  Política de Privacidade
+                </NextLink>
+                <NextLink
+                  href="/termos-de-uso"
+                  className="font-body text-[14px] text-graphite hover:text-obsidian transition-colors"
+                >
+                  Termos de Uso
+                </NextLink>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-display font-medium text-[13px] text-obsidian mb-4">
                 Conta
               </h4>
               <div className="flex flex-col gap-[11px]">
@@ -565,7 +585,20 @@ export default function LandingPage() {
 
           <div className="border-t border-sand pt-7 flex flex-col sm:flex-row gap-2 sm:gap-0 items-center justify-between font-body text-[13px] text-graphite">
             <span>© 2026 Vtrine Digital. Todos os direitos reservados.</span>
-            <span>Feito no Brasil</span>
+            <div className="flex items-center gap-4">
+              <NextLink
+                href="/politica-de-privacidade"
+                className="hover:text-obsidian transition-colors"
+              >
+                Política de Privacidade
+              </NextLink>
+              <NextLink
+                href="/termos-de-uso"
+                className="hover:text-obsidian transition-colors"
+              >
+                Termos de Uso
+              </NextLink>
+            </div>
           </div>
         </div>
       </footer>
