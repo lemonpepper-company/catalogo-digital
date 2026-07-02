@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/painel/Sidebar'
-import { signOut } from '@/app/actions/auth'
+import { MobileTabBar } from '@/components/painel/MobileTabBar'
 
 export const metadata = {
   title: 'Painel — Vtrine Digital',
@@ -43,7 +43,7 @@ export default async function PainelLayout({
   return (
     <div className="h-screen flex flex-col bg-ivory overflow-hidden">
       {showTrialBanner && (
-        <div className="flex-shrink-0 h-10 flex items-center justify-center gap-2 bg-linen border-b border-sand/50 font-body text-[13.5px] text-gold whitespace-nowrap">
+        <div className="flex-shrink-0 flex flex-wrap lg:flex-nowrap items-center justify-center gap-x-2 gap-y-1 px-4 py-2 lg:h-10 lg:py-0 bg-linen border-b border-sand/50 font-body text-[13.5px] text-gold text-center">
           <span className="font-semibold tracking-[0.02em]">Trial Pro</span>
           <span className="opacity-55">·</span>
           <span>{trialDaysLeft} dias restantes</span>
@@ -62,12 +62,13 @@ export default async function PainelLayout({
           name={store?.name ?? ''}
           monogram={store?.monogram ?? null}
           logoUrl={store?.logo_url ?? null}
-          slug={store?.slug ?? null}
         />
         <main className="flex-1 overflow-y-auto">
-          <div className="px-12 py-10">{children}</div>
+          <div className="px-4 py-6 pb-24 lg:px-12 lg:py-10 lg:pb-10">{children}</div>
         </main>
       </div>
+
+      <MobileTabBar />
     </div>
   )
 }

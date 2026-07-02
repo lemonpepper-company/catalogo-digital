@@ -2,22 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Tag,
-  Layers,
-  Settings,
-  ExternalLink,
-  LogOut,
-} from "lucide-react";
+import { LayoutDashboard, Tag, Layers, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { signOut } from "@/app/actions/auth";
 
 interface SidebarProps {
   name: string;
   monogram: string | null;
   logoUrl: string | null;
-  slug: string | null;
 }
 
 interface NavItemProps {
@@ -45,7 +36,7 @@ function NavItem({ href, icon, label, active }: NavItemProps) {
   );
 }
 
-export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
+export function Sidebar({ name, monogram, logoUrl }: SidebarProps) {
   const pathname = usePathname();
 
   const isActive = (path: string) =>
@@ -54,12 +45,9 @@ export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
       : pathname.startsWith(path);
 
   const initials = monogram ?? name.slice(0, 2).toUpperCase();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  const catalogHref = slug ? `${siteUrl}/${slug}` : null;
-  const catalogLabel = catalogHref?.replace(/^https?:\/\//, "") ?? null;
 
   return (
-    <aside className="w-[248px] flex-shrink-0 border-r border-sand/50 p-5 flex flex-col gap-6 h-full">
+    <aside className="hidden lg:flex w-[248px] flex-shrink-0 border-r border-sand/50 p-5 flex-col gap-6 h-full">
       <div className="flex items-center gap-3 px-1.5 py-1">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -109,35 +97,6 @@ export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
           active={isActive("/painel/configuracoes")}
         />
       </nav>
-
-      <div className="mt-auto flex flex-col gap-3">
-        {catalogHref && (
-          <div className="p-3.5 rounded-card bg-linen border border-sand/50">
-            <p className="font-body text-[12px] text-graphite mb-1">
-              Catálogo público em
-            </p>
-            <a
-              href={catalogHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-body font-medium text-[12px] text-obsidian flex items-center gap-1 hover:underline min-w-0"
-            >
-              <span className="truncate">{catalogLabel}</span>
-              <ExternalLink size={11} className="flex-shrink-0" />
-            </a>
-          </div>
-        )}
-
-        <form action={signOut}>
-          <button
-            type="submit"
-            className="flex items-center gap-3 w-full px-3.5 py-[11px] rounded-btn font-body text-[15px] text-graphite hover:bg-surface-hover transition-all duration-200"
-          >
-            <LogOut size={19} />
-            Sair
-          </button>
-        </form>
-      </div>
     </aside>
   );
 }
