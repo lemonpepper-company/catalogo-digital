@@ -29,7 +29,7 @@ export function Modal({ title, onClose, children, className }: ModalProps) {
       />
       <div
         className={cn(
-          "relative z-10 w-full max-w-md bg-ivory rounded-modal p-6",
+          "relative z-10 w-full max-w-md bg-ivory rounded-modal p-5 lg:p-6",
           "flex flex-col gap-5",
           className
         )}

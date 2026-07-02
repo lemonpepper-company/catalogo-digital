@@ -11,7 +11,7 @@ export function Card({ children, className, pad }: CardProps) {
     <div
       className={cn(
         "bg-white border border-sand/50 rounded-card",
-        !pad && "p-6",
+        !pad && "p-5 lg:p-6",
         className
       )}
       style={pad !== undefined ? { padding: pad } : undefined}
