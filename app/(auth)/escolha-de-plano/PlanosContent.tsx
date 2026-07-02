@@ -16,10 +16,11 @@ export function PlanosContent() {
         </div>
 
         {/* Heading */}
+        {/* MODO DEMO: título original era
+            'Escolha seu plano — <em className="not-italic text-gold">14 dias grátis</em> nos dois' */}
         <div className="text-center mb-10">
           <h1 className="font-display font-semibold text-[32px] text-obsidian leading-[1.2] tracking-tight">
-            Escolha seu plano —{" "}
-            <em className="not-italic text-gold">14 dias grátis</em> nos dois
+            Escolha seu plano
           </h1>
           <p className="font-body text-[15px] text-graphite mt-2.5">
             Sua loja já está pronta. Escolha como quer crescer.
@@ -33,12 +34,19 @@ export function PlanosContent() {
             <div className="font-display font-semibold text-[16px] tracking-[0.04em] uppercase text-obsidian">
               Starter
             </div>
+            {/* MODO DEMO: preço oculto. Bloco original:
+            <div className="flex items-baseline gap-1">
+              <span className="font-display font-semibold text-[40px] text-obsidian leading-none tracking-tight">
+                R$49
+              </span>
+              <span className="font-body text-[15px] text-graphite">/mês</span>
+            </div>
+            */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-baseline gap-1">
-                <span className="font-display font-semibold text-[40px] text-obsidian leading-none tracking-tight">
-                  R$49
+                <span className="font-display font-semibold text-[24px] text-obsidian leading-none tracking-tight">
+                  Em breve
                 </span>
-                <span className="font-body text-[15px] text-graphite">/mês</span>
               </div>
               <div className="font-body text-[13px] text-graphite">
                 Sem cartão de crédito agora
@@ -73,12 +81,19 @@ export function PlanosContent() {
             <div className="font-display font-semibold text-[16px] tracking-[0.04em] uppercase text-obsidian">
               Pro
             </div>
+            {/* MODO DEMO: preço oculto. Bloco original:
+            <div className="flex items-baseline gap-1">
+              <span className="font-display font-semibold text-[40px] text-obsidian leading-none tracking-tight">
+                R$99
+              </span>
+              <span className="font-body text-[15px] text-graphite">/mês</span>
+            </div>
+            */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-baseline gap-1">
-                <span className="font-display font-semibold text-[40px] text-obsidian leading-none tracking-tight">
-                  R$99
+                <span className="font-display font-semibold text-[24px] text-obsidian leading-none tracking-tight">
+                  Em breve
                 </span>
-                <span className="font-body text-[15px] text-graphite">/mês</span>
               </div>
               <div className="font-body text-[13px] text-graphite">
                 Sem cartão de crédito agora
@@ -107,9 +122,10 @@ export function PlanosContent() {
         </div>
 
         {/* Footer note */}
+        {/* MODO DEMO: texto original era
+            'Você escolhe o plano — a cobrança só começa no <strong>dia 15</strong>.' */}
         <p className="text-center font-body text-[14px] text-graphite mt-8">
-          Você escolhe o plano — a cobrança só começa no{" "}
-          <strong className="text-obsidian font-semibold">dia 15</strong>.
+          Sem cartão de crédito. Preços serão anunciados em breve.
         </p>
       </div>
     </div>

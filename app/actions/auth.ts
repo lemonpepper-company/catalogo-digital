@@ -158,14 +158,27 @@ export async function createStore(
     full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? '',
   })
 
-  const trialEndsAt = new Date()
-  trialEndsAt.setDate(trialEndsAt.getDate() + 14)
+  // MODO DEMO (a partir de jul/2026): toda loja nasce Pro, sem expiração.
+  // Para voltar ao modelo com trial + escolha de plano, restaurar o bloco abaixo:
+  //
+  // const trialEndsAt = new Date()
+  // trialEndsAt.setDate(trialEndsAt.getDate() + 14)
+  //
+  // const { error } = await supabase.from('stores').insert({
+  //   owner_id: user.id,
+  //   name: result.data.store_name,
+  //   slug: result.data.slug,
+  //   trial_ends_at: trialEndsAt.toISOString(),
+  // })
+  //
+  // ... e trocar o redirect final para '/escolha-de-plano'
 
   const { error } = await supabase.from('stores').insert({
     owner_id: user.id,
     name: result.data.store_name,
     slug: result.data.slug,
-    trial_ends_at: trialEndsAt.toISOString(),
+    plan: 'pro',
+    trial_ends_at: null,
   })
 
   if (error) {
@@ -175,7 +188,7 @@ export async function createStore(
     return { error: 'Erro ao criar loja. Tente novamente.' }
   }
 
-  redirect('/escolha-de-plano')
+  redirect('/painel')
 }
 
 export async function selectPlan(plan: 'starter' | 'pro'): Promise<never> {

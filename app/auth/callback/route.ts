@@ -85,21 +85,38 @@ export async function GET(request: NextRequest) {
       full_name: meta.full_name ?? '',
     })
 
-    const trialEndsAt = new Date()
-    trialEndsAt.setDate(trialEndsAt.getDate() + 14)
+    // MODO DEMO (a partir de jul/2026): toda loja nasce Pro, sem expiração.
+    // Para voltar ao modelo com trial + escolha de plano, restaurar o bloco abaixo:
+    //
+    // const trialEndsAt = new Date()
+    // trialEndsAt.setDate(trialEndsAt.getDate() + 14)
+    //
+    // const { error: storeError } = await supabase.from('stores').insert({
+    //   owner_id: user.id,
+    //   name: meta.store_name,
+    //   slug: meta.slug,
+    //   trial_ends_at: trialEndsAt.toISOString(),
+    // })
+    //
+    // if (storeError) {
+    //   return NextResponse.redirect(`${origin}/cadastro?error=store`)
+    // }
+    //
+    // return NextResponse.redirect(`${origin}/escolha-de-plano`)
 
     const { error: storeError } = await supabase.from('stores').insert({
       owner_id: user.id,
       name: meta.store_name,
       slug: meta.slug,
-      trial_ends_at: trialEndsAt.toISOString(),
+      plan: 'pro',
+      trial_ends_at: null,
     })
 
     if (storeError) {
       return NextResponse.redirect(`${origin}/cadastro?error=store`)
     }
 
-    return NextResponse.redirect(`${origin}/escolha-de-plano`)
+    return NextResponse.redirect(`${origin}/painel`)
   }
 
   // Google OAuth para usuário novo — precisa preencher dados da loja

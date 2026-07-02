@@ -1,8 +1,10 @@
 # TDD — Fluxo de Autenticação
 
-**Versão:** 1.0  
-**Data:** 15 de junho de 2026  
+**Versão:** 1.1  
+**Data:** 2 de julho de 2026  
 **Escopo de referência:** Escopo.md §3.1, §4.3, §7, §9
+
+> **Modo demo:** a etapa "Escolha de plano" (§3.3) foi retirada do fluxo de cadastro. Toda loja nova nasce com `plan='pro'` e `trial_ends_at=null` (indeterminado). As seções abaixo descrevem o fluxo original com escolha de plano — mantidas como referência para quando a cobrança for reativada. O comportamento atual está resumido em §4 (Server Actions) e no `docs/ARCHITECTURE.md`.
 
 ---
 
@@ -26,10 +28,8 @@ O fluxo de autenticação cobre o ciclo de vida completo do lojista desde o prim
 Landing page
     ↓ CTA "Começar grátis"
 Cadastro (Sua conta + Sua loja)
-    ↓ submit
-Escolha de plano
-    ↓ escolhe Starter ou Pro
-Painel (dashboard com banner de trial)
+    ↓ submit + confirmação de e-mail
+Painel (loja já criada com plan='pro', trial_ends_at=null)
 
 Login
     ↓ credenciais válidas
@@ -41,6 +41,8 @@ Redefinição de senha
     ↓ nova senha salva
 Login
 ```
+
+> Modo demo: "Escolha de plano" não faz parte do fluxo ativo — mantida em §3.3 como referência para reativação futura.
 
 ---
 
@@ -85,13 +87,15 @@ Formulário dividido em duas seções sequenciais na mesma página.
 - Campo editável manualmente; nova validação ao perder foco
 
 **Submit:**
-- Cria conta + loja + inicia sessão
-- Redireciona para `/escolha-de-plano`
+- Cria conta + loja (`plan='pro'`, `trial_ends_at=null`) + inicia sessão
+- Redireciona para `/painel` (modo demo — sem passar por `/escolha-de-plano`)
 - Em caso de e-mail duplicado: inline error no campo de e-mail
 
 ---
 
-### 3.3 Tela de escolha de plano (`/escolha-de-plano`)
+### 3.3 Tela de escolha de plano (`/escolha-de-plano`) — fora do fluxo em modo demo
+
+> Mantida como referência para quando a cobrança for reativada. Hoje a rota existe e a Server Action `selectPlan` funciona, mas nenhuma loja nova chega até ela porque o cadastro já define `plan='pro'`.
 
 Exibida uma única vez, logo após o cadastro. Inacessível se o lojista já escolheu um plano.
 
@@ -99,18 +103,18 @@ Exibida uma única vez, logo após o cadastro. Inacessível se o lojista já esc
 
 | | Starter | Pro |
 |---|---|---|
-| **Preço** | R$ 49/mês | R$ 99/mês |
+| **Preço** | A definir | A definir |
 | Produtos | Até 30 | Ilimitados |
 | Categorias | Até 5 | Ilimitadas |
 | Fotos/produto | Até 3 | Até 5 |
 | GA + Pixel | ✓ | ✓ |
 | Template WhatsApp | ✓ | ✓ |
 
-**Banner de trial:** destaque acima dos cards — "14 dias grátis em qualquer plano. Sem cartão de crédito."
+Na UI atual (`PlanosContent.tsx`), o valor do plano é exibido como "Em breve" em vez do preço.
 
-**Ação:** botão CTA em cada card → `POST /api/subscriptions` com `plan: "starter" | "pro"` → redireciona para `/painel`.
+**Ação:** botão CTA em cada card → Server Action `selectPlan('starter' | 'pro')` → redireciona para `/painel`.
 
-**Cobrança:** ocorre no dia 15 após o cadastro. Até lá, ambos os planos têm acesso Pro completo.
+**Cobrança:** suspensa em modo demo. Quando reativada, ocorre no dia 15 após o cadastro; até lá, ambos os planos têm acesso Pro completo.
 
 ---
 
@@ -218,11 +222,13 @@ public.stores (
   name         text NOT NULL,
   slug         text UNIQUE NOT NULL,
   plan         text CHECK (plan IN ('starter', 'pro')) DEFAULT NULL,
-  trial_ends_at timestamptz NOT NULL,  -- created_at + 14 days
+  trial_ends_at timestamptz,  -- nullable; NULL = indeterminado (modo demo). No modelo pago: created_at + 14 days
   is_active    boolean DEFAULT true,
   created_at   timestamptz DEFAULT now()
 )
 ```
+
+Em modo demo, todo INSERT em `stores` já define `plan = 'pro'` e `trial_ends_at = NULL` (migration `20260702000000_demo_mode_plan_defaults.sql` removeu o `NOT NULL` de `trial_ends_at`).
 
 **RLS mínimo:**
 - `profiles`: SELECT/UPDATE só para o próprio `auth.uid()`
@@ -239,14 +245,15 @@ export async function signUp(formData: FormData): Promise<ActionResult>
 // 1. Valida campos com zod
 // 2. supabase.auth.signUp({ email, password })
 // 3. INSERT INTO profiles (id, full_name)
-// 4. INSERT INTO stores (owner_id, name, slug, trial_ends_at = now()+14d)
-// 5. redirect('/escolha-de-plano')
+// 4. INSERT INTO stores (owner_id, name, slug, plan='pro', trial_ends_at=null) — modo demo
+// 5. redirect('/painel')
 
 export async function signIn(formData: FormData): Promise<ActionResult>
 // 1. supabase.auth.signInWithPassword({ email, password })
 // 2. redirect('/painel')
 
 export async function selectPlan(plan: 'starter' | 'pro'): Promise<ActionResult>
+// Fora do fluxo em modo demo (nenhuma loja nova tem plan IS NULL). Mantida para reativação futura.
 // 1. Verifica sessão ativa
 // 2. UPDATE stores SET plan = $plan WHERE owner_id = auth.uid() AND plan IS NULL
 // 3. redirect('/painel')
@@ -285,9 +292,8 @@ Chamado via `fetch` com debounce de 400ms no componente de cadastro.
 | Estado | Acesso a `/painel` | Acesso a `/login` | Acesso a `/escolha-de-plano` |
 |---|---|---|---|
 | Não autenticado | → `/login` | ✓ | → `/login` |
-| Autenticado, sem plano | → `/escolha-de-plano` | → `/painel` | ✓ |
-| Autenticado, com plano, trial ativo | ✓ | → `/painel` | → `/painel` |
-| Autenticado, com plano, trial expirado, sem cartão | ✓ (painel visível, catálogo oculto) | → `/painel` | → `/painel` |
+| Autenticado, sem plano (não ocorre para lojas criadas em modo demo) | → `/escolha-de-plano` | → `/painel` | ✓ |
+| Autenticado, com plano (todo cadastro em modo demo cai aqui, com `plan='pro'`) | ✓ | → `/painel` | → `/painel` |
 
 ---
 

@@ -18,16 +18,17 @@ Implementada com **Supabase Auth** + **`@supabase/ssr`** (cookies httpOnly). Sem
 /cadastro (etapa 1: dados pessoais)
   → /cadastro?step=loja (etapa 2: nome e slug da loja)
   → /verificar-email?email=X (aguarda confirmação)
-  → [clique no email] → /auth/callback (cria profile + store no banco)
-  → /escolha-de-plano
+  → [clique no email] → /auth/callback (cria profile + store no banco, já com plan='pro')
   → /painel
 ```
+
+> **Modo demo (ago/2026):** a etapa `/escolha-de-plano` foi retirada do fluxo. Toda loja nasce direto com `plan = 'pro'` e `trial_ends_at = null` (indeterminado — nunca expira). A rota `/escolha-de-plano` e a Server Action `selectPlan` continuam existindo no código, mas ficam inacessíveis na prática porque nenhuma loja nova tem `plan IS NULL`. Ver `docs/roadmap/Escopo.md` §6 para o plano de reativar cobrança.
 
 ### Fluxo de login
 
 ```
 /login → [email/senha]
-  → /painel (se tem plano) | /escolha-de-plano (sem plano) | /cadastro?step=loja (sem loja)
+  → /painel (se tem plano) | /escolha-de-plano (sem plano — não ocorre para lojas criadas em modo demo) | /cadastro?step=loja (sem loja)
 ```
 
 ### Proteção de rotas (middleware)
@@ -38,7 +39,7 @@ Implementada com **Supabase Auth** + **`@supabase/ssr`** (cookies httpOnly). Sem
 |---|---|
 | Não autenticado → `/painel` | `/login?next=/painel` |
 | Autenticado sem loja → qualquer rota protegida | `/cadastro?step=loja` |
-| Autenticado com loja, sem plano → `/painel` | `/escolha-de-plano` |
+| Autenticado com loja, sem plano → `/painel` | `/escolha-de-plano` (não ocorre em modo demo) |
 | Autenticado com plano → `/login` ou `/cadastro` | `/painel` |
 
 ---
@@ -49,7 +50,7 @@ Implementada com **Supabase Auth** + **`@supabase/ssr`** (cookies httpOnly). Sem
 
 ```sql
 profiles   (id → auth.users, full_name, created_at)
-stores     (id, owner_id → profiles, name, slug unique, plan, trial_ends_at, is_active,
+stores     (id, owner_id → profiles, name, slug unique, plan, trial_ends_at (nullable), is_active,
             whatsapp, accent_color, logo_url, description, monogram,
             analytics_id, pixel_id, message_template, created_at)
 categories (id, store_id → stores, name, position, created_at)
@@ -132,7 +133,7 @@ Route group sem layout próprio. URLs sem o prefixo `(auth)`.
 | `/verificar-email` | Aguarda confirmação; botão de reenvio com email via query param |
 | `/recuperar-senha` | Solicita email para reset |
 | `/redefinir-senha` | Nova senha (requer token do email) |
-| `/escolha-de-plano` | Starter (R$49/mês) ou Pro (R$99/mês), 14 dias grátis |
+| `/escolha-de-plano` | Starter ou Pro, sem preço exibido ("Em breve"). Inacessível no fluxo normal em modo demo — toda loja nova já nasce com plano Pro |
 
 ## Catálogo público (`app/[slug]/`)
 
@@ -148,17 +149,18 @@ A função `getPublicCatalog(slug)` em `lib/server/catalog.ts` encapsula toda a 
 
 ---
 
-## Estado atual (jun/2026)
+## Estado atual (jul/2026)
 
-- **Autenticação**: completa — cadastro 2 etapas, login email/senha, recuperação/redefinição de senha, confirmação de email, seleção de plano
+- **Autenticação**: completa — cadastro 2 etapas, login email/senha, recuperação/redefinição de senha, confirmação de email
+- **Modo demo**: cadastro pula a escolha de plano; toda loja nova nasce com `plan = 'pro'` e `trial_ends_at = null` (indeterminado). Preços ficam ocultos na landing e na página `/escolha-de-plano` (texto "Em breve")
 - **Painel do lojista** (`/painel`): totalmente conectado ao Supabase — dashboard, produtos (CRUD + upload de fotos), categorias (CRUD + limites de plano), configurações da loja
 - **Catálogo público** (`/[slug]`): dados reais do Supabase via RLS anon — grid de produtos, detalhe, sacola (drawer), checkout WhatsApp com template customizável, página de loja expirada
-- **Limites de plano**: `getPlanLimits()` aplicado em Server Actions de produtos e categorias
+- **Limites de plano**: `getPlanLimits()` aplicado em Server Actions de produtos e categorias — como toda loja demo é Pro, os limites de Starter não se aplicam na prática
 - **Storage**: bucket `product-images` com upload, compressão no cliente e remoção de imagens antigas ao editar
 
 ## Próximo passo
 
-Integração de pagamento (Stripe ou Pagar.me) — cobrança recorrente no dia 15 do trial, webhooks para ativação/cancelamento de plano.
+Validação com lojistas em modo demo (sem cobrança). Depois: reintroduzir a página de escolha de plano no cadastro, exibir preços e integrar pagamento (Stripe ou Pagar.me) com cobrança recorrente e webhooks para ativação/cancelamento de plano. Ver `docs/roadmap/Escopo.md` §6 e §11.
 
 ---
 

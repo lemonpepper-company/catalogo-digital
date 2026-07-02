@@ -83,7 +83,7 @@ export interface StoreSettings {
   name: string;
   slug: string;
   plan: "starter" | "pro" | null;
-  trialEndsAt: string;
+  trialEndsAt: string | null;
   whatsapp: string | null;
   accentColor: string;
   logoUrl: string | null;

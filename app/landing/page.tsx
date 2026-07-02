@@ -333,12 +333,13 @@ export default function LandingPage() {
             <span className="font-body font-medium text-[11px] tracking-[0.14em] uppercase text-gold">
               Planos
             </span>
+            {/* MODO DEMO: título/subtítulo originais eram "Preço simples, sem surpresa."
+                e "Comece grátis. Quando crescer, escolha o plano que acompanha sua loja." */}
             <h2 className="font-display font-semibold text-[28px] md:text-[38px] text-obsidian leading-[1.12] tracking-tight mt-3.5 mb-4 text-balance">
-              Preço simples, sem surpresa.
+              Planos sob medida para sua loja.
             </h2>
             <p className="font-body text-[17px] text-graphite text-pretty">
-              Comece grátis. Quando crescer, escolha o plano que acompanha sua
-              loja.
+              Comece agora com acesso completo. Preços em breve.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 justify-center gap-6 sm:max-w-[712px] mx-auto">
@@ -347,6 +348,7 @@ export default function LandingPage() {
               <div className="font-display font-medium text-[18px] text-obsidian">
                 Starter
               </div>
+              {/* MODO DEMO: preço oculto. Para reativar, restaurar o bloco original:
               <div className="flex items-baseline gap-1 mt-4 mb-1.5">
                 <span className="font-display font-medium text-[20px] text-obsidian">
                   R$
@@ -355,6 +357,12 @@ export default function LandingPage() {
                   49
                 </span>
                 <span className="font-body text-[14px] text-graphite">/mês</span>
+              </div>
+              */}
+              <div className="mt-4 mb-1.5">
+                <span className="font-display font-semibold text-[28px] text-obsidian tracking-tight">
+                  Em breve
+                </span>
               </div>
               <p className="font-body text-[14px] text-graphite mb-6">
                 Para quem está começando a organizar a vitrine.
@@ -389,6 +397,7 @@ export default function LandingPage() {
               <div className="font-display font-medium text-[18px] text-obsidian">
                 Pro
               </div>
+              {/* MODO DEMO: preço oculto. Para reativar, restaurar o bloco original:
               <div className="flex items-baseline gap-1 mt-4 mb-1.5">
                 <span className="font-display font-medium text-[20px] text-obsidian">
                   R$
@@ -397,6 +406,12 @@ export default function LandingPage() {
                   99
                 </span>
                 <span className="font-body text-[14px] text-graphite">/mês</span>
+              </div>
+              */}
+              <div className="mt-4 mb-1.5">
+                <span className="font-display font-semibold text-[28px] text-obsidian tracking-tight">
+                  Em breve
+                </span>
               </div>
               <p className="font-body text-[14px] text-graphite mb-6">
                 Para a loja que vende todo dia e quer crescer.
@@ -419,7 +434,8 @@ export default function LandingPage() {
                 href="/cadastro"
                 className="w-full h-[52px] rounded-btn bg-gold text-white font-display font-medium text-[16px] flex items-center justify-center hover:bg-gold-hover transition-colors"
               >
-                Assinar o Pro
+                {/* MODO DEMO: texto original era "Assinar o Pro" */}
+                Começar com o Pro
               </NextLink>
             </div>
           </div>

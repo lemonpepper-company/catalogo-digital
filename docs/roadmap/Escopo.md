@@ -1,7 +1,9 @@
 # Escopo do Produto — Catálogo Digital V1
 
-**Versão:** 2.2  
-**Data:** 30 de junho de 2026
+**Versão:** 2.3  
+**Data:** 2 de julho de 2026
+
+> **Modo demo:** a partir desta versão, o produto roda em modo demo para validação com lojistas. Preços ficam ocultos, o cadastro pula a escolha de plano e toda loja nova nasce direto no plano Pro com expiração indeterminada (sem cobrança). Ver §4.3 e §6 para o detalhe do que muda e o que volta quando a cobrança for reativada.
 
 ---
 
@@ -28,9 +30,9 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 
 | Tela | Elementos principais | Status |
 |---|---|---|
-| Landing page | Hero, dor, como funciona, features, depoimentos, planos, FAQ, CTA final | ✅ Implementado |
+| Landing page | Hero, dor, como funciona, features, depoimentos, planos (sem preço, "Em breve"), FAQ, CTA final | ✅ Implementado |
 | Cadastro | Seção "Sua conta" + Seção "Sua loja" com preview do slug em tempo real | ✅ Implementado |
-| Escolha de plano | Cards Starter R$49 e Pro R$99. Sem cartão. 14 dias grátis nos dois. | ✅ Implementado |
+| Escolha de plano | Cards Starter e Pro sem preço. Pulada no cadastro em modo demo — loja já nasce Pro. | ⏸️ Fora do fluxo (modo demo) |
 | Login | E-mail + senha + Google OAuth + link esqueci senha + link cadastro em Gold Dust | ✅ Implementado |
 | Verificar e-mail | Aguarda confirmação; botão de reenvio com email via query param | ✅ Implementado |
 | Recuperar senha | Solicita email para reset | ✅ Implementado |
@@ -88,13 +90,16 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 
 ### 4.3 Trial e assinatura
 
+> **Modo demo:** toda loja cadastrada nasce com `plan = 'pro'` e `trial_ends_at = null` (indeterminado). Não há trial de 14 dias nem cobrança — é acesso Pro completo, por tempo indeterminado, enquanto durar a validação com lojistas.
+
 | Funcionalidade | Detalhe | Status |
 |---|---|---|
-| Trial de 14 dias | Acesso Pro completo. Sem cartão no cadastro. Nos dois planos. | ✅ Lógica implementada (`trial_ends_at` no banco) |
-| Tela de escolha de plano | Exibida após cadastro. Cobrança só no dia 15. | ✅ Implementado (UI + Server Action) |
-| Banner de trial | No dashboard: dias restantes + CTA "Assinar agora". | ✅ Implementado |
-| Loja oculta após expiração | Catálogo exibe página de expiração quando trial vence e sem plano ativo | ✅ Implementado |
-| Integração de pagamento | Stripe ou Pagar.me — cobrança recorrente, conversão no dia 15 | ⏳ Pendente |
+| Cadastro já com plano Pro | `plan='pro'`, `trial_ends_at=null` definidos na criação da loja (`/auth/callback` e `createStore`) | ✅ Implementado (modo demo) |
+| Trial de 14 dias | Substituído pelo modo demo — lógica de `trial_ends_at` continua no banco (agora nullable) e é tratada como "sem expiração" quando nula | ⏸️ Suspenso (modo demo) |
+| Tela de escolha de plano | Pulada no cadastro. Rota e Server Action `selectPlan` seguem existindo no código para quando a cobrança voltar. | ⏸️ Fora do fluxo (modo demo) |
+| Banner de trial | Não aparece para lojas em modo demo (`showTrialBanner = !store.plan`, e `plan` nunca é nulo) | ⏸️ Suspenso (modo demo) |
+| Loja oculta após expiração | Depende de `is_active`, não de `trial_ends_at` — segue funcionando para desativação manual | ✅ Implementado |
+| Integração de pagamento | Stripe ou Pagar.me — cobrança recorrente | ⏳ Pendente — retomado após a validação em modo demo |
 | Webhook de pagamento | Processar upgrades, cancelamentos e expiração via webhook | ⏳ Pendente |
 | Cancelamento | Sem fidelidade. Catálogo oculto até reativação. Dados preservados. | ⏳ Pendente (depende do pagamento) |
 
@@ -118,17 +123,18 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 
 ## 6. Modelo de monetização
 
+> **Em modo demo, preços não são exibidos e não há cobrança.** A tabela abaixo é o modelo planejado para quando a cobrança for reativada (pós-validação).
+
 | | Starter | Pro |
 |---|---|---|
-| **Preço** | R$ 49/mês | R$ 99/mês |
+| **Preço** | A definir | A definir |
 | Produtos | Até 30 | Ilimitados |
 | Categorias | Até 5 | Ilimitadas |
 | Fotos por produto | Até 3 | Até 5 |
 | GA + Pixel | Incluso | Incluso |
 | Template de mensagem | Incluso | Incluso |
-| Trial | 14 dias grátis (acesso Pro) | 14 dias grátis |
 
-> O trial concede acesso Pro em ambos os planos. Quem cadastrar mais de 30 produtos durante o trial e escolher Starter no dia 15 precisará remover produtos até o limite.
+**Enquanto o modo demo estiver ativo:** todo cadastro recebe o plano Pro automaticamente, com expiração indeterminada (`trial_ends_at = null`). Não há downgrade para Starter nem cobrança no dia 15.
 
 ---
 
@@ -178,9 +184,9 @@ Olá! Gostaria de fazer um pedido:
 | Sacola | Persiste durante a navegação no catálogo. Badge atualiza em tempo real. |
 | Mensagem WhatsApp | Construída com todos os itens da sacola no template configurado. Sempre nova aba. |
 | Produto esgotado | Oculto no catálogo público se `stock=0` OU `is_active=false` (RLS). No painel aparece com badge. |
-| Catálogo em trial | Público e ativo durante 14 dias. Banner só no painel. |
-| Catálogo após expiração | Exibe `CatalogExpired` (página de expiração). Dados preservados. |
-| Limite do Starter | Ao atingir 30 produtos, botão desabilitado + mensagem de upgrade. |
+| Catálogo em modo demo | Público e ativo por tempo indeterminado (`trial_ends_at=null`, `plan='pro'`). Sem banner de trial no painel. |
+| Catálogo após expiração | Exibe `CatalogExpired` (página de expiração) quando `is_active=false`. Dados preservados. Não ocorre automaticamente em modo demo — depende de desativação manual. |
+| Limite do Starter | Ao atingir 30 produtos, botão desabilitado + mensagem de upgrade. Não se aplica em modo demo (toda loja é Pro). |
 | Listagem de produtos | Tela padrão ao clicar em "Produtos" no menu — não o formulário de criação. |
 | WhatsApp sem código | Número normalizado com `+55` ao montar o link de checkout. |
 
@@ -190,8 +196,8 @@ Olá! Gostaria de fazer um pedido:
 
 | Risco | Descrição | Mitigação |
 |---|---|---|
-| Churn no mês 2 | Lojista cadastra e depois abandona | Notificação semanal com dados de acesso via GA. Banner de trial cria urgência. |
-| Não conversão no trial | Experimenta mas não assina | E-mail de recuperação no dia 12. Catálogo oculto — não deletado — incentiva reativar. |
+| Churn no mês 2 | Lojista cadastra e depois abandona | Notificação semanal com dados de acesso via GA. (Banner de trial/urgência volta quando a cobrança for reativada — suspenso em modo demo.) |
+| Não conversão no trial | Experimenta mas não assina | Não se aplica em modo demo (sem trial nem cobrança). Retomar e-mail de recuperação no dia 12 quando o modelo pago voltar. |
 | Concorrência com Instagram | Lojistas já usam Instagram Shopping de graça | Pitch: catálogo vai pro WhatsApp (90% abertura vs 5–10% feed). Sacola de pedidos é diferencial. |
 | Slug duplicado | Dois lojistas com nome de loja similar | Validação em tempo real + sugestão automática de variação. |
 
@@ -206,6 +212,7 @@ Olá! Gostaria de fazer um pedido:
 | 3 | Auth + Supabase (cadastro, login, OAuth, planos) | ✅ Concluído |
 | 4 | Painel do lojista com dados reais | ✅ Concluído — produtos, categorias, configurações, upload de fotos |
 | 5 | Catálogo público com dados reais | ✅ Concluído — rota `/[slug]`, sacola, checkout WhatsApp |
-| 6 | Integração de pagamento | ⏳ Próximo — Stripe ou Pagar.me, cobrança recorrente, trial automático |
-| 7 | Validação com lojistas | ⏳ Aguarda pagamento — 5 lojistas de moda locais em beta fechado |
-| 8 | Launch | ⏳ Após validação e pagamento funcionando |
+| 6 | Modo demo — preços ocultos, cadastro direto no plano Pro, expiração indeterminada | ✅ Concluído (jul/2026) |
+| 7 | Validação com lojistas | ⏳ Em andamento — beta em modo demo, sem cobrança |
+| 8 | Integração de pagamento | ⏳ Depois da validação — Stripe ou Pagar.me, cobrança recorrente, reintroduzir `/escolha-de-plano` e preços |
+| 9 | Launch | ⏳ Após validação e pagamento funcionando |

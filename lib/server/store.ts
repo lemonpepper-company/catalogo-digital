@@ -12,7 +12,7 @@ type StoreRow = {
   name: string;
   slug: string;
   plan: "starter" | "pro" | null;
-  trial_ends_at: string;
+  trial_ends_at: string | null;
   whatsapp: string | null;
   accent_color: string | null;
   logo_url: string | null;
