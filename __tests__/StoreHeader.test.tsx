@@ -48,13 +48,13 @@ describe("StoreHeader", () => {
 
   it("não exibe o campo de busca quando fechado (CAT-B01)", () => {
     renderHeader(baseStore, { searchOpen: false });
-    expect(screen.queryByRole("textbox", { name: "Buscar peças pelo nome" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Buscar produtos pelo nome" })).toBeNull();
   });
 
   it("exibe o campo de busca quando aberto (CAT-B01)", () => {
     renderHeader(baseStore, { searchOpen: true });
     expect(
-      screen.getByRole("textbox", { name: "Buscar peças pelo nome" })
+      screen.getByRole("textbox", { name: "Buscar produtos pelo nome" })
     ).toBeTruthy();
   });
 
@@ -69,7 +69,7 @@ describe("StoreHeader", () => {
     const onSearchChange = vi.fn();
     renderHeader(baseStore, { searchOpen: true, onSearchChange });
     fireEvent.change(
-      screen.getByRole("textbox", { name: "Buscar peças pelo nome" }),
+      screen.getByRole("textbox", { name: "Buscar produtos pelo nome" }),
       { target: { value: "vestido" } }
     );
     expect(onSearchChange).toHaveBeenCalledWith("vestido");

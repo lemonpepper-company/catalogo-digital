@@ -85,8 +85,8 @@ export function StoreHeader({
             autoFocus
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Buscar peças pelo nome…"
-            aria-label="Buscar peças pelo nome"
+            placeholder="Buscar produtos pelo nome…"
+            aria-label="Buscar produtos pelo nome"
             className="w-full h-10 pl-9 pr-3 border border-sand/50 rounded-btn bg-white font-body text-[14px] text-obsidian placeholder:text-graphite focus:outline-none focus:border-graphite transition-colors"
           />
         </div>
