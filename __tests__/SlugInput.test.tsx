@@ -15,7 +15,7 @@ beforeEach(() => {
 describe('SlugInput', () => {
   it('renderiza o preview da URL', () => {
     render(<SlugInput name="slug" value="minha-loja" onChange={() => {}} />)
-    expect(screen.getByText('catalogo.app/')).toBeInTheDocument()
+    expect(screen.getByText('vtrinedigital.com.br/')).toBeInTheDocument()
     expect(screen.getByDisplayValue('minha-loja')).toBeInTheDocument()
   })
 

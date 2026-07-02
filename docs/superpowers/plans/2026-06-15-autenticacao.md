@@ -1026,7 +1026,7 @@ beforeEach(() => {
 describe('SlugInput', () => {
   it('renderiza o preview da URL', () => {
     render(<SlugInput name="slug" value="minha-loja" onChange={() => {}} />)
-    expect(screen.getByText('catalogo.app/')).toBeInTheDocument()
+    expect(screen.getByText('vtrinedigital.com.br/')).toBeInTheDocument()
     expect(screen.getByDisplayValue('minha-loja')).toBeInTheDocument()
   })
 
@@ -1160,7 +1160,7 @@ export function SlugInput({ name, value, onChange }: SlugInputProps) {
       <div className={inputWrap}>
         <Globe size={16} className="text-graphite flex-shrink-0" />
         <span className="font-body text-[14px] text-graphite whitespace-nowrap">
-          catalogo.app/
+          vtrinedigital.com.br/
         </span>
         <input
           type="text"

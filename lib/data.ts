@@ -7,7 +7,7 @@ export const STORE: Store = {
   categories: ["Todos", "Vestidos", "Blusas", "Calças", "Saias"],
   description: "Vitrine digital premium · moda feminina autoral",
   accentColor: "#C9A96E",
-  catalogUrl: "catalogo.app/ateliemira",
+  catalogUrl: "vtrinedigital.com.br/ateliemira",
 };
 
 export const PRODUCTS: Product[] = [

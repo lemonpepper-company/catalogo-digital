@@ -79,7 +79,7 @@ Formulário dividido em duas seções sequenciais na mesma página.
 **Comportamento do slug:**
 - Gerado automaticamente ao digitar nome da loja
 - Transformação: lowercase → remove acentos → espaços → hífens → remove especiais
-- Preview em tempo real: `catalogo.app/boutique-da-ana`
+- Preview em tempo real: `vtrinedigital.com.br/boutique-da-ana`
 - Validação de unicidade via debounce de 400ms (chamada à API)
 - Se slug existir: sugestão automática com sufixo numérico (`-2`, `-3`…)
 - Campo editável manualmente; nova validação ao perder foco
@@ -359,4 +359,4 @@ Chamado via `fetch` com debounce de 400ms no componente de cadastro.
 |---|---|---|---|
 | 1 | Confirmação de e-mail no cadastro? | (a) sim — e-mail de confirmação antes de acessar o painel · (b) não — acesso imediato, e-mail em background | UX do onboarding; recomendo (b) para reduzir fricção no V1 |
 | 2 | OAuth social (Google)? | (a) sim no V1 · (b) V2 | Escopo.md não menciona; recomendo V2 |
-| 3 | Domínio do cookie de sessão | `.catalogo.app` compartilhado ou por subdomínio | Relevante quando domínio personalizado for implementado (V2) |
+| 3 | Domínio do cookie de sessão | `.vtrinedigital.com.br` compartilhado ou por subdomínio | Relevante quando domínio personalizado for implementado (V2) |

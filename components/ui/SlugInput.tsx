@@ -55,7 +55,7 @@ export function SlugInput({ name, value, onChange }: SlugInputProps) {
       <div className={inputWrap}>
         <Globe size={16} className="text-graphite flex-shrink-0" />
         <span className="font-body text-[14px] text-graphite whitespace-nowrap">
-          catalogo.app/
+          vtrinedigital.com.br/
         </span>
         <input
           type="text"

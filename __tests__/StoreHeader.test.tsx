@@ -10,7 +10,7 @@ const baseStore: Store = {
   categories: ["Todos"],
   description: "Vitrine premium",
   accentColor: "#C9A96E",
-  catalogUrl: "catalogo.app/ateliemira",
+  catalogUrl: "vtrinedigital.com.br/ateliemira",
 };
 
 function renderHeader(

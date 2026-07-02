@@ -223,7 +223,7 @@ Valida token ao carregar (via Supabase); se inválido/expirado → erro + link p
 
 ## Componentes UI novos
 
-**`SlugInput`** — campo slug + preview `catalogo.app/<slug>` + ícone de status (spinner / ✓ verde / ✗ vermelho + sugestão). Reutilizável em cadastro e futuras configurações da loja.
+**`SlugInput`** — campo slug + preview `vtrinedigital.com.br/<slug>` + ícone de status (spinner / ✓ verde / ✗ vermelho + sugestão). Reutilizável em cadastro e futuras configurações da loja.
 
 **`PasswordInput`** — campo senha com toggle show/hide (elimina duplicação em login, cadastro, redefinir-senha).
 
