@@ -25,7 +25,7 @@ export function StoreHeader({
   onToggleSearch,
 }: StoreHeaderProps) {
   return (
-    <header className="sticky top-0 z-10 bg-ivory border-b border-sand/50 px-4 py-[14px] flex flex-col gap-3">
+    <header className="bg-ivory border-b border-sand/50 px-4 py-[14px] flex flex-col gap-3">
       <div className="flex items-center gap-3">
         {store.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

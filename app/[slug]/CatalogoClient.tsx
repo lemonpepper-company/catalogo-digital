@@ -55,27 +55,29 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
 
   return (
     <div className="min-h-screen bg-ivory relative">
-      <StoreHeader
-        store={store}
-        activeProductCount={activeProducts.length}
-        bagCount={bagCount}
-        onOpenBag={() => setBagOpen(true)}
-        searchOpen={searchOpen}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onToggleSearch={toggleSearch}
-      />
+      <div className="sticky top-0 z-10 bg-ivory">
+        <StoreHeader
+          store={store}
+          activeProductCount={activeProducts.length}
+          bagCount={bagCount}
+          onOpenBag={() => setBagOpen(true)}
+          searchOpen={searchOpen}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onToggleSearch={toggleSearch}
+        />
 
-      <div className="sticky top-[69px] z-10 bg-ivory flex gap-2 px-4 py-3.5 overflow-x-auto no-scrollbar">
-        {store.categories.map((cat) => (
-          <Pill
-            key={cat}
-            active={activeCategory === cat}
-            onClick={() => setActiveCategory(cat)}
-          >
-            {cat}
-          </Pill>
-        ))}
+        <div className="bg-ivory flex gap-2 px-4 py-3.5 overflow-x-auto no-scrollbar">
+          {store.categories.map((cat) => (
+            <Pill
+              key={cat}
+              active={activeCategory === cat}
+              onClick={() => setActiveCategory(cat)}
+            >
+              {cat}
+            </Pill>
+          ))}
+        </div>
       </div>
 
       {filteredProducts.length === 0 ? (
