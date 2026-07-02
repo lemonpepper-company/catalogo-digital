@@ -13,6 +13,7 @@ describe("Sidebar", () => {
         name="Ateliê Mira"
         monogram="AM"
         logoUrl="https://cdn.test/logo.jpg"
+        slug="ateliemira"
       />
     );
     const img = screen.getByRole("img", { name: "Ateliê Mira" });
@@ -22,7 +23,7 @@ describe("Sidebar", () => {
 
   it("falls back to the monogram when there is no logo", () => {
     render(
-      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} />
+      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} slug="ateliemira" />
     );
     expect(screen.getByText("AM")).toBeTruthy();
     expect(screen.queryByRole("img")).toBeNull();
@@ -30,7 +31,7 @@ describe("Sidebar", () => {
 
   it("shows the real store name", () => {
     render(
-      <Sidebar name="Loja Nova" monogram={null} logoUrl={null} />
+      <Sidebar name="Loja Nova" monogram={null} logoUrl={null} slug="loja-nova" />
     );
     expect(screen.getByText("Loja Nova")).toBeTruthy();
     // monogram derived from name when null

@@ -62,6 +62,7 @@ export default async function PainelLayout({
           name={store?.name ?? ''}
           monogram={store?.monogram ?? null}
           logoUrl={store?.logo_url ?? null}
+          slug={store?.slug ?? null}
         />
         <main className="flex-1 overflow-y-auto">
           <div className="px-4 py-6 pb-24 lg:px-12 lg:py-10 lg:pb-10">{children}</div>

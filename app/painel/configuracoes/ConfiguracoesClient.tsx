@@ -48,7 +48,7 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
 
   return (
     <div className="w-full lg:max-w-form flex flex-col gap-5">
-      <Card>
+      <Card className="lg:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="min-w-0">
             <div className="font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
