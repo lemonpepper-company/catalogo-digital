@@ -4,7 +4,7 @@
 **Data:** 2 de julho de 2026  
 **Escopo de referência:** Escopo.md §3.1, §4.3, §7, §9
 
-> **Modo demo:** a etapa "Escolha de plano" (§3.3) foi retirada do fluxo de cadastro. Toda loja nova nasce com `plan='pro'` e `trial_ends_at=null` (indeterminado). As seções abaixo descrevem o fluxo original com escolha de plano — mantidas como referência para quando a cobrança for reativada. O comportamento atual está resumido em §4 (Server Actions) e no `docs/ARCHITECTURE.md`.
+> **Modo demo:** a etapa "Escolha de plano" (§3.3) foi retirada do fluxo de cadastro. Toda loja nova nasce com `plan='starter'` e `trial_ends_at=null` (indeterminado). Os CTAs "Começar" dos cards de preço na landing também ficam ocultos. As seções abaixo descrevem o fluxo original com escolha de plano — mantidas como referência para quando a cobrança for reativada. O comportamento atual está resumido em §4 (Server Actions) e no `docs/ARCHITECTURE.md`.
 
 ---
 
@@ -29,7 +29,7 @@ Landing page
     ↓ CTA "Começar grátis"
 Cadastro (Sua conta + Sua loja)
     ↓ submit + confirmação de e-mail
-Painel (loja já criada com plan='pro', trial_ends_at=null)
+Painel (loja já criada com plan='starter', trial_ends_at=null)
 
 Login
     ↓ credenciais válidas
@@ -87,7 +87,7 @@ Formulário dividido em duas seções sequenciais na mesma página.
 - Campo editável manualmente; nova validação ao perder foco
 
 **Submit:**
-- Cria conta + loja (`plan='pro'`, `trial_ends_at=null`) + inicia sessão
+- Cria conta + loja (`plan='starter'`, `trial_ends_at=null`) + inicia sessão
 - Redireciona para `/painel` (modo demo — sem passar por `/escolha-de-plano`)
 - Em caso de e-mail duplicado: inline error no campo de e-mail
 
@@ -95,7 +95,7 @@ Formulário dividido em duas seções sequenciais na mesma página.
 
 ### 3.3 Tela de escolha de plano (`/escolha-de-plano`) — fora do fluxo em modo demo
 
-> Mantida como referência para quando a cobrança for reativada. Hoje a rota e a UI (`PlanosContent.tsx`) continuam exatamente como antes — Server Action `selectPlan` funciona — mas nenhuma loja nova chega até ela porque o cadastro já define `plan='pro'`. Como fica inacessível no fluxo, essa tela não foi revisada para o modo demo (preços continuam exibidos normalmente).
+> Mantida como referência para quando a cobrança for reativada. Hoje a rota e a UI (`PlanosContent.tsx`) continuam exatamente como antes — Server Action `selectPlan` funciona — mas nenhuma loja nova chega até ela porque o cadastro já define `plan='starter'`. Como fica inacessível no fluxo, essa tela não foi revisada para o modo demo (preços continuam exibidos normalmente).
 
 Exibida uma única vez, logo após o cadastro. Inacessível se o lojista já escolheu um plano.
 
@@ -226,7 +226,7 @@ public.stores (
 )
 ```
 
-Em modo demo, todo INSERT em `stores` já define `plan = 'pro'` e `trial_ends_at = NULL` (migration `20260702000000_demo_mode_plan_defaults.sql` removeu o `NOT NULL` de `trial_ends_at`).
+Em modo demo, todo INSERT em `stores` já define `plan = 'starter'` e `trial_ends_at = NULL` (migration `20260702000000_demo_mode_plan_defaults.sql` removeu o `NOT NULL` de `trial_ends_at`).
 
 **RLS mínimo:**
 - `profiles`: SELECT/UPDATE só para o próprio `auth.uid()`
@@ -243,7 +243,7 @@ export async function signUp(formData: FormData): Promise<ActionResult>
 // 1. Valida campos com zod
 // 2. supabase.auth.signUp({ email, password })
 // 3. INSERT INTO profiles (id, full_name)
-// 4. INSERT INTO stores (owner_id, name, slug, plan='pro', trial_ends_at=null) — modo demo
+// 4. INSERT INTO stores (owner_id, name, slug, plan='starter', trial_ends_at=null) — modo demo
 // 5. redirect('/painel')
 
 export async function signIn(formData: FormData): Promise<ActionResult>
@@ -291,7 +291,7 @@ Chamado via `fetch` com debounce de 400ms no componente de cadastro.
 |---|---|---|---|
 | Não autenticado | → `/login` | ✓ | → `/login` |
 | Autenticado, sem plano (não ocorre para lojas criadas em modo demo) | → `/escolha-de-plano` | → `/painel` | ✓ |
-| Autenticado, com plano (todo cadastro em modo demo cai aqui, com `plan='pro'`) | ✓ | → `/painel` | → `/painel` |
+| Autenticado, com plano (todo cadastro em modo demo cai aqui, com `plan='starter'`) | ✓ | → `/painel` | → `/painel` |
 
 ---
 

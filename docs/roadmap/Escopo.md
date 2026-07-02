@@ -3,7 +3,7 @@
 **Versão:** 2.3  
 **Data:** 2 de julho de 2026
 
-> **Modo demo:** a partir desta versão, o produto roda em modo demo para validação com lojistas. Preços ficam ocultos, o cadastro pula a escolha de plano e toda loja nova nasce direto no plano Pro com expiração indeterminada (sem cobrança). Ver §4.3 e §6 para o detalhe do que muda e o que volta quando a cobrança for reativada.
+> **Modo demo:** a partir desta versão, o produto roda em modo demo para validação com lojistas. Preços, os CTAs "Começar" e a seção de depoimentos (fictícios) ficam ocultos na landing, o cadastro pula a escolha de plano e toda loja nova nasce direto no plano Starter com expiração indeterminada (sem cobrança). Ver §4.3 e §6 para o detalhe do que muda e o que volta quando a cobrança for reativada.
 
 ---
 
@@ -30,9 +30,9 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 
 | Tela | Elementos principais | Status |
 |---|---|---|
-| Landing page | Hero, dor, como funciona, features, depoimentos, planos (sem preço, "Em breve"), FAQ, CTA final | ✅ Implementado |
+| Landing page | Hero, dor, como funciona, features, planos (sem preço, "Em breve", sem CTA), FAQ, CTA final. Seção de depoimentos oculta (fictícios, sem clientes reais ainda) | ✅ Implementado |
 | Cadastro | Seção "Sua conta" + Seção "Sua loja" com preview do slug em tempo real | ✅ Implementado |
-| Escolha de plano | Cards Starter R$49 e Pro R$99 (UI original, inalterada). Pulada no cadastro em modo demo — loja já nasce Pro e nunca chega nessa tela. | ⏸️ Fora do fluxo (modo demo) |
+| Escolha de plano | Cards Starter R$49 e Pro R$99 (UI original, inalterada). Pulada no cadastro em modo demo — loja já nasce Starter e nunca chega nessa tela. | ⏸️ Fora do fluxo (modo demo) |
 | Login | E-mail + senha + Google OAuth + link esqueci senha + link cadastro em Gold Dust | ✅ Implementado |
 | Verificar e-mail | Aguarda confirmação; botão de reenvio com email via query param | ✅ Implementado |
 | Recuperar senha | Solicita email para reset | ✅ Implementado |
@@ -90,11 +90,11 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 
 ### 4.3 Trial e assinatura
 
-> **Modo demo:** toda loja cadastrada nasce com `plan = 'pro'` e `trial_ends_at = null` (indeterminado). Não há trial de 14 dias nem cobrança — é acesso Pro completo, por tempo indeterminado, enquanto durar a validação com lojistas.
+> **Modo demo:** toda loja cadastrada nasce com `plan = 'starter'` e `trial_ends_at = null` (indeterminado). Não há trial de 14 dias nem cobrança — é acesso ao plano Starter (com os limites normais de 30 produtos/5 categorias/3 fotos), por tempo indeterminado, enquanto durar a validação com lojistas.
 
 | Funcionalidade | Detalhe | Status |
 |---|---|---|
-| Cadastro já com plano Pro | `plan='pro'`, `trial_ends_at=null` definidos na criação da loja (`/auth/callback` e `createStore`) | ✅ Implementado (modo demo) |
+| Cadastro já com plano Starter | `plan='starter'`, `trial_ends_at=null` definidos na criação da loja (`/auth/callback` e `createStore`) | ✅ Implementado (modo demo) |
 | Trial de 14 dias | Substituído pelo modo demo — lógica de `trial_ends_at` continua no banco (agora nullable) e é tratada como "sem expiração" quando nula | ⏸️ Suspenso (modo demo) |
 | Tela de escolha de plano | Pulada no cadastro. Rota, Server Action `selectPlan` e UI (`PlanosContent.tsx`) seguem inalteradas no código — ficam apenas inacessíveis no fluxo até a cobrança voltar. | ⏸️ Fora do fluxo (modo demo) |
 | Banner de trial | Não aparece para lojas em modo demo (`showTrialBanner = !store.plan`, e `plan` nunca é nulo) | ⏸️ Suspenso (modo demo) |
@@ -134,7 +134,7 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 | GA + Pixel | Incluso | Incluso |
 | Template de mensagem | Incluso | Incluso |
 
-**Enquanto o modo demo estiver ativo:** todo cadastro recebe o plano Pro automaticamente, com expiração indeterminada (`trial_ends_at = null`). Não há downgrade para Starter nem cobrança no dia 15.
+**Enquanto o modo demo estiver ativo:** todo cadastro recebe o plano Starter automaticamente, com expiração indeterminada (`trial_ends_at = null`) e sem cobrança no dia 15. Não há upgrade automático para Pro — quem quiser os limites Pro precisa aguardar a reativação da cobrança.
 
 ---
 
@@ -184,9 +184,9 @@ Olá! Gostaria de fazer um pedido:
 | Sacola | Persiste durante a navegação no catálogo. Badge atualiza em tempo real. |
 | Mensagem WhatsApp | Construída com todos os itens da sacola no template configurado. Sempre nova aba. |
 | Produto esgotado | Oculto no catálogo público se `stock=0` OU `is_active=false` (RLS). No painel aparece com badge. |
-| Catálogo em modo demo | Público e ativo por tempo indeterminado (`trial_ends_at=null`, `plan='pro'`). Sem banner de trial no painel. |
+| Catálogo em modo demo | Público e ativo por tempo indeterminado (`trial_ends_at=null`, `plan='starter'`). Sem banner de trial no painel. |
 | Catálogo após expiração | Exibe `CatalogExpired` (página de expiração) quando `is_active=false`. Dados preservados. Não ocorre automaticamente em modo demo — depende de desativação manual. |
-| Limite do Starter | Ao atingir 30 produtos, botão desabilitado + mensagem de upgrade. Não se aplica em modo demo (toda loja é Pro). |
+| Limite do Starter | Ao atingir 30 produtos, botão desabilitado + mensagem de upgrade. Se aplica normalmente em modo demo, já que toda loja nasce Starter. |
 | Listagem de produtos | Tela padrão ao clicar em "Produtos" no menu — não o formulário de criação. |
 | WhatsApp sem código | Número normalizado com `+55` ao montar o link de checkout. |
 
@@ -212,7 +212,7 @@ Olá! Gostaria de fazer um pedido:
 | 3 | Auth + Supabase (cadastro, login, OAuth, planos) | ✅ Concluído |
 | 4 | Painel do lojista com dados reais | ✅ Concluído — produtos, categorias, configurações, upload de fotos |
 | 5 | Catálogo público com dados reais | ✅ Concluído — rota `/[slug]`, sacola, checkout WhatsApp |
-| 6 | Modo demo — preços ocultos, cadastro direto no plano Pro, expiração indeterminada | ✅ Concluído (jul/2026) |
+| 6 | Modo demo — preços/CTAs ocultos, cadastro direto no plano Starter, expiração indeterminada | ✅ Concluído (jul/2026) |
 | 7 | Validação com lojistas | ⏳ Em andamento — beta em modo demo, sem cobrança |
 | 8 | Integração de pagamento | ⏳ Depois da validação — Stripe ou Pagar.me, cobrança recorrente, reintroduzir `/escolha-de-plano` e preços |
 | 9 | Launch | ⏳ Após validação e pagamento funcionando |

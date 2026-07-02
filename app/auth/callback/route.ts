@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
       full_name: meta.full_name ?? '',
     })
 
-    // MODO DEMO (a partir de jul/2026): toda loja nasce Pro, sem expiração.
+    // MODO DEMO (a partir de jul/2026): toda loja nasce Starter, sem expiração.
     // Para voltar ao modelo com trial + escolha de plano, restaurar o bloco abaixo:
     //
     // const trialEndsAt = new Date()
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       owner_id: user.id,
       name: meta.store_name,
       slug: meta.slug,
-      plan: 'pro',
+      plan: 'starter',
       trial_ends_at: null,
     })
 

@@ -11,7 +11,8 @@ import {
   painCards,
   steps,
   features,
-  testimonials,
+  // MODO DEMO: seção de depoimentos oculta — import não utilizado no momento.
+  // testimonials,
   starterFeatures,
   proFeatures,
   faqs,
@@ -58,12 +59,14 @@ export default function LandingPage() {
             >
               Preços
             </NextLink>
+            {/* MODO DEMO: link "Depoimentos" oculto junto com a seção. Original:
             <NextLink
               href="#depoimentos"
               className="hidden md:block font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
             >
               Depoimentos
             </NextLink>
+            */}
             <NextLink
               href="/login"
               className="font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors whitespace-nowrap"
@@ -287,7 +290,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── Testimonials ─── */}
+      {/* MODO DEMO: seção de depoimentos oculta — são depoimentos fictícios de
+          lojistas exemplo, não faz sentido exibir antes de ter clientes reais.
+          Bloco original:
       <section id="depoimentos" className="bg-ivory py-28">
         <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-[660px] mx-auto text-center mb-16">
@@ -325,6 +330,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      */}
 
       {/* ─── Pricing ─── */}
       <section id="precos" className="bg-linen py-28">
@@ -381,12 +387,14 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
+              {/* MODO DEMO: CTA do card oculto a pedido. Bloco original:
               <NextLink
                 href="/cadastro"
                 className="w-full h-[52px] rounded-btn border border-sand bg-transparent text-obsidian font-display font-medium text-[16px] flex items-center justify-center hover:bg-surface-hover transition-colors"
               >
                 Começar grátis
               </NextLink>
+              */}
             </div>
 
             {/* Pro */}
@@ -430,13 +438,14 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
+              {/* MODO DEMO: CTA do card oculto a pedido. Texto original era "Assinar o Pro". Bloco original:
               <NextLink
                 href="/cadastro"
                 className="w-full h-[52px] rounded-btn bg-gold text-white font-display font-medium text-[16px] flex items-center justify-center hover:bg-gold-hover transition-colors"
               >
-                {/* MODO DEMO: texto original era "Assinar o Pro" */}
                 Começar com o Pro
               </NextLink>
+              */}
             </div>
           </div>
         </div>
@@ -544,7 +553,8 @@ export default function LandingPage() {
               <div className="flex flex-col gap-[11px]">
                 {[
                   { label: "Sobre", href: "#" },
-                  { label: "Depoimentos", href: "#depoimentos" },
+                  // MODO DEMO: link "Depoimentos" oculto junto com a seção.
+                  // { label: "Depoimentos", href: "#depoimentos" },
                   { label: "Contato", href: "#" },
                 ].map((l) => (
                   <NextLink

@@ -158,7 +158,7 @@ export async function createStore(
     full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? '',
   })
 
-  // MODO DEMO (a partir de jul/2026): toda loja nasce Pro, sem expiração.
+  // MODO DEMO (a partir de jul/2026): toda loja nasce Starter, sem expiração.
   // Para voltar ao modelo com trial + escolha de plano, restaurar o bloco abaixo:
   //
   // const trialEndsAt = new Date()
@@ -177,7 +177,7 @@ export async function createStore(
     owner_id: user.id,
     name: result.data.store_name,
     slug: result.data.slug,
-    plan: 'pro',
+    plan: 'starter',
     trial_ends_at: null,
   })
 
