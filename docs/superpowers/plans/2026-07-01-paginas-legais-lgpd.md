@@ -16,7 +16,7 @@
 - Sem comentários no código exceto lógica não-óbvia
 - `font-display` (Sora) para títulos, `font-body` (DM Sans) para corpo de texto
 - Tokens de cor: `bg-ivory`, `text-obsidian`, `text-graphite`, `text-gold`, `border-sand`, `bg-linen`
-- Responsável legal: Wagner Azevedo Dutra — contato@vtrinedigital.com.br
+- Responsável legal: Wagner Azevedo Dutra — w3dev.support@gmail.com
 - Data de referência: julho de 2026 (1 de julho de 2026)
 - Sem `box-shadow` em nenhum componente
 
@@ -92,10 +92,10 @@ export default function PoliticaDePrivacidadePage() {
             Para exercer seus direitos ou tirar dúvidas sobre o tratamento dos
             seus dados, entre em contato pelo e-mail:{" "}
             <a
-              href="mailto:contato@vtrinedigital.com.br"
+              href="mailto:w3dev.support@gmail.com"
               className="text-obsidian underline underline-offset-2 hover:text-gold transition-colors"
             >
-              contato@vtrinedigital.com.br
+              w3dev.support@gmail.com
             </a>
           </p>
         </Section>
@@ -225,10 +225,10 @@ export default function PoliticaDePrivacidadePage() {
           <p className="mt-4 font-body text-[15px] text-graphite">
             Para exercer qualquer um desses direitos, envie um e-mail para{" "}
             <a
-              href="mailto:contato@vtrinedigital.com.br"
+              href="mailto:w3dev.support@gmail.com"
               className="text-obsidian underline underline-offset-2 hover:text-gold transition-colors"
             >
-              contato@vtrinedigital.com.br
+              w3dev.support@gmail.com
             </a>
             . Responderemos em até 15 dias úteis.
           </p>
@@ -449,10 +449,10 @@ export default function TermosDeUsoPage() {
             O lojista pode cancelar sua conta a qualquer momento pelo painel ou
             pelo e-mail{" "}
             <a
-              href="mailto:contato@vtrinedigital.com.br"
+              href="mailto:w3dev.support@gmail.com"
               className="text-obsidian underline underline-offset-2 hover:text-gold transition-colors"
             >
-              contato@vtrinedigital.com.br
+              w3dev.support@gmail.com
             </a>
             . Após o cancelamento, os dados serão excluídos conforme a{" "}
             <NextLink
@@ -668,7 +668,7 @@ git commit -m "feat: add legal links to landing footer"
 - [x] Footer da landing com coluna "Legal" — Task 3 Step 1
 - [x] Footer com links na barra inferior — Task 3 Step 2
 - [x] `metadata` em cada page — Tasks 1 e 2
-- [x] Controlador: Wagner Azevedo Dutra, contato@vtrinedigital.com.br — Tasks 1 e 2
+- [x] Controlador: Wagner Azevedo Dutra, w3dev.support@gmail.com — Tasks 1 e 2
 - [x] 7 seções LGPD na política de privacidade — Task 1
 - [x] 8 seções nos termos de uso — Task 2
 - [x] Navbar mínima com logo + "← Início" — Tasks 1 e 2

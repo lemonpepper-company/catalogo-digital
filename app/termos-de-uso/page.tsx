@@ -134,10 +134,10 @@ export default function TermosDeUsoPage() {
             O lojista pode cancelar sua conta a qualquer momento pelo painel ou
             pelo e-mail{" "}
             <a
-              href="mailto:contato@vtrinedigital.com.br"
+              href="mailto:w3dev.support@gmail.com"
               className="text-obsidian underline underline-offset-2 hover:text-gold transition-colors"
             >
-              contato@vtrinedigital.com.br
+              w3dev.support@gmail.com
             </a>
             . Após o cancelamento, os dados serão excluídos conforme a{" "}
             <NextLink

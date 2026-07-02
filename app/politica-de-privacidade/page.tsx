@@ -56,10 +56,10 @@ export default function PoliticaDePrivacidadePage() {
             Para exercer seus direitos ou tirar dúvidas sobre o tratamento dos
             seus dados, entre em contato pelo e-mail:{" "}
             <a
-              href="mailto:contato@vtrinedigital.com.br"
+              href="mailto:w3dev.support@gmail.com"
               className="text-obsidian underline underline-offset-2 hover:text-gold transition-colors"
             >
-              contato@vtrinedigital.com.br
+              w3dev.support@gmail.com
             </a>
           </p>
         </Section>
@@ -189,10 +189,10 @@ export default function PoliticaDePrivacidadePage() {
           <p className="mt-4 font-body text-[15px] text-graphite">
             Para exercer qualquer um desses direitos, envie um e-mail para{" "}
             <a
-              href="mailto:contato@vtrinedigital.com.br"
+              href="mailto:w3dev.support@gmail.com"
               className="text-obsidian underline underline-offset-2 hover:text-gold transition-colors"
             >
-              contato@vtrinedigital.com.br
+              w3dev.support@gmail.com
             </a>
             . Responderemos em até 15 dias úteis.
           </p>
