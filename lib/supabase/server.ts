@@ -1,5 +1,4 @@
 import { createServerClient } from '@supabase/ssr'
-import { createClient as createSupabaseJsClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 export async function createClient() {
@@ -24,17 +23,5 @@ export async function createClient() {
         },
       },
     }
-  )
-}
-
-/**
- * Client sem acesso a cookies() — seguro para uso dentro de funções `'use cache'`,
- * que proíbem APIs de runtime. Usa só a anon key: correto para o catálogo público,
- * cujas políticas RLS já são de leitura anônima, independente de sessão do lojista.
- */
-export function createAnonClient() {
-  return createSupabaseJsClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 }
