@@ -59,7 +59,7 @@ Resultado esperado: de ~6 round-trips por página do painel para ~4 (2 no middle
 
 - `getPublicCatalog(slug)` em `lib/server/catalog.ts` passa a envolver sua busca de dados com `unstable_cache(fn, [slug], { tags: [`catalog-${slug}`] })` — o `slug` entra tanto na `keyParts` (diferencia a chave de cache por loja) quanto na tag (permite invalidar só aquela loja). `app/[slug]/page.tsx` continua com `force-dynamic` (sem mudança) — o ganho de performance vem inteiramente de pular as queries ao Supabase quando o cache está quente, não de mudar o modo de renderização da página.
 - A leitura ao Supabase dentro da função cacheada não pode depender de `cookies()` (restrição do `unstable_cache`, igual à de `'use cache'`) — por isso `lib/supabase/server.ts` ganha `createAnonClient()`, um client síncrono sem cookies, usado só aqui (a leitura já é RLS anônima, independente de sessão).
-- As Server Actions que alteram dados visíveis no catálogo passam a chamar `revalidateTag(`catalog-${slug}`)` ao final:
+- As Server Actions que alteram dados visíveis no catálogo passam a chamar `revalidateTag(`catalog-${slug}`, "max")` ao final (o segundo argumento é exigido pela versão instalada do Next.js; `"max"` é o valor recomendado pela documentação para este caso — stale-while-revalidate):
   - `createProduct`, `updateProduct`, `deleteProduct`, `toggleProductActive` (`app/actions/produtos.ts`)
   - `createCategory`, `updateCategory`, `deleteCategory` (`app/actions/categorias.ts`)
   - `updateStoreSettings` (`app/actions/store.ts`)
