@@ -4,6 +4,8 @@ import { getPublicCatalog } from "@/lib/server/catalog";
 import { CatalogExpired } from "@/components/catalogo/CatalogExpired";
 import { CatalogoClient } from "./CatalogoClient";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
