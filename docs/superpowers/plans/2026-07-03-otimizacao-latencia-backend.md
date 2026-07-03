@@ -490,6 +490,8 @@ git commit -m "perf: cacheia catálogo público via unstable_cache"
 
 ### Task 5: Invalidação de cache nas actions de produtos
 
+> **Nota (2026-07-03, corrigida na Task 8):** `revalidateTag` nesta versão do Next.js exige um segundo argumento (`profile`) — `revalidateTag(tag)` sozinho é erro de TypeScript. Os blocos de código abaixo já foram atualizados para `revalidateTag(tag, "max")` ("max" é o valor recomendado pela documentação do Next para este caso de uso — stale-while-revalidate). Isso só foi descoberto ao rodar `npm run build` na Task 8 (as Tasks 5-7 originalmente só verificavam com `npm test`, que não pega esse tipo de erro de tipo em código não coberto por teste).
+
 **Files:**
 - Modify: `app/actions/produtos.ts`
 
@@ -514,7 +516,7 @@ Em `createProduct`, logo após `revalidatePath("/painel/produtos");` e antes do 
 
 ```ts
   revalidatePath("/painel/produtos");
-  revalidateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`, "max");
   redirect("/painel/produtos");
 ```
 
@@ -522,7 +524,7 @@ Em `updateProduct`, mesma mudança (após `revalidatePath`, antes do `redirect`)
 
 ```ts
   revalidatePath("/painel/produtos");
-  revalidateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`, "max");
   redirect("/painel/produtos");
 ```
 
@@ -530,7 +532,7 @@ Em `deleteProduct`, adicionar antes do `return { ok: true };` final:
 
 ```ts
   revalidatePath("/painel/produtos");
-  revalidateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`, "max");
   return { ok: true };
 ```
 
@@ -538,7 +540,7 @@ Em `toggleProductActive`, mesma mudança:
 
 ```ts
   revalidatePath("/painel/produtos");
-  revalidateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`, "max");
   return { ok: true };
 ```
 
@@ -592,7 +594,7 @@ Em `createCategory`, após `revalidatePath("/painel/categorias");` e antes do `r
 
 ```ts
   revalidatePath("/painel/categorias");
-  revalidateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`, "max");
   return { ok: true, id: data.id };
 ```
 
@@ -600,7 +602,7 @@ Em `renameCategory`, após `revalidatePath("/painel/categorias");` e antes do `r
 
 ```ts
   revalidatePath("/painel/categorias");
-  revalidateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`, "max");
   return { ok: true };
 ```
 
@@ -608,7 +610,7 @@ Em `deleteCategory`, mesma mudança:
 
 ```ts
   revalidatePath("/painel/categorias");
-  revalidateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`, "max");
   return { ok: true };
 ```
 
@@ -662,7 +664,7 @@ Em `updateStoreSettings`, após os dois `revalidatePath` já existentes e antes 
 ```ts
   revalidatePath("/painel/configuracoes");
   revalidatePath("/painel");
-  revalidateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`, "max");
   return { ok: true };
 ```
 
