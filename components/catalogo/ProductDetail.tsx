@@ -2,8 +2,9 @@
 
 import { useState, useRef } from "react";
 import Image from "next/image";
-import { ChevronLeft, MessageCircle } from "lucide-react";
+import { ChevronLeft, MessageCircle, Maximize2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { ProductImageLightbox } from "@/components/catalogo/ProductImageLightbox";
 import type { Product } from "@/lib/types";
 
 interface ProductDetailProps {
@@ -24,6 +25,9 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
   );
   const [qty, setQty] = useState(1);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const pointerStartX = useRef<number | null>(null);
 
   const rawImages = product.images ?? [];
@@ -34,18 +38,38 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     pointerStartX.current = e.clientX;
+    setIsDragging(true);
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (pointerStartX.current === null) return;
-    const delta = e.clientX - pointerStartX.current;
+    setDragOffset(e.clientX - pointerStartX.current);
+  };
+
+  const endDrag = (delta: number) => {
     if (delta < -50 && currentIndex < images.length - 1) {
       setCurrentIndex((i) => i + 1);
     } else if (delta > 50 && currentIndex > 0) {
       setCurrentIndex((i) => i - 1);
     }
     pointerStartX.current = null;
+    setIsDragging(false);
+    setDragOffset(0);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerStartX.current === null) return;
+    const delta = e.clientX - pointerStartX.current;
+    if (Math.abs(delta) < 8) {
+      setLightboxOpen(true);
+    }
+    endDrag(delta);
+  };
+
+  const handlePointerCancel = () => {
+    if (pointerStartX.current === null) return;
+    endDrag(0);
   };
 
   return (
@@ -63,16 +87,19 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
       </button>
 
       <div
-        className="relative w-full md:w-[54%] md:h-full md:shrink-0 bg-linen overflow-hidden select-none"
-        style={{ aspectRatio: "4/5", touchAction: "pan-y" }}
+        className="relative w-full h-[58vh] shrink-0 md:h-full md:w-[54%] bg-linen overflow-hidden select-none"
+        style={{ touchAction: "pan-y" }}
         onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
       >
         <div
-          className="flex h-full transition-transform duration-300 ease-out"
+          className="flex h-full"
           style={{
             width: `${images.length * 100}%`,
-            transform: `translateX(-${currentIndex * (100 / images.length)}%)`,
+            transform: `translateX(calc(-${currentIndex * (100 / images.length)}% + ${dragOffset}px))`,
+            transition: isDragging ? "none" : "transform 300ms ease-out",
           }}
         >
           {images.map((src, i) => (
@@ -86,7 +113,7 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
                 alt={`${product.name} ${i + 1}`}
                 fill
                 sizes="(min-width: 768px) 50vw, 100vw"
-                className="object-cover"
+                className="object-contain"
                 priority={i === 0}
                 draggable={false}
               />
@@ -95,27 +122,54 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
         </div>
 
         {images.length > 1 && (
-          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-            {images.map((_, i) => (
-              <button
-                key={i}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => setCurrentIndex(i)}
-                aria-label={`Foto ${i + 1}`}
-                className="rounded-full transition-all duration-200"
-                style={{
-                  height: "6px",
-                  width: i === currentIndex ? "20px" : "6px",
-                  background:
-                    i === currentIndex
-                      ? "rgba(255,255,255,1)"
-                      : "rgba(255,255,255,0.5)",
-                }}
-              />
-            ))}
-          </div>
+          <>
+            <div className="absolute top-3.5 right-3.5 px-2.5 h-6 rounded-full flex items-center justify-center font-body font-medium text-[11px] text-white bg-black/40 backdrop-blur-sm pointer-events-none">
+              {currentIndex + 1}/{images.length}
+            </div>
+
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center">
+              <div className="flex items-center gap-1.5 px-2.5 h-6 rounded-full bg-black/25 backdrop-blur-sm">
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => setCurrentIndex(i)}
+                    aria-label={`Foto ${i + 1}`}
+                    className="rounded-full transition-all duration-200"
+                    style={{
+                      height: "6px",
+                      width: i === currentIndex ? "16px" : "6px",
+                      background:
+                        i === currentIndex
+                          ? "rgba(255,255,255,1)"
+                          : "rgba(255,255,255,0.6)",
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
         )}
+
+        <button
+          onClick={() => setLightboxOpen(true)}
+          onPointerDown={(e) => e.stopPropagation()}
+          aria-label="Ver foto em tamanho maior"
+          className="absolute bottom-3 right-3.5 w-8 h-8 rounded-full flex items-center justify-center text-white bg-black/25 backdrop-blur-sm"
+        >
+          <Maximize2 size={14} />
+        </button>
       </div>
+
+      {lightboxOpen && (
+        <ProductImageLightbox
+          images={images}
+          productName={product.name}
+          currentIndex={currentIndex}
+          onIndexChange={setCurrentIndex}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
 
       <div className="flex flex-col flex-1 md:h-full md:min-h-0">
         <div className="md:flex-1 md:overflow-y-auto md:min-h-0 px-4 py-5 md:px-6 md:py-6 flex flex-col gap-[18px]">
