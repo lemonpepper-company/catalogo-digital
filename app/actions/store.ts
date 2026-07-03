@@ -65,6 +65,6 @@ export async function updateStoreSettings(
 
   revalidatePath("/painel/configuracoes");
   revalidatePath("/painel");
-  revalidateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`, "default");
   return { ok: true };
 }
