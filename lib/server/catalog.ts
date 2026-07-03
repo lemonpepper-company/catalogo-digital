@@ -1,6 +1,6 @@
 import "server-only";
-import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createAnonClient } from "@/lib/supabase/server";
 import {
   resolveCatalog,
   type PublicCatalog,
@@ -14,9 +14,8 @@ const STORE_COLS =
 const PRODUCT_COLS =
   "id, name, price_cents, description, category_id, sizes, sold_sizes, colors, images, stock, is_active, is_new";
 
-/** Resolve o catálogo público de uma loja pelo slug. RLS + filtros explícitos garantem apenas produtos visíveis. */
-export const getPublicCatalog = cache(async (slug: string): Promise<PublicCatalog> => {
-  const supabase = await createClient();
+async function fetchPublicCatalog(slug: string): Promise<PublicCatalog> {
+  const supabase = createAnonClient();
 
   const { data: storeRow } = await supabase
     .from("stores")
@@ -49,4 +48,11 @@ export const getPublicCatalog = cache(async (slug: string): Promise<PublicCatalo
     (productRows ?? []) as PublicProductRow[],
     (categoryRows ?? []) as PublicCategoryRow[]
   );
-});
+}
+
+/** Resolve o catálogo público de uma loja pelo slug. RLS + filtros explícitos garantem apenas produtos visíveis. */
+export async function getPublicCatalog(slug: string): Promise<PublicCatalog> {
+  return unstable_cache(fetchPublicCatalog, [slug], {
+    tags: [`catalog-${slug}`],
+  })(slug);
+}
