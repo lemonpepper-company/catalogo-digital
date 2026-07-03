@@ -137,7 +137,7 @@ Route group sem layout próprio. URLs sem o prefixo `(auth)`.
 
 ## Catálogo público (`app/[slug]/`)
 
-Route dinâmica na raiz. Sem autenticação. `force-dynamic` para sempre buscar dados frescos.
+Route dinâmica na raiz. Sem autenticação. `force-dynamic` na página, mas `getPublicCatalog()` (`lib/server/catalog.ts`) cacheia a busca via `unstable_cache`, tag `catalog-{slug}` — dados só são recalculados quando o lojista edita produtos/categorias/configurações (invalidação por `revalidateTag`).
 
 | Rota | Descrição |
 |---|---|
