@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentStore } from '@/lib/server/store'
 import { Sidebar } from '@/components/painel/Sidebar'
 import { MobileTabBar } from '@/components/painel/MobileTabBar'
 
@@ -13,32 +13,23 @@ export default async function PainelLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const store = await getCurrentStore()
 
-  if (!user) {
+  if (!store) {
     redirect('/login')
   }
 
-  const { data: store } = await supabase
-    .from('stores')
-    .select('trial_ends_at, plan, name, monogram, logo_url, slug')
-    .eq('owner_id', user.id)
-    .maybeSingle()
-
-  const trialDaysLeft = store?.trial_ends_at
+  const trialDaysLeft = store.trialEndsAt
     ? Math.max(
         0,
         Math.ceil(
-          (new Date(store.trial_ends_at).getTime() - Date.now()) /
+          (new Date(store.trialEndsAt).getTime() - Date.now()) /
             (1000 * 60 * 60 * 24)
         )
       )
     : 0
 
-  const showTrialBanner = !store?.plan
+  const showTrialBanner = !store.plan
 
   return (
     <div className="h-screen flex flex-col bg-ivory overflow-hidden">
@@ -59,10 +50,10 @@ export default async function PainelLayout({
 
       <div className="flex flex-1 min-h-0">
         <Sidebar
-          name={store?.name ?? ''}
-          monogram={store?.monogram ?? null}
-          logoUrl={store?.logo_url ?? null}
-          slug={store?.slug ?? null}
+          name={store.name}
+          monogram={store.monogram}
+          logoUrl={store.logoUrl}
+          slug={store.slug}
         />
         <main className="flex-1 overflow-y-auto">
           <div className="px-4 py-6 pb-24 lg:px-12 lg:py-10 lg:pb-10">{children}</div>

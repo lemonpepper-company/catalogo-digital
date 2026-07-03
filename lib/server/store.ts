@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type {
   StoreSettings,
@@ -74,7 +75,7 @@ export function mapProduct(row: ProductRow): StoreProduct {
 }
 
 /** Resolve a loja do usuário logado. Borda de segurança — o middleware já garante loja+plano. */
-export async function getCurrentStore(): Promise<StoreSettings | null> {
+export const getCurrentStore = cache(async (): Promise<StoreSettings | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -90,6 +91,6 @@ export async function getCurrentStore(): Promise<StoreSettings | null> {
     .maybeSingle();
 
   return data ? mapStore(data as StoreRow) : null;
-}
+});
 
 export type { StoreCategory };
