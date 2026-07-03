@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
 import { getPlanLimits, isTrialActive } from "@/lib/plan-limits";
@@ -51,6 +51,7 @@ export async function createCategory(
   }
 
   revalidatePath("/painel/categorias");
+  revalidateTag(`catalog-${store.slug}`);
   return { ok: true, id: data.id };
 }
 
@@ -84,6 +85,7 @@ export async function renameCategory(
   }
 
   revalidatePath("/painel/categorias");
+  revalidateTag(`catalog-${store.slug}`);
   return { ok: true };
 }
 
@@ -124,5 +126,6 @@ export async function deleteCategory(
   if (error) return { error: "Erro ao excluir categoria." };
 
   revalidatePath("/painel/categorias");
+  revalidateTag(`catalog-${store.slug}`);
   return { ok: true };
 }
