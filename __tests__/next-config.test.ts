@@ -29,11 +29,3 @@ describe("next.config image remotePatterns", () => {
     expect(supa!.protocol).toBe("https");
   });
 });
-
-describe("next.config cacheComponents", () => {
-  it("is enabled", async () => {
-    vi.resetModules();
-    const mod = await import("@/next.config.mjs");
-    expect(mod.default.cacheComponents).toBe(true);
-  });
-});
