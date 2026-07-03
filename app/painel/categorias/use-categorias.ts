@@ -18,7 +18,7 @@ export function useCategorias(
   const [editDraft, setEditDraft] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<StoreCategory | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   const limitReached = categories.length >= maxCategories;
 
@@ -90,6 +90,7 @@ export function useCategorias(
     deleteTarget,
     setDeleteTarget,
     toast,
+    isPending,
     create,
     save,
     remove,

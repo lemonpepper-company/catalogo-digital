@@ -26,6 +26,7 @@ export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
     soldOut,
     inactive,
     limitReached,
+    isPending,
     toggleActive,
     removeProduct,
   } = useProdutos(products, maxProducts);
@@ -209,15 +210,20 @@ export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
             Essa ação não pode ser desfeita.
           </p>
           <div className="flex justify-end gap-3">
-            <Button variant="ghost" onClick={() => setConfirm(null)}>
+            <Button
+              variant="ghost"
+              disabled={isPending}
+              onClick={() => setConfirm(null)}
+            >
               Cancelar
             </Button>
             <Button
               variant="destructive"
               iconLeft={<Trash2 size={18} />}
+              disabled={isPending}
               onClick={() => removeProduct(confirm.id)}
             >
-              Excluir
+              {isPending ? "Excluindo…" : "Excluir"}
             </Button>
           </div>
         </Modal>

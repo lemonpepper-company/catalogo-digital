@@ -30,6 +30,7 @@ export function CategoriasClient({
     deleteTarget,
     setDeleteTarget,
     toast,
+    isPending,
     create,
     save,
     remove,
@@ -80,11 +81,12 @@ export function CategoriasClient({
               className="flex-1 h-11 px-4 rounded-input bg-white font-body text-[15px] text-obsidian outline-none"
               style={{ border: "1px solid var(--color-primary)" }}
             />
-            <Button variant="primary" onClick={create}>
-              Salvar
+            <Button variant="primary" disabled={isPending} onClick={create}>
+              {isPending ? "Salvando…" : "Salvar"}
             </Button>
             <Button
               variant="ghost"
+              disabled={isPending}
               onClick={() => {
                 setCreateDraft("");
                 setCreating(false);
@@ -118,10 +120,20 @@ export function CategoriasClient({
                   className="flex-1 h-10 px-3.5 rounded-input bg-white font-body text-[15px] text-obsidian outline-none"
                   style={{ border: "1px solid var(--color-primary)" }}
                 />
-                <Button variant="primary" size="sm" onClick={() => save(cat)}>
-                  Salvar
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => save(cat)}
+                >
+                  {isPending ? "Salvando…" : "Salvar"}
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setEditingCat(null)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => setEditingCat(null)}
+                >
                   Cancelar
                 </Button>
               </div>
@@ -179,15 +191,20 @@ export function CategoriasClient({
             ?
           </p>
           <div className="flex justify-end gap-3">
-            <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
+            <Button
+              variant="ghost"
+              disabled={isPending}
+              onClick={() => setDeleteTarget(null)}
+            >
               Cancelar
             </Button>
             <Button
               variant="destructive"
               iconLeft={<Trash2 size={18} />}
+              disabled={isPending}
               onClick={() => remove(deleteTarget)}
             >
-              Excluir
+              {isPending ? "Excluindo…" : "Excluir"}
             </Button>
           </div>
         </Modal>

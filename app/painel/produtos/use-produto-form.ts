@@ -37,6 +37,7 @@ export function useProdutoForm(
   const [deleteModal, setDeleteModal] = useState(false);
   const [quickCat, setQuickCat] = useState(false);
   const [catDraft, setCatDraft] = useState("");
+  const [creatingCat, setCreatingCat] = useState(false);
   const [price, setPrice] = useState(
     product ? formatCents(product.priceCents).replace("R$ ", "") : ""
   );
@@ -94,9 +95,11 @@ export function useProdutoForm(
       setCatDraft("");
       return;
     }
+    setCreatingCat(true);
     const fd = new FormData();
     fd.set("name", v);
     const res = await createCategory(null, fd);
+    setCreatingCat(false);
     if (res && "error" in res) {
       flash(res.error, "error");
       return;
@@ -149,6 +152,7 @@ export function useProdutoForm(
     setQuickCat,
     catDraft,
     setCatDraft,
+    creatingCat,
     price,
     handlePriceChange,
     createCat,

@@ -268,11 +268,21 @@ export function ProdutoFormClient({
             />
           </div>
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="ghost" onClick={() => f.setQuickCat(false)}>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={f.creatingCat}
+              onClick={() => f.setQuickCat(false)}
+            >
               Cancelar
             </Button>
-            <Button type="button" variant="primary" onClick={() => f.createCat()}>
-              Criar categoria
+            <Button
+              type="button"
+              variant="primary"
+              disabled={f.creatingCat}
+              onClick={() => f.createCat()}
+            >
+              {f.creatingCat ? "Criando…" : "Criar categoria"}
             </Button>
           </div>
         </Modal>
