@@ -3,6 +3,8 @@
 **Data:** 2026-07-03
 **Status:** Aprovado para planejamento
 
+> **Atualização (2026-07-03, durante implementação):** a Seção 3 originalmente especificava Next.js Cache Components (`cacheComponents: true` + `'use cache'` + `updateTag`). Na prática, habilitar `cacheComponents: true` globalmente quebrou o build em toda página que lê `cookies()`/`headers()`/`searchParams`/`params` fora de `'use cache'` ou `<Suspense>` — não só o catálogo, mas `/cadastro`, `/login` e todo `/painel/*` (confirmado ao vivo: `/painel/categorias` quebrava pelo mesmo motivo). Corrigir isso exigiria reestruturar ~8-10 arquivos fora do escopo original com decisões de loading state. Optamos por recuar para `unstable_cache` + `revalidateTag` — mecanismo clássico do Next.js, funciona sem `cacheComponents`, mesmo resultado prático (catálogo cacheado, invalidado ao editar), sem tocar em nenhuma página de painel ou autenticação. A Seção 3 abaixo já reflete essa decisão.
+
 ## Objetivo
 
 Chamadas em produção estão levando 1-2s, sentidas tanto no catálogo público quanto no painel do lojista. Uma causa raiz já foi corrigida antes deste spec (desalinhamento de região: Vercel estava em North America enquanto o Supabase está em South America — já migrado, com melhora confirmada). Este spec cobre as otimizações de código que restam depois desse fix de infraestrutura.
@@ -29,7 +31,7 @@ Investigação no código (ver seção "Diagnóstico") encontrou três causas co
 **Dentro:**
 - Middleware só autentica quando a rota exige (`/login`, `/painel/*`, `/escolha-de-plano`).
 - Dedup das queries de usuário/loja no painel via `cache()` do React.
-- Cache do catálogo público via Cache Components (`use cache` + `cacheTag`), com invalidação imediata (`updateTag`) nas Server Actions que alteram produtos/categorias/configurações da loja.
+- Cache do catálogo público via `unstable_cache` (Next.js), com invalidação por tag (`revalidateTag`) nas Server Actions que alteram produtos/categorias/configurações da loja.
 - Instalação do `@vercel/speed-insights` para medir o resultado em produção.
 
 **Fora desta rodada:**
@@ -55,13 +57,14 @@ Resultado esperado: de ~6 round-trips por página do painel para ~4 (2 no middle
 
 ## 3. Catálogo público — cache com invalidação por tag
 
-- `next.config.ts` ganha `cacheComponents: true` (Next 16, já instalado — `^16.2.9`).
-- `getPublicCatalog(slug)` em `lib/server/catalog.ts` ganha a diretiva `'use cache'` e `cacheTag(`catalog-${slug}`)`. A rota `app/[slug]/` deixa de declarar `force-dynamic`.
-- As Server Actions que alteram dados visíveis no catálogo passam a chamar `updateTag(`catalog-${slug}`)` ao final, para invalidação imediata (o lojista edita algo e a próxima visita ao catálogo já reflete, sem esperar revalidação em background):
+- `getPublicCatalog(slug)` em `lib/server/catalog.ts` passa a envolver sua busca de dados com `unstable_cache(fn, [slug], { tags: [`catalog-${slug}`] })` — o `slug` entra tanto na `keyParts` (diferencia a chave de cache por loja) quanto na tag (permite invalidar só aquela loja). `app/[slug]/page.tsx` continua com `force-dynamic` (sem mudança) — o ganho de performance vem inteiramente de pular as queries ao Supabase quando o cache está quente, não de mudar o modo de renderização da página.
+- A leitura ao Supabase dentro da função cacheada não pode depender de `cookies()` (restrição do `unstable_cache`, igual à de `'use cache'`) — por isso `lib/supabase/server.ts` ganha `createAnonClient()`, um client síncrono sem cookies, usado só aqui (a leitura já é RLS anônima, independente de sessão).
+- As Server Actions que alteram dados visíveis no catálogo passam a chamar `revalidateTag(`catalog-${slug}`)` ao final:
   - `createProduct`, `updateProduct`, `deleteProduct`, `toggleProductActive` (`app/actions/produtos.ts`)
   - `createCategory`, `updateCategory`, `deleteCategory` (`app/actions/categorias.ts`)
   - `updateStoreSettings` (`app/actions/store.ts`)
 - Todas essas actions já chamam `getCurrentStore()` para resolver a loja do usuário autenticado, então o `slug` necessário para montar a tag já está disponível em cada uma, sem query adicional.
+- Diferença prática frente a `updateTag` (Cache Components): `revalidateTag` invalida em background — a próxima requisição já pode vir com dado fresco, mas não há garantia de que a *mesma* requisição da Server Action já reflita a mudança. Para o caso de uso (lojista edita produto, cliente final vê a mudança na próxima visita ao catálogo, minutos ou mais depois), essa diferença é imperceptível.
 
 Resultado esperado: a maioria das visitas ao catálogo público passa a servir do cache, sem tocar o Supabase; só recalcula quando o lojista de fato muda algo.
 
@@ -72,6 +75,7 @@ Adicionar a dependência `@vercel/speed-insights` e o componente `<SpeedInsights
 ## Testes e verificação
 
 - Suite existente (`vitest`) precisa continuar passando — nenhuma mudança de lógica de negócio, só estratégia de cache/gating de rotas.
-- Validação manual local: `next dev` com `cacheComponents: true`, confirmar que o catálogo carrega normalmente; editar um produto no painel e verificar que o catálogo público reflete a mudança (valida a invalidação por `updateTag`).
+- Validação manual local: `next dev`, confirmar que o catálogo carrega normalmente; editar um produto no painel e verificar que o catálogo público reflete a mudança (valida a invalidação por `revalidateTag`).
+- `npm run build` precisa suceder sem erros (sem flags experimentais novas — `unstable_cache` não exige `cacheComponents`).
 - Validação manual de rotas do painel: confirmar que login, redirecionamentos (`/login` → `/painel`, usuário sem loja → `/cadastro?step=loja`, etc.) continuam funcionando após a mudança no middleware.
 - Comparação de tempo de resposta antes/depois em produção (`curl -w "%{time_total}"` ou Speed Insights) nas duas superfícies: catálogo público e painel.

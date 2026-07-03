@@ -4,9 +4,11 @@
 
 **Goal:** Reduzir a latência das chamadas em produção eliminando round-trips redundantes ao Supabase (middleware + painel) e adicionando cache com invalidação por tag ao catálogo público, seguindo `docs/superpowers/specs/2026-07-03-otimizacao-latencia-backend-design.md`.
 
-**Architecture:** Middleware passa a autenticar só as rotas que exigem sessão. `getCurrentStore()` (painel) ganha memoização por-request via `cache()` do React, e `app/painel/layout.tsx` para de duplicar sua própria query. O catálogo público (`app/[slug]`) passa a usar a diretiva `'use cache'` do Next 16 Cache Components, com um Supabase client sem `cookies()` (exigência da diretiva) e invalidação imediata via `updateTag()` disparada pelas Server Actions que alteram produtos/categorias/configurações da loja. `@vercel/speed-insights` é adicionado para medir o resultado em produção.
+**Architecture:** Middleware passa a autenticar só as rotas que exigem sessão. `getCurrentStore()` (painel) ganha memoização por-request via `cache()` do React, e `app/painel/layout.tsx` para de duplicar sua própria query. O catálogo público (`app/[slug]`) passa a envolver sua busca de dados com `unstable_cache()`, com um Supabase client sem `cookies()` (mesma exigência de `'use cache'`) e invalidação via `revalidateTag()` disparada pelas Server Actions que alteram produtos/categorias/configurações da loja. `@vercel/speed-insights` é adicionado para medir o resultado em produção.
 
-**Tech Stack:** Next.js 16.2.9 (App Router, Cache Components), React 19, `@supabase/ssr` + `@supabase/supabase-js`, TypeScript, Vitest.
+**Tech Stack:** Next.js 16.2.9 (App Router), React 19, `@supabase/ssr` + `@supabase/supabase-js`, TypeScript, Vitest.
+
+> **Nota (2026-07-03, durante implementação):** a Task 1 original (habilitar `cacheComponents: true`) foi revertida — quebrava o build em `/cadastro`, `/login` e todo `/painel/*`, não só no catálogo. A Task 4 foi reescrita para usar `unstable_cache` + `revalidateTag` (mecanismo clássico do Next.js, sem essa exigência de reestruturação). Ver nota no spec e detalhes na Task 1 abaixo.
 
 ## Global Constraints
 
@@ -17,79 +19,15 @@
 
 ---
 
-### Task 1: Habilitar Cache Components no Next.config
+### Task 1: ~~Habilitar Cache Components no Next.config~~ — REVERTIDA, NÃO EXECUTAR
 
-**Files:**
-- Modify: `next.config.mjs`
-- Test: `__tests__/next-config.test.ts`
+**Status: revertida em 2026-07-03, durante implementação.**
 
-**Interfaces:**
-- Produces: `nextConfig.cacheComponents === true` — consumido pela Task 4 (só é seguro usar a diretiva `'use cache'` com essa flag ativa).
+Esta task foi implementada, revisada como correta em isolamento, mas causou um problema descoberto só ao rodar `npm run build` numa task posterior: `cacheComponents: true` exige que toda página que leia `cookies()`/`headers()`/`searchParams`/`params` esteja dentro de `'use cache'` ou `<Suspense>` — não só o catálogo (alvo original desta rodada), mas **todo o painel** (`/painel`, `/painel/categorias`, `/painel/produtos`, etc., que leem `cookies()` indiretamente via `getCurrentStore()`) e as páginas `/cadastro` e `/login` (leem `searchParams` diretamente). Corrigir isso exigiria reestruturar ~8-10 arquivos fora do escopo original, com decisões de loading/fallback state não cobertas pelo spec.
 
-- [ ] **Step 1: Escrever o teste que falha**
+O commit desta task (`e2b36ce feat: habilita Cache Components no next.config`) e os que dependiam dela foram revertidos via `git revert` (não `reset` — a Task 2 e Task 3, já aprovadas, não dependem de `cacheComponents` e permaneceram intactas). A Task 4 abaixo foi reescrita para usar `unstable_cache` + `revalidateTag` (mecanismo clássico do Next.js, funciona sem essa flag).
 
-Adicionar ao final de `__tests__/next-config.test.ts` (mesmo arquivo, novo `describe`):
-
-```ts
-describe("next.config cacheComponents", () => {
-  it("is enabled", async () => {
-    vi.resetModules();
-    const mod = await import("@/next.config.mjs");
-    expect(mod.default.cacheComponents).toBe(true);
-  });
-});
-```
-
-- [ ] **Step 2: Rodar o teste e confirmar que falha**
-
-Run: `npx vitest run __tests__/next-config.test.ts`
-Expected: FAIL — `expected undefined to be true`
-
-- [ ] **Step 3: Implementar**
-
-Editar `next.config.mjs` — adicionar `cacheComponents: true` como chave de topo do objeto `nextConfig` (antes de `experimental`):
-
-```js
-const nextConfig = {
-  cacheComponents: true,
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "8mb",
-    },
-  },
-  images: {
-    dangerouslyAllowLocalIP: allowLocalImageHost,
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-      },
-      ...(supabaseHost
-        ? [
-            {
-              protocol: supabaseProtocol,
-              hostname: supabaseHost,
-            },
-          ]
-        : []),
-    ],
-  },
-};
-```
-
-O restante do arquivo (declaração de `supabaseUrl`, `supabaseHost`, `supabaseProtocol`, `allowLocalImageHost` e o `export default nextConfig;` final) não muda.
-
-- [ ] **Step 4: Rodar o teste e confirmar que passa**
-
-Run: `npx vitest run __tests__/next-config.test.ts`
-Expected: PASS (3 testes: os 2 existentes de `remotePatterns` + o novo)
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add next.config.mjs __tests__/next-config.test.ts
-git commit -m "feat: habilita Cache Components no next.config"
-```
+**Não execute esta task.** `next.config.mjs` e `__tests__/next-config.test.ts` devem permanecer no estado anterior a esta task (sem `cacheComponents`).
 
 ---
 
@@ -392,20 +330,21 @@ git commit -m "perf: deduplica busca de usuário/loja no painel via cache()"
 
 ---
 
-### Task 4: Cache do catálogo público com invalidação por tag
+### Task 4: Cache do catálogo público com invalidação por tag (revisada — `unstable_cache`, não Cache Components)
+
+> **Revisão de 2026-07-03:** a versão original desta task usava `'use cache'` (Cache Components), que exigia `cacheComponents: true` (Task 1, revertida — ver nota lá). Esta versão usa `unstable_cache`, que não depende dessa flag e não exige nenhuma mudança nas páginas do painel ou de autenticação. `createAnonClient` continua necessária: `unstable_cache` tem a mesma restrição de `'use cache'` contra `cookies()` dentro da função cacheada.
 
 **Files:**
 - Modify: `lib/supabase/server.ts`
 - Modify: `lib/server/catalog.ts`
-- Modify: `app/[slug]/page.tsx`
 
 **Interfaces:**
 - Produces: `createAnonClient(): SupabaseClient` (síncrona, sem `cookies()`) — usada só por `getPublicCatalog`.
-- Produces: `getPublicCatalog(slug: string): Promise<PublicCatalog>` — mesma assinatura pública de antes; agora cacheada via `'use cache'` com tag `` `catalog-${slug}` ``. Essa string de tag (`catalog-${slug}`) é o contrato que as Tasks 5, 6 e 7 precisam replicar exatamente ao chamar `updateTag()`.
+- Produces: `getPublicCatalog(slug: string): Promise<PublicCatalog>` — mesma assinatura pública de antes; agora cacheada via `unstable_cache` com tag `` `catalog-${slug}` ``. Essa string de tag (`catalog-${slug}`) é o contrato que as Tasks 5, 6 e 7 precisam replicar exatamente ao chamar `revalidateTag()`.
 
 - [ ] **Step 1: Adicionar `createAnonClient` em `lib/supabase/server.ts`**
 
-A diretiva `'use cache'` do Next 16 proíbe o uso de `cookies()`/`headers()`/`searchParams` dentro da função cacheada. O `createClient()` atual desse arquivo depende de `cookies()` (via `next/headers`), então não pode ser usado dentro de `getPublicCatalog` depois que ela virar `'use cache'`. Como o catálogo público é sempre uma leitura RLS anônima (não depende de quem está logado no navegador), a solução é um client separado que não toca em `cookies()`.
+`unstable_cache` proíbe o uso de `cookies()`/`headers()` dentro da função cacheada (mesma restrição de `'use cache'`). O `createClient()` atual desse arquivo depende de `cookies()` (via `next/headers`), então não pode ser usado dentro da função que `getPublicCatalog` passa para `unstable_cache`. Como o catálogo público é sempre uma leitura RLS anônima (não depende de quem está logado no navegador), a solução é um client separado que não toca em `cookies()`.
 
 Substituir o conteúdo de `lib/supabase/server.ts` por:
 
@@ -440,9 +379,10 @@ export async function createClient() {
 }
 
 /**
- * Client sem acesso a cookies() — seguro para uso dentro de funções `'use cache'`,
- * que proíbem APIs de runtime. Usa só a anon key: correto para o catálogo público,
- * cujas políticas RLS já são de leitura anônima, independente de sessão do lojista.
+ * Client sem acesso a cookies() — seguro para uso dentro de funções envolvidas por
+ * `unstable_cache`, que proíbem APIs de runtime. Usa só a anon key: correto para o
+ * catálogo público, cujas políticas RLS já são de leitura anônima, independente de
+ * sessão do lojista.
  */
 export function createAnonClient() {
   return createSupabaseJsClient(
@@ -458,7 +398,7 @@ Substituir o conteúdo de `lib/server/catalog.ts` por:
 
 ```ts
 import "server-only";
-import { cacheTag } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { createAnonClient } from "@/lib/supabase/server";
 import {
   resolveCatalog,
@@ -473,11 +413,7 @@ const STORE_COLS =
 const PRODUCT_COLS =
   "id, name, price_cents, description, category_id, sizes, sold_sizes, colors, images, stock, is_active, is_new";
 
-/** Resolve o catálogo público de uma loja pelo slug. RLS + filtros explícitos garantem apenas produtos visíveis. */
-export async function getPublicCatalog(slug: string): Promise<PublicCatalog> {
-  "use cache";
-  cacheTag(`catalog-${slug}`);
-
+async function fetchPublicCatalog(slug: string): Promise<PublicCatalog> {
   const supabase = createAnonClient();
 
   const { data: storeRow } = await supabase
@@ -512,28 +448,32 @@ export async function getPublicCatalog(slug: string): Promise<PublicCatalog> {
     (categoryRows ?? []) as PublicCategoryRow[]
   );
 }
+
+/** Resolve o catálogo público de uma loja pelo slug. RLS + filtros explícitos garantem apenas produtos visíveis. */
+export async function getPublicCatalog(slug: string): Promise<PublicCatalog> {
+  return unstable_cache(fetchPublicCatalog, [slug], {
+    tags: [`catalog-${slug}`],
+  })(slug);
+}
 ```
 
-Mudanças em relação ao original: `cache` do React sai (a diretiva `'use cache'` já cobre memoização — agora persistente entre requests, não só dentro do mesmo render); `createClient` vira `createAnonClient` (sem cookies, exigência da diretiva); a função deixa de ser `export const getPublicCatalog = cache(async (slug) => {...})` e passa a ser `export async function getPublicCatalog(slug) { "use cache"; ... }`.
+Mudanças em relação ao original: `cache` do React sai; `createClient` vira `createAnonClient` (sem cookies — mesma exigência que `unstable_cache` impõe); a lógica de busca vira uma função interna `fetchPublicCatalog` (não exportada), e `getPublicCatalog` passa a ser um wrapper fino que chama `unstable_cache(fetchPublicCatalog, [slug], { tags: [\`catalog-${slug}\`] })(slug)` a cada invocação — o `slug` entra tanto em `keyParts` (`[slug]`, diferencia a chave de cache por loja) quanto em `tags` (`catalog-${slug}`, permite invalidar só aquela loja). Recriar o wrapper do `unstable_cache` a cada chamada é o padrão documentado do Next.js para tags/keys dependentes de argumento — o cache em si é resolvido pelo runtime do Next via `keyParts` + argumentos, não pela identidade do objeto JS retornado por `unstable_cache(...)`.
 
-- [ ] **Step 3: Remover `force-dynamic` de `app/[slug]/page.tsx`**
+**Não** remover `export const dynamic = "force-dynamic";` de `app/[slug]/page.tsx` — essa linha permanece como está (essa versão da task não modifica `app/[slug]/page.tsx`). O ganho de performance vem inteiramente de `unstable_cache` pular as queries ao Supabase quando o cache está quente; a página continua renderizando dinamicamente a cada request, só que rápido.
 
-Editar `app/[slug]/page.tsx` — remover a linha:
-
-```ts
-export const dynamic = "force-dynamic";
-```
-
-O restante do arquivo (imports, `generateMetadata`, `CatalogoSlugPage`) não muda — `getPublicCatalog` agora traz seu próprio cache via `'use cache'`, então a rota não precisa mais forçar renderização dinâmica total.
-
-- [ ] **Step 4: Rodar a suite completa**
+- [ ] **Step 3: Rodar a suite completa**
 
 Run: `npm test`
 Expected: PASS — `__tests__/catalog.test.ts` testa só as funções puras de `lib/catalog.ts` (`resolveCatalog`, `mapPublicStore`, etc.), que não mudaram. `lib/server/catalog.ts` (server-only, com I/O real) não tem teste automatizado direto, hoje ou depois desta task.
 
+- [ ] **Step 4: `npm run build` precisa suceder**
+
+Run: `npm run build`
+Expected: build completo, sem erros — `unstable_cache` não exige `cacheComponents` nem impõe restrições de `<Suspense>` em nenhuma página. Se o build falhar em qualquer rota (painel, auth, etc.), isso é uma regressão real desta task ou de alguma configuração anterior — reportar como BLOCKED, não prosseguir.
+
 - [ ] **Step 5: Verificação manual**
 
-Com `npm run dev` rodando (`cacheComponents: true` já habilitado na Task 1):
+Com `npm run dev` rodando:
 - Acessar `/{slug}` de uma loja de teste — catálogo carrega normalmente, produtos e categorias aparecem.
 - Acessar de novo a mesma URL — confirmar que ainda reflete os dados corretos (cache não quebrou nada visualmente).
 - Acessar `/{slug}` de uma loja inexistente — continua caindo em `notFound()`.
@@ -542,8 +482,8 @@ Com `npm run dev` rodando (`cacheComponents: true` já habilitado na Task 1):
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/supabase/server.ts lib/server/catalog.ts "app/[slug]/page.tsx"
-git commit -m "perf: cacheia catálogo público via Cache Components"
+git add lib/supabase/server.ts lib/server/catalog.ts
+git commit -m "perf: cacheia catálogo público via unstable_cache"
 ```
 
 ---
@@ -567,14 +507,14 @@ import { revalidatePath } from "next/cache";
 por:
 
 ```ts
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 ```
 
 Em `createProduct`, logo após `revalidatePath("/painel/produtos");` e antes do `redirect("/painel/produtos");`, adicionar:
 
 ```ts
   revalidatePath("/painel/produtos");
-  updateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`);
   redirect("/painel/produtos");
 ```
 
@@ -582,7 +522,7 @@ Em `updateProduct`, mesma mudança (após `revalidatePath`, antes do `redirect`)
 
 ```ts
   revalidatePath("/painel/produtos");
-  updateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`);
   redirect("/painel/produtos");
 ```
 
@@ -590,7 +530,7 @@ Em `deleteProduct`, adicionar antes do `return { ok: true };` final:
 
 ```ts
   revalidatePath("/painel/produtos");
-  updateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`);
   return { ok: true };
 ```
 
@@ -598,7 +538,7 @@ Em `toggleProductActive`, mesma mudança:
 
 ```ts
   revalidatePath("/painel/produtos");
-  updateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`);
   return { ok: true };
 ```
 
@@ -645,14 +585,14 @@ import { revalidatePath } from "next/cache";
 por:
 
 ```ts
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 ```
 
 Em `createCategory`, após `revalidatePath("/painel/categorias");` e antes do `return { ok: true, id: data.id };`:
 
 ```ts
   revalidatePath("/painel/categorias");
-  updateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`);
   return { ok: true, id: data.id };
 ```
 
@@ -660,7 +600,7 @@ Em `renameCategory`, após `revalidatePath("/painel/categorias");` e antes do `r
 
 ```ts
   revalidatePath("/painel/categorias");
-  updateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`);
   return { ok: true };
 ```
 
@@ -668,7 +608,7 @@ Em `deleteCategory`, mesma mudança:
 
 ```ts
   revalidatePath("/painel/categorias");
-  updateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`);
   return { ok: true };
 ```
 
@@ -714,7 +654,7 @@ import { revalidatePath } from "next/cache";
 por:
 
 ```ts
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 ```
 
 Em `updateStoreSettings`, após os dois `revalidatePath` já existentes e antes do `return { ok: true };` final:
@@ -722,7 +662,7 @@ Em `updateStoreSettings`, após os dois `revalidatePath` já existentes e antes 
 ```ts
   revalidatePath("/painel/configuracoes");
   revalidatePath("/painel");
-  updateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`);
   return { ok: true };
 ```
 
@@ -827,7 +767,7 @@ Expected: PASS — todos os testes (novos e existentes).
 - [ ] **Step 2: Build de produção local**
 
 Run: `npm run build`
-Expected: build conclui sem erros, sem warnings novos relacionados a `cacheComponents`, `use cache` ou `cookies()` dentro de função cacheada (se aparecer um erro do tipo "cookies() was called inside 'use cache'", significa que algum ponto ainda usa `createClient()` em vez de `createAnonClient()` dentro do caminho do catálogo — revisar Task 4).
+Expected: build conclui sem erros. Se aparecer um erro relacionado a `cookies()` sendo chamado dentro de uma função passada para `unstable_cache`, significa que algum ponto ainda usa `createClient()` em vez de `createAnonClient()` dentro do caminho do catálogo — revisar Task 4.
 
 - [ ] **Step 3: Deploy e medição em produção**
 
