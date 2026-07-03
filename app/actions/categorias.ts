@@ -51,7 +51,7 @@ export async function createCategory(
   }
 
   revalidatePath("/painel/categorias");
-  revalidateTag(`catalog-${store.slug}`, "default");
+  revalidateTag(`catalog-${store.slug}`, "max");
   return { ok: true, id: data.id };
 }
 
@@ -85,7 +85,7 @@ export async function renameCategory(
   }
 
   revalidatePath("/painel/categorias");
-  revalidateTag(`catalog-${store.slug}`, "default");
+  revalidateTag(`catalog-${store.slug}`, "max");
   return { ok: true };
 }
 
@@ -126,6 +126,6 @@ export async function deleteCategory(
   if (error) return { error: "Erro ao excluir categoria." };
 
   revalidatePath("/painel/categorias");
-  revalidateTag(`catalog-${store.slug}`, "default");
+  revalidateTag(`catalog-${store.slug}`, "max");
   return { ok: true };
 }
