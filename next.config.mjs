@@ -10,7 +10,6 @@ const supabaseProtocol = supabaseUrl
 const allowLocalImageHost = process.env.NODE_ENV !== "production";
 
 const nextConfig = {
-  cacheComponents: true,
   experimental: {
     serverActions: {
       bodySizeLimit: "8mb",
