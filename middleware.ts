@@ -2,6 +2,17 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  const needsAuth =
+    pathname === '/login' ||
+    pathname.startsWith('/painel') ||
+    pathname === '/escolha-de-plano'
+
+  if (!needsAuth) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -28,8 +39,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  const { pathname } = request.nextUrl
 
   // Rota de login: redireciona usuários já autenticados para o painel
   if (pathname === '/login') {
