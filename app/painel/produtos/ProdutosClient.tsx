@@ -2,17 +2,21 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Pencil, Trash2, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Switch } from "@/components/ui/Switch";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { cn, formatCents } from "@/lib/utils";
 import type { StoreProduct } from "@/lib/types";
 import { useProdutos } from "./use-produtos";
+import { useProdutosFiltros } from "./use-produtos-filtros";
 import { Pagination } from "@/components/ui/Pagination";
 import type { ProductCounts } from "./use-produtos";
+import { NO_CATEGORY_VALUE, STATUS_OPTIONS } from "@/lib/product-filters";
 
 interface ProdutosClientProps {
   products: StoreProduct[];
@@ -20,6 +24,10 @@ interface ProdutosClientProps {
   counts: ProductCounts;
   page: number;
   totalPages: number;
+  categories: { id: string; name: string }[];
+  initialQ: string;
+  initialCategoria: string;
+  initialStatus: string;
 }
 
 export function ProdutosClient({
@@ -28,6 +36,10 @@ export function ProdutosClient({
   counts,
   page,
   totalPages,
+  categories,
+  initialQ,
+  initialCategoria,
+  initialStatus,
 }: ProdutosClientProps) {
   const {
     confirm,
@@ -40,7 +52,32 @@ export function ProdutosClient({
     isPending,
     toggleActive,
     removeProduct,
-  } = useProdutos(products, maxProducts, counts, page);
+  } = useProdutos(products, maxProducts, counts, page, {
+    q: initialQ,
+    categoria: initialCategoria,
+    status: initialStatus,
+  });
+
+  const { q, onQChange, onCategoriaChange, onStatusChange, clearFilters } =
+    useProdutosFiltros(initialQ, initialCategoria, initialStatus);
+
+  const isStoreEmpty = counts.total === 0;
+  const hasActiveFilters = Boolean(
+    initialQ || initialCategoria || initialStatus
+  );
+
+  const categoriaLabel =
+    initialCategoria === NO_CATEGORY_VALUE
+      ? "Sem categoria"
+      : categories.find((c) => c.id === initialCategoria)?.name ?? "";
+
+  const statusLabel =
+    STATUS_OPTIONS.find((o) => o.value === initialStatus)?.label ?? "";
+
+  const extraParams: Record<string, string> = {};
+  if (initialQ) extraParams.q = initialQ;
+  if (initialCategoria) extraParams.categoria = initialCategoria;
+  if (initialStatus) extraParams.status = initialStatus;
 
   return (
     <div className="flex flex-col gap-6 w-full lg:max-w-content">
@@ -70,7 +107,7 @@ export function ProdutosClient({
         )}
       </div>
 
-      {products.length === 0 ? (
+      {isStoreEmpty ? (
         <Card className="py-12 text-center">
           <div className="flex flex-col items-center gap-4">
             <div className="w-24 h-24 rounded-full bg-linen flex items-center justify-center text-inactive">
@@ -113,109 +150,186 @@ export function ProdutosClient({
             </div>
           </Card>
 
-          <Card pad={0} className="overflow-hidden">
-            <div className="hidden lg:flex items-center gap-4 px-5 py-3 bg-linen">
-              <span className="flex-1 font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
-                Produto
-              </span>
-              <span className="w-[120px] flex-shrink-0 text-right font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
-                Estoque
-              </span>
-              <span className="w-[140px] flex-shrink-0 font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
-                Visibilidade
-              </span>
-              <span className="w-[76px] flex-shrink-0" />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-graphite pointer-events-none"
+              />
+              <Input
+                value={q}
+                onChange={(e) => onQChange(e.target.value)}
+                placeholder="Buscar por nome..."
+                aria-label="Buscar por nome"
+                className="pl-9"
+              />
             </div>
+            <div className="w-full sm:w-[200px]">
+              <Select
+                value={categoriaLabel || "Todas as categorias"}
+                options={[
+                  "Todas as categorias",
+                  ...categories.map((c) => c.name),
+                  "Sem categoria",
+                ]}
+                onChange={(label) => {
+                  if (label === "Todas as categorias") onCategoriaChange("");
+                  else if (label === "Sem categoria")
+                    onCategoriaChange(NO_CATEGORY_VALUE);
+                  else {
+                    const found = categories.find((c) => c.name === label);
+                    onCategoriaChange(found ? found.id : "");
+                  }
+                }}
+              />
+            </div>
+            <div className="w-full sm:w-[180px]">
+              <Select
+                value={statusLabel || "Todos os status"}
+                options={["Todos os status", ...STATUS_OPTIONS.map((o) => o.label)]}
+                onChange={(label) => {
+                  if (label === "Todos os status") onStatusChange("");
+                  else {
+                    const found = STATUS_OPTIONS.find((o) => o.label === label);
+                    onStatusChange(found ? found.value : "");
+                  }
+                }}
+              />
+            </div>
+            {hasActiveFilters && products.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Limpar filtros
+              </Button>
+            )}
+          </div>
 
-            {products.map((p, i) => {
-              const isSoldOut = p.stock === 0;
-              const stockTone =
-                isSoldOut || p.stock <= 5
-                  ? "text-soldout font-semibold"
-                  : "text-graphite";
-              return (
-                <div
-                  key={p.id}
-                  style={{
-                    borderTop: i > 0 ? "0.5px solid var(--color-border)" : "none",
-                  }}
-                >
-                  {/* Card mobile (abaixo de lg:) */}
-                  <div className="lg:hidden flex flex-col gap-3 px-5 py-4">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <ProductThumbnail
-                        src={p.images[0]}
-                        alt={p.name}
-                        active={p.isActive}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="font-display font-medium text-[15px] text-obsidian truncate">
-                          {p.name}
-                        </div>
-                        <div className="font-body text-[13px] text-graphite mt-0.5">
-                          {formatCents(p.priceCents)}
-                        </div>
-                      </div>
-                      <ProductActions
-                        editHref={`/painel/produtos/${p.id}`}
-                        onDelete={() => setConfirm(p)}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 pl-[68px]">
-                      <StockLabel stock={p.stock} tone={stockTone} />
-                      <VisibilityToggle
-                        active={p.isActive}
-                        onToggle={() => toggleActive(p)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Linha desktop (lg: e acima) */}
-                  <div className="hidden lg:flex items-center gap-4 px-5 py-3.5">
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <ProductThumbnail
-                        src={p.images[0]}
-                        alt={p.name}
-                        active={p.isActive}
-                      />
-                      <div className="min-w-0">
-                        <div className="font-display font-medium text-[15px] text-obsidian truncate">
-                          {p.name}
-                        </div>
-                        <div className="font-body text-[13px] text-graphite mt-0.5">
-                          {formatCents(p.priceCents)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="w-[120px] flex-shrink-0 text-right">
-                      <StockLabel stock={p.stock} tone={stockTone} />
-                    </div>
-
-                    <div className="w-[140px] flex-shrink-0">
-                      <VisibilityToggle
-                        active={p.isActive}
-                        onToggle={() => toggleActive(p)}
-                      />
-                    </div>
-
-                    <div className="w-[76px] flex-shrink-0">
-                      <ProductActions
-                        editHref={`/painel/produtos/${p.id}`}
-                        onDelete={() => setConfirm(p)}
-                      />
-                    </div>
-                  </div>
+          {products.length === 0 ? (
+            <Card className="py-12 text-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-24 h-24 rounded-full bg-linen flex items-center justify-center text-inactive">
+                  <Search size={42} />
                 </div>
-              );
-            })}
-          </Card>
+                <div>
+                  <div className="font-display font-semibold text-[20px] text-obsidian">
+                    Nenhum produto encontrado
+                  </div>
+                  <p className="font-body text-[15px] text-graphite mt-2 max-w-sm mx-auto">
+                    Tente ajustar sua busca ou filtro.
+                  </p>
+                </div>
+                <Button variant="ghost" onClick={clearFilters}>
+                  Limpar filtros
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <>
+              <Card pad={0} className="overflow-hidden">
+                <div className="hidden lg:flex items-center gap-4 px-5 py-3 bg-linen">
+                  <span className="flex-1 font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
+                    Produto
+                  </span>
+                  <span className="w-[120px] flex-shrink-0 text-right font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
+                    Estoque
+                  </span>
+                  <span className="w-[140px] flex-shrink-0 font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
+                    Visibilidade
+                  </span>
+                  <span className="w-[76px] flex-shrink-0" />
+                </div>
 
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            basePath="/painel/produtos"
-          />
+                {products.map((p, i) => {
+                  const isSoldOut = p.stock === 0;
+                  const stockTone =
+                    isSoldOut || p.stock <= 5
+                      ? "text-soldout font-semibold"
+                      : "text-graphite";
+                  return (
+                    <div
+                      key={p.id}
+                      style={{
+                        borderTop: i > 0 ? "0.5px solid var(--color-border)" : "none",
+                      }}
+                    >
+                      {/* Card mobile (abaixo de lg:) */}
+                      <div className="lg:hidden flex flex-col gap-3 px-5 py-4">
+                        <div className="flex items-center gap-4 min-w-0">
+                          <ProductThumbnail
+                            src={p.images[0]}
+                            alt={p.name}
+                            active={p.isActive}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-display font-medium text-[15px] text-obsidian truncate">
+                              {p.name}
+                            </div>
+                            <div className="font-body text-[13px] text-graphite mt-0.5">
+                              {formatCents(p.priceCents)}
+                            </div>
+                          </div>
+                          <ProductActions
+                            editHref={`/painel/produtos/${p.id}`}
+                            onDelete={() => setConfirm(p)}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-3 pl-[68px]">
+                          <StockLabel stock={p.stock} tone={stockTone} />
+                          <VisibilityToggle
+                            active={p.isActive}
+                            onToggle={() => toggleActive(p)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Linha desktop (lg: e acima) */}
+                      <div className="hidden lg:flex items-center gap-4 px-5 py-3.5">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <ProductThumbnail
+                            src={p.images[0]}
+                            alt={p.name}
+                            active={p.isActive}
+                          />
+                          <div className="min-w-0">
+                            <div className="font-display font-medium text-[15px] text-obsidian truncate">
+                              {p.name}
+                            </div>
+                            <div className="font-body text-[13px] text-graphite mt-0.5">
+                              {formatCents(p.priceCents)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="w-[120px] flex-shrink-0 text-right">
+                          <StockLabel stock={p.stock} tone={stockTone} />
+                        </div>
+
+                        <div className="w-[140px] flex-shrink-0">
+                          <VisibilityToggle
+                            active={p.isActive}
+                            onToggle={() => toggleActive(p)}
+                          />
+                        </div>
+
+                        <div className="w-[76px] flex-shrink-0">
+                          <ProductActions
+                            editHref={`/painel/produtos/${p.id}`}
+                            onDelete={() => setConfirm(p)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </Card>
+
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                basePath="/painel/produtos"
+                extraParams={extraParams}
+              />
+            </>
+          )}
         </>
       )}
 
