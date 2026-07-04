@@ -1,4 +1,4 @@
-# Filtro de busca por nome e categoria na listagem de produtos do painel
+# Filtro de busca por nome, categoria e status na listagem de produtos do painel
 
 **Data:** 2026-07-04
 **Status:** Aprovado para planejamento
@@ -7,23 +7,24 @@
 
 Hoje `/painel/produtos` só permite navegar por página ([page.tsx](../../../app/painel/produtos/page.tsx), ver [2026-07-03-paginacao-painel-produtos-design.md](2026-07-03-paginacao-painel-produtos-design.md)). Lojas com muitos produtos não têm como localizar um item específico sem folhear páginas manualmente.
 
-O objetivo é adicionar busca por nome e filtro por categoria à listagem, cobrindo **todos os produtos da loja** (não só a página atual), reaproveitando o padrão de URL-como-fonte-da-verdade já usado pela paginação.
+O objetivo é adicionar busca por nome e filtros por categoria e status à listagem, cobrindo **todos os produtos da loja** (não só a página atual), reaproveitando o padrão de URL-como-fonte-da-verdade já usado pela paginação.
 
-Este projeto ficou explicitamente fora de escopo da spec de paginação anterior ("Busca ou filtro por nome/categoria na listagem do painel... fica pra uma rodada futura se for pedido").
+A busca por nome/categoria ficou explicitamente fora de escopo da spec de paginação anterior ("Busca ou filtro por nome/categoria na listagem do painel... fica pra uma rodada futura se for pedido"); o filtro por status foi incorporado durante a revisão desta spec.
 
 ## Escopo
 
 **Dentro:**
 - Input de busca por nome (substring, case-insensitive) via `?q=`.
 - Dropdown de filtro por categoria via `?categoria=` (inclui opção "Sem categoria" para produtos com `category_id` nulo).
-- Busca automática com debounce (~400ms) enquanto o lojista digita; filtro de categoria aplica imediatamente ao selecionar.
-- Filtros combinam entre si (nome + categoria ao mesmo tempo) e resetam a paginação para a página 1.
-- Botão "Limpar filtros", visível só quando algum filtro está ativo.
+- Dropdown de filtro por status via `?status=` ("Todos os status" / "Ativos" / "Esgotados" / "Inativos"), usando exatamente as mesmas condições já usadas nos contadores do card.
+- Busca automática com debounce (~400ms) enquanto o lojista digita; filtros de categoria e status aplicam imediatamente ao selecionar.
+- Filtros combinam entre si (nome + categoria + status ao mesmo tempo) e resetam a paginação para a página 1.
+- Botão "Limpar filtros" (limpa os três), visível só quando algum filtro está ativo.
 - Estado vazio específico ("Nenhum produto encontrado" + limpar filtros) quando o filtro não retorna resultados, distinto do estado vazio de loja sem produtos.
-- Preservação de `q`/`categoria` nos links de paginação e no redirecionamento pós-exclusão do último produto de uma página.
+- Preservação de `q`/`categoria`/`status` nos links de paginação e no redirecionamento pós-exclusão do último produto de uma página.
+- Contadores do card (ativos/esgotados/inativos/total) continuam sempre mostrando os totais da loja, não afetados por nenhum dos três filtros — inclusive o de status, mesmo usando as mesmas condições de query.
 
 **Fora desta rodada:**
-- Filtro por status (ativo/esgotado/inativo) — os contadores do card continuam mostrando sempre os totais da loja, sem filtro.
 - Ordenação customizável (a listagem continua ordenada por `created_at desc`).
 - Busca no catálogo público (`/[slug]`) — superfície e sub-projeto separados.
 - Persistência do filtro entre sessões (ex: localStorage) — o filtro vive só na URL da navegação atual.
@@ -32,15 +33,17 @@ Este projeto ficou explicitamente fora de escopo da spec de paginação anterior
 
 ### Busca de produtos filtrada (server component)
 
-`app/painel/produtos/page.tsx` passa a receber `q` e `categoria` em `searchParams`, além de `page`:
+`app/painel/produtos/page.tsx` passa a receber `q`, `categoria` e `status` em `searchParams`, além de `page`:
 
 ```ts
+const VALID_STATUS = ["ativo", "esgotado", "inativo"] as const;
+
 export default async function ProdutosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string; categoria?: string }>;
+  searchParams: Promise<{ page?: string; q?: string; categoria?: string; status?: string }>;
 }) {
-  const { page: pageParam, q, categoria } = await searchParams;
+  const { page: pageParam, q, categoria, status } = await searchParams;
   const store = await getCurrentStore();
   if (!store) redirect("/login");
 
@@ -51,12 +54,16 @@ export default async function ProdutosPage({
     categoria === "sem-categoria" || categories.some((c) => c.id === categoria)
       ? categoria
       : undefined;
+  const validStatus = VALID_STATUS.includes(status as any) ? status : undefined;
 
   const applyFilters = <T,>(query: T) => {
     let q2 = query as any;
     if (q) q2 = q2.ilike("name", `%${q}%`);
     if (validCategoria === "sem-categoria") q2 = q2.is("category_id", null);
     else if (validCategoria) q2 = q2.eq("category_id", validCategoria);
+    if (validStatus === "ativo") q2 = q2.eq("is_active", true).gt("stock", 0);
+    else if (validStatus === "esgotado") q2 = q2.eq("stock", 0);
+    else if (validStatus === "inativo") q2 = q2.eq("is_active", false);
     return q2;
   };
 
@@ -88,13 +95,13 @@ export default async function ProdutosPage({
     .order("created_at", { ascending: false })
     .range(from, to);
 
-  // ...passa products, categories, counts (sempre totais), page, totalPages, q, validCategoria para ProdutosClient
+  // ...passa products, categories, counts (sempre totais), page, totalPages, q, validCategoria, validStatus para ProdutosClient
 }
 ```
 
-- `total` usado no cálculo de `totalPages` é o **count filtrado** — a paginação reflete o resultado da busca, não a loja inteira.
-- `active`/`soldOut`/`inactive` continuam com as queries atuais, sem filtro — decisão explícita para manter os contadores como visão geral da loja.
-- `categoria` inválido (não existe entre as categorias da loja e não é `"sem-categoria"`) é descartado silenciosamente, mesmo espírito do `clampPage` para `page` inválido.
+- `total` usado no cálculo de `totalPages` é o **count filtrado** (nome + categoria + status) — a paginação reflete o resultado da busca, não a loja inteira.
+- `active`/`soldOut`/`inactive` continuam com as queries atuais, sem filtro — decisão explícita para manter os contadores como visão geral da loja, mesmo quando o filtro de status usa exatamente as mesmas condições dessas queries.
+- `categoria`/`status` inválidos (não existem entre os valores aceitos) são descartados silenciosamente, mesmo espírito do `clampPage` para `page` inválido.
 
 ### Hook de filtro (client)
 
@@ -105,22 +112,23 @@ Novo `app/painel/produtos/use-produtos-filtros.ts`, co-locado na feature folder:
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-export function useProdutosFiltros(initialQ: string, initialCategoria: string) {
+export function useProdutosFiltros(initialQ: string, initialCategoria: string, initialStatus: string) {
   const router = useRouter();
   const [q, setQ] = useState(initialQ);
   const [, startTransition] = useTransition();
 
-  const pushFilters = (nextQ: string, nextCategoria: string) => {
+  const pushFilters = (nextQ: string, nextCategoria: string, nextStatus: string) => {
     const params = new URLSearchParams();
     if (nextQ) params.set("q", nextQ);
     if (nextCategoria) params.set("categoria", nextCategoria);
+    if (nextStatus) params.set("status", nextStatus);
     startTransition(() => {
       router.replace(`/painel/produtos${params.toString() ? `?${params}` : ""}`, { scroll: false });
     });
   };
 
   // debounce de ~400ms no onChange do input de nome antes de chamar pushFilters
-  // mudança do <select> de categoria chama pushFilters imediatamente
+  // mudança dos <select> de categoria e status chama pushFilters imediatamente
 
   const clearFilters = () => {
     setQ("");
@@ -131,7 +139,7 @@ export function useProdutosFiltros(initialQ: string, initialCategoria: string) {
 }
 ```
 
-Como `initialQ`/`initialCategoria` chegam via props do Server Component (mesmo padrão já usado para `page`), não é necessário `useSearchParams()` nem `<Suspense>` adicional no client.
+Como `initialQ`/`initialCategoria`/`initialStatus` chegam via props do Server Component (mesmo padrão já usado para `page`), não é necessário `useSearchParams()` nem `<Suspense>` adicional no client.
 
 ### UI (`ProdutosClient.tsx`)
 
@@ -139,19 +147,20 @@ Nova barra de filtros, posicionada **entre o card de contadores e a tabela de pr
 
 - Input de busca (ícone `Search` do lucide-react, placeholder "Buscar por nome...").
 - `<select>` de categoria: "Todas as categorias" (vazio/default) → categorias da loja → "Sem categoria" por último.
-- Botão "Limpar filtros" (ghost), renderizado só quando `q` ou `categoria` está ativo.
+- `<select>` de status: "Todos os status" (vazio/default) → "Ativos" → "Esgotados" → "Inativos".
+- Botão "Limpar filtros" (ghost), renderizado só quando `q`, `categoria` ou `status` está ativo.
 - Layout mobile-first: `flex flex-col sm:flex-row gap-3`.
 
-**Estado vazio filtrado:** quando `q`/`categoria` ativos e `products.length === 0`, mostra card com ícone `Search`, texto "Nenhum produto encontrado" / "Tente ajustar sua busca ou filtro.", e botão "Limpar filtros" — distinto do estado vazio atual de loja sem produtos (ícone `Package`, "Nenhum produto cadastrado ainda").
+**Estado vazio filtrado:** quando `q`/`categoria`/`status` ativos e `products.length === 0`, mostra card com ícone `Search`, texto "Nenhum produto encontrado" / "Tente ajustar sua busca ou filtro.", e botão "Limpar filtros" — distinto do estado vazio atual de loja sem produtos (ícone `Package`, "Nenhum produto cadastrado ainda").
 
 ### Preservação do filtro em paginação e exclusão
 
-- `components/ui/Pagination.tsx` ganha um novo prop opcional `extraParams?: Record<string, string>`, incluído nos `href` gerados (`?page=N&q=...&categoria=...`).
-- `use-produtos.ts`: o redirecionamento pós-exclusão do último produto de uma página (`router.push(`/painel/produtos?page=${page - 1}`)`) passa a preservar `q`/`categoria` também.
+- `components/ui/Pagination.tsx` ganha um novo prop opcional `extraParams?: Record<string, string>`, incluído nos `href` gerados (`?page=N&q=...&categoria=...&status=...`).
+- `use-produtos.ts`: o redirecionamento pós-exclusão do último produto de uma página (`router.push(`/painel/produtos?page=${page - 1}`)`) passa a preservar `q`/`categoria`/`status` também.
 
 ## Testes
 
-- **`use-produtos-filtros.test.ts`** (novo): debounce dispara `router.replace` com os params corretos após ~400ms; mudança de categoria dispara imediatamente, sem esperar debounce; `clearFilters` remove `q`/`categoria` da URL.
+- **`use-produtos-filtros.test.ts`** (novo): debounce dispara `router.replace` com os params corretos após ~400ms; mudança de categoria/status dispara imediatamente, sem esperar debounce; `clearFilters` remove `q`/`categoria`/`status` da URL.
 - **`Pagination.test.tsx`** (estender): `extraParams` aparece nos `href` gerados junto com `page`.
-- **`use-produtos.test.ts`** / testes de painel (estender): redirecionamento pós-exclusão do último produto preserva `q`/`categoria` na URL de destino.
-- Teste manual no navegador: digitar um nome parcial e ver a lista atualizar após a pausa; selecionar categoria e ver atualização imediata; combinar nome + categoria; limpar filtros; confirmar que os contadores do card não mudam com o filtro ativo; confirmar paginação e exclusão preservando o filtro.
+- **`use-produtos.test.ts`** / testes de painel (estender): redirecionamento pós-exclusão do último produto preserva `q`/`categoria`/`status` na URL de destino.
+- Teste manual no navegador: digitar um nome parcial e ver a lista atualizar após a pausa; selecionar categoria/status e ver atualização imediata; combinar nome + categoria + status; limpar filtros; confirmar que os contadores do card não mudam com nenhum filtro ativo; confirmar paginação e exclusão preservando os filtros.
