@@ -154,7 +154,7 @@ export function ProdutosClient({
             <div className="relative flex-1">
               <Search
                 size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-graphite pointer-events-none"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-graphite pointer-events-none z-10"
               />
               <Input
                 value={q}
@@ -196,11 +196,14 @@ export function ProdutosClient({
                 }}
               />
             </div>
-            {hasActiveFilters && products.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                Limpar filtros
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!hasActiveFilters}
+              onClick={clearFilters}
+            >
+              Limpar filtros
+            </Button>
           </div>
 
           {products.length === 0 ? (
@@ -217,9 +220,6 @@ export function ProdutosClient({
                     Tente ajustar sua busca ou filtro.
                   </p>
                 </div>
-                <Button variant="ghost" onClick={clearFilters}>
-                  Limpar filtros
-                </Button>
               </div>
             </Card>
           ) : (

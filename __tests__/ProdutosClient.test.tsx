@@ -141,7 +141,7 @@ describe("ProdutosClient — contadores e paginação", () => {
     });
   });
 
-  it("mostra o botão Limpar filtros só quando há filtro ativo", () => {
+  it("mantém o botão Limpar filtros sempre visível, desabilitado sem filtro ativo", () => {
     const { rerender } = render(
       <ProdutosClient
         products={[makeProduct()]}
@@ -153,7 +153,9 @@ describe("ProdutosClient — contadores e paginação", () => {
         {...noFilters}
       />
     );
-    expect(screen.queryByText("Limpar filtros")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Limpar filtros" })
+    ).toBeDisabled();
 
     rerender(
       <ProdutosClient
@@ -168,7 +170,9 @@ describe("ProdutosClient — contadores e paginação", () => {
         initialStatus=""
       />
     );
-    expect(screen.getByText("Limpar filtros")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Limpar filtros" })
+    ).not.toBeDisabled();
   });
 
   it("mostra estado vazio filtrado quando o filtro não retorna produtos", () => {
