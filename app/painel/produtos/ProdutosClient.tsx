@@ -198,7 +198,6 @@ export function ProdutosClient({
             </div>
             <Button
               variant="ghost"
-              size="sm"
               disabled={!hasActiveFilters}
               onClick={clearFilters}
             >
