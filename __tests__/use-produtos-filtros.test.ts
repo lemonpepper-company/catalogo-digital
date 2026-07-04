@@ -81,4 +81,15 @@ describe("useProdutosFiltros", () => {
     });
     expect(result.current.q).toBe("");
   });
+
+  it("não reverte categoria escolhida quando o debounce de busca dispara depois", () => {
+    const { result } = renderHook(() => useProdutosFiltros("", "", ""));
+    act(() => result.current.onCategoriaChange("cat-1"));
+    act(() => result.current.onQChange("vestido"));
+    act(() => vi.advanceTimersByTime(400));
+    expect(replace).toHaveBeenLastCalledWith(
+      "/painel/produtos?q=vestido&categoria=cat-1",
+      { scroll: false }
+    );
+  });
 });
