@@ -20,9 +20,7 @@ interface ProductDetailProps {
 
 export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>(
-    product.colors[0]?.label ?? null
-  );
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
@@ -33,8 +31,20 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
   const rawImages = product.images ?? [];
   const images = rawImages.length > 0 ? rawImages : [product.image];
 
-  const needsSize = product.sizes.length > 1;
-  const canAdd = !needsSize || !!selectedSize;
+  const needsSize = product.sizes.length > 0;
+  const needsColor = product.colors.length > 0;
+  const missingSize = needsSize && !selectedSize;
+  const missingColor = needsColor && !selectedColor;
+  const canAdd = !missingSize && !missingColor;
+
+  const addLabel =
+    missingSize && missingColor
+      ? "Selecione tamanho e cor"
+      : missingSize
+      ? "Selecione um tamanho"
+      : missingColor
+      ? "Selecione uma cor"
+      : "Adicionar à sacola";
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     pointerStartX.current = e.clientX;
@@ -226,10 +236,16 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
           {product.colors.length > 0 && (
             <div className="flex flex-col gap-2.5">
               <span className="font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
-                Cor ·{" "}
-                <span className="text-obsidian font-medium normal-case tracking-normal text-[12px]">
-                  {selectedColor}
-                </span>
+                Cor
+                {selectedColor && (
+                  <>
+                    {" "}
+                    ·{" "}
+                    <span className="text-obsidian font-medium normal-case tracking-normal text-[12px]">
+                      {selectedColor}
+                    </span>
+                  </>
+                )}
               </span>
               <div className="flex gap-2.5">
                 {product.colors.map((c) => {
@@ -307,7 +323,7 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
             ].join(" ")}
           >
             <MessageCircle size={18} />
-            {canAdd ? "Adicionar à sacola" : "Selecione um tamanho"}
+            {addLabel}
           </button>
         </div>
       </div>

@@ -3,9 +3,13 @@
 -- Idempotente: seguro rodar em cima de um banco já semeado.
 
 -- Owner de demonstração
-insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
+-- Tokens abaixo precisam ser '' (não NULL): o GoTrue quebra com 500 em /recover
+-- ao escanear NULL nessas colunas para usuários inseridos direto via SQL.
+insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at,
+                        confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current, phone_change_token)
 values ('00000000-0000-0000-0000-000000000000', '11111111-1111-1111-1111-111111111111', 'authenticated', 'authenticated',
-        'demo@vtrinedigital.com.br', crypt('demo-seed', gen_salt('bf')), now(), now(), now())
+        'demo@vtrinedigital.com.br', crypt('demo-seed', gen_salt('bf')), now(), now(), now(),
+        '', '', '', '', '', '')
 on conflict (id) do nothing;
 
 insert into public.profiles (id, full_name)
