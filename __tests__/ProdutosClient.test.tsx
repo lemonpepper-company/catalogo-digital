@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { ProdutosClient } from "@/app/painel/produtos/ProdutosClient";
 import type { StoreProduct } from "@/lib/types";
 
@@ -71,5 +77,28 @@ describe("ProdutosClient — contadores e paginação", () => {
       />
     );
     expect(screen.getByLabelText("Paginação")).toBeTruthy();
+  });
+
+  it("redireciona para a página anterior ao excluir o último produto da página", async () => {
+    render(
+      <ProdutosClient
+        products={[makeProduct()]}
+        maxProducts={Infinity}
+        counts={baseCounts}
+        page={2}
+        totalPages={3}
+      />
+    );
+
+    fireEvent.click(screen.getAllByLabelText("Excluir")[0]);
+
+    const dialog = screen.getByRole("dialog", { name: "Excluir produto" });
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Excluir" })
+    );
+
+    await waitFor(() => {
+      expect(push).toHaveBeenCalledWith("/painel/produtos?page=1");
+    });
   });
 });
