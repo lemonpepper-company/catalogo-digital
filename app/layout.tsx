@@ -17,7 +17,7 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.vtrinedigital.com.br";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vtrinedigital.com.br";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
