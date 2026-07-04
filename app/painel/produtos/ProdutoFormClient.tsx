@@ -298,10 +298,14 @@ function ChipEditor({
   title,
   items,
   setItems,
+  soldItems,
+  onToggleSold,
 }: {
   title: string;
   items: string[];
   setItems: (items: string[]) => void;
+  soldItems?: string[];
+  onToggleSold?: (item: string) => void;
 }) {
   return (
     <div className="py-1 pb-4">
@@ -309,22 +313,40 @@ function ChipEditor({
         {title}
       </div>
       <div className="flex flex-wrap gap-2 items-center">
-        {items.map((it) => (
-          <span
-            key={it}
-            className="inline-flex items-center gap-1.5 h-8 pl-3 pr-1.5 rounded-pill bg-linen border border-sand font-body text-[13px] text-obsidian"
-          >
-            {it}
-            <button
-              type="button"
-              onClick={() => setItems(items.filter((x) => x !== it))}
-              aria-label={`Remover ${it}`}
-              className="w-5 h-5 rounded-full text-graphite hover:text-obsidian flex items-center justify-center transition-colors"
+        {items.map((it) => {
+          const isSold = soldItems?.includes(it) ?? false;
+          return (
+            <span
+              key={it}
+              className={[
+                "inline-flex items-center gap-1.5 h-8 pl-3 pr-1.5 rounded-pill border font-body text-[13px]",
+                isSold
+                  ? "bg-linen border-sand text-inactive line-through"
+                  : "bg-linen border-sand text-obsidian",
+              ].join(" ")}
             >
-              <X size={12} />
-            </button>
-          </span>
-        ))}
+              <button
+                type="button"
+                onClick={() => onToggleSold?.(it)}
+                disabled={!onToggleSold}
+                aria-label={
+                  isSold ? `Marcar ${it} como disponível` : `Marcar ${it} como esgotado`
+                }
+                className="disabled:cursor-default"
+              >
+                {it}
+              </button>
+              <button
+                type="button"
+                onClick={() => setItems(items.filter((x) => x !== it))}
+                aria-label={`Remover ${it}`}
+                className="w-5 h-5 rounded-full text-graphite hover:text-obsidian flex items-center justify-center transition-colors"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          );
+        })}
         <ChipInput onAdd={(v) => !items.includes(v) && setItems([...items, v])} />
       </div>
     </div>
