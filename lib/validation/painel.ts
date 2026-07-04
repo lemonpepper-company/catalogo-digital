@@ -4,7 +4,7 @@ export const productSchema = z.object({
   name: z.string().min(2, "Nome do produto é obrigatório"),
   priceCents: z.number().int().positive("Preço deve ser maior que zero"),
   stock: z.number().int().min(0, "Estoque não pode ser negativo"),
-  categoryId: z.string().uuid().nullable(),
+  categoryId: z.string().guid().nullable(),
   description: z.string().nullable(),
 });
 
