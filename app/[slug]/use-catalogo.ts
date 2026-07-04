@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { renderWhatsAppMessage, normalizeWhatsapp } from "@/lib/utils";
 import { filterCatalog } from "@/lib/catalog";
 import type { CartItem, Product, Store } from "@/lib/types";
+
+export const CATALOG_BATCH_SIZE = 24;
 
 interface UseCatalogoArgs {
   store: Store;
@@ -18,6 +20,7 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [bagOpen, setBagOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(CATALOG_BATCH_SIZE);
 
   const flash = useCallback((msg: string) => {
     setToast(msg);
@@ -33,6 +36,19 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
   }, []);
 
   const filteredProducts = filterCatalog(products, activeCategory, searchQuery);
+
+  // Volta pro lote inicial sempre que o filtro muda — senão o scroll fica
+  // com um número de itens visíveis que não corresponde ao filtro atual.
+  useEffect(() => {
+    setVisibleCount(CATALOG_BATCH_SIZE);
+  }, [activeCategory, searchQuery]);
+
+  const visibleProducts = filteredProducts.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredProducts.length;
+
+  const loadMore = useCallback(() => {
+    setVisibleCount((prev) => prev + CATALOG_BATCH_SIZE);
+  }, []);
 
   const bagCount = cart.reduce((s, it) => s + it.qty, 0);
   const hasWhatsapp = !!store.whatsapp;
@@ -93,7 +109,9 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     bagOpen,
     setBagOpen,
     toast,
-    filteredProducts,
+    visibleProducts,
+    hasMore,
+    loadMore,
     activeProducts: products,
     bagCount,
     hasWhatsapp,

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Pill } from "@/components/ui/Pill";
 import { Toast } from "@/components/ui/Toast";
 import { StoreHeader } from "@/components/catalogo/StoreHeader";
@@ -28,7 +29,9 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
     bagOpen,
     setBagOpen,
     toast,
-    filteredProducts,
+    visibleProducts,
+    hasMore,
+    loadMore,
     activeProducts,
     bagCount,
     hasWhatsapp,
@@ -37,6 +40,23 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
     handleRemove,
     handleCheckout,
   } = useCatalogo({ store, products });
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!hasMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
+      { rootMargin: "600px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore]);
 
   if (openProduct) {
     return (
@@ -85,7 +105,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
         </div>
       </div>
 
-      {filteredProducts.length === 0 ? (
+      {visibleProducts.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 px-4 py-24 text-center">
           <p className="font-display font-medium text-[16px] text-obsidian">
             {searchQuery.trim()
@@ -99,16 +119,19 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 px-4 pb-8 pt-1 sm:grid-cols-3 lg:grid-cols-4">
-          {filteredProducts.map((product, index) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onOpen={setOpenProduct}
-              priority={index < 2}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-4 px-4 pb-8 pt-1 sm:grid-cols-3 lg:grid-cols-4">
+            {visibleProducts.map((product, index) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onOpen={setOpenProduct}
+                priority={index < 2}
+              />
+            ))}
+          </div>
+          {hasMore && <div ref={sentinelRef} aria-hidden className="h-px" />}
+        </>
       )}
 
       <BagDrawer
