@@ -32,7 +32,7 @@ export default async function PainelLayout({
   const showTrialBanner = !store.plan
 
   return (
-    <div className="h-screen flex flex-col bg-ivory overflow-hidden">
+    <div className="h-dvh flex flex-col bg-ivory overflow-hidden">
       {showTrialBanner && (
         <div className="flex-shrink-0 flex flex-wrap lg:flex-nowrap items-center justify-center gap-x-2 gap-y-1 px-4 py-2 lg:h-10 lg:py-0 bg-linen border-b border-sand/50 font-body text-[13.5px] text-gold text-center">
           <span className="font-semibold tracking-[0.02em]">Trial Pro</span>
