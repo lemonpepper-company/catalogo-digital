@@ -15,11 +15,18 @@ export interface ProductCounts {
   total: number;
 }
 
+export interface ProductFilters {
+  q: string;
+  categoria: string;
+  status: string;
+}
+
 export function useProdutos(
   products: StoreProduct[],
   maxProducts: number,
   counts: ProductCounts,
-  page: number
+  page: number,
+  filters: ProductFilters
 ) {
   const router = useRouter();
   const [confirm, setConfirm] = useState<StoreProduct | null>(null);
@@ -53,7 +60,12 @@ export function useProdutos(
       } else {
         flash("Produto excluído", "error");
         if (products.length === 1 && page > 1) {
-          router.push(`/painel/produtos?page=${page - 1}`);
+          const params = new URLSearchParams();
+          params.set("page", String(page - 1));
+          if (filters.q) params.set("q", filters.q);
+          if (filters.categoria) params.set("categoria", filters.categoria);
+          if (filters.status) params.set("status", filters.status);
+          router.push(`/painel/produtos?${params.toString()}`);
         }
       }
       setConfirm(null);
