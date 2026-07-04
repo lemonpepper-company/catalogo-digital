@@ -60,6 +60,7 @@ export default async function ProdutosPage({
     { count: active },
     { count: soldOut },
     { count: inactive },
+    { count: storeTotal },
   ] = await Promise.all([
     applyProductFilters(
       supabase
@@ -86,6 +87,10 @@ export default async function ProdutosPage({
       .select("id", { count: "exact", head: true })
       .eq("store_id", store.id)
       .eq("is_active", false),
+    supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", store.id),
   ]);
 
   const totalPages = getTotalPages(total ?? 0, PRODUCTS_PAGE_SIZE);
@@ -118,7 +123,7 @@ export default async function ProdutosPage({
         active: active ?? 0,
         soldOut: soldOut ?? 0,
         inactive: inactive ?? 0,
-        total: total ?? 0,
+        total: storeTotal ?? 0,
       }}
       page={page}
       totalPages={totalPages}
