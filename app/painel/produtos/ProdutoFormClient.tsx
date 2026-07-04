@@ -179,7 +179,22 @@ export function ProdutoFormClient({
         <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
           Variações
         </h2>
-        <ChipEditor title="Tamanhos" items={f.sizes} setItems={f.setSizes} />
+        <ChipEditor
+          title="Tamanhos"
+          items={f.sizes}
+          setItems={(items) => {
+            f.setSizes(items);
+            f.setSoldSizes(f.soldSizes.filter((s) => items.includes(s)));
+          }}
+          soldItems={f.soldSizes}
+          onToggleSold={(size) =>
+            f.setSoldSizes(
+              f.soldSizes.includes(size)
+                ? f.soldSizes.filter((s) => s !== size)
+                : [...f.soldSizes, size]
+            )
+          }
+        />
         <ColorEditor selected={f.colors} setSelected={f.setColors} />
       </Card>
 
