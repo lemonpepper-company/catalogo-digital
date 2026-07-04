@@ -11,13 +11,24 @@ import { Toast } from "@/components/ui/Toast";
 import { cn, formatCents } from "@/lib/utils";
 import type { StoreProduct } from "@/lib/types";
 import { useProdutos } from "./use-produtos";
+import { Pagination } from "@/components/ui/Pagination";
+import type { ProductCounts } from "./use-produtos";
 
 interface ProdutosClientProps {
   products: StoreProduct[];
   maxProducts: number;
+  counts: ProductCounts;
+  page: number;
+  totalPages: number;
 }
 
-export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
+export function ProdutosClient({
+  products,
+  maxProducts,
+  counts,
+  page,
+  totalPages,
+}: ProdutosClientProps) {
   const {
     confirm,
     setConfirm,
@@ -29,7 +40,7 @@ export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
     isPending,
     toggleActive,
     removeProduct,
-  } = useProdutos(products, maxProducts);
+  } = useProdutos(products, maxProducts, counts, page);
 
   return (
     <div className="flex flex-col gap-6 w-full lg:max-w-content">
@@ -39,8 +50,8 @@ export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
             Produtos
           </h1>
           <p className="font-body text-[15px] text-graphite mt-1.5">
-            {products.length}{" "}
-            {products.length === 1 ? "produto cadastrado" : "produtos cadastrados"}
+            {counts.total}{" "}
+            {counts.total === 1 ? "produto cadastrado" : "produtos cadastrados"}
             {Number.isFinite(maxProducts) ? ` · limite ${maxProducts}` : ""}
           </p>
         </div>
@@ -199,6 +210,12 @@ export function ProdutosClient({ products, maxProducts }: ProdutosClientProps) {
               );
             })}
           </Card>
+
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            basePath="/painel/produtos"
+          />
         </>
       )}
 
