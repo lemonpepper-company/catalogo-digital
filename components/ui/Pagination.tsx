@@ -6,12 +6,19 @@ interface PaginationProps {
   currentPage: number;
   totalPages: number;
   basePath: string;
+  extraParams?: Record<string, string>;
 }
 
-export function Pagination({ currentPage, totalPages, basePath }: PaginationProps) {
+export function Pagination({
+  currentPage,
+  totalPages,
+  basePath,
+  extraParams = {},
+}: PaginationProps) {
   if (totalPages <= 1) return null;
 
-  const hrefFor = (page: number) => `${basePath}?page=${page}`;
+  const hrefFor = (page: number) =>
+    `${basePath}?${new URLSearchParams({ page: String(page), ...extraParams }).toString()}`;
   const tokens = getPageRange(currentPage, totalPages);
   const isFirst = currentPage === 1;
   const isLast = currentPage === totalPages;

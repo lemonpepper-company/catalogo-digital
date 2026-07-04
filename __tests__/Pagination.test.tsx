@@ -39,4 +39,18 @@ describe("Pagination", () => {
     expect(screen.getByText("‹ Anterior").getAttribute("aria-disabled")).toBe("true");
     expect(screen.getByText("Próxima ›").getAttribute("aria-disabled")).toBeNull();
   });
+
+  it("inclui extraParams nos links gerados, junto com page", () => {
+    render(
+      <Pagination
+        currentPage={2}
+        totalPages={3}
+        basePath="/painel/produtos"
+        extraParams={{ q: "vestido", categoria: "cat-1" }}
+      />
+    );
+    expect(screen.getByText("3").getAttribute("href")).toBe(
+      "/painel/produtos?page=3&q=vestido&categoria=cat-1"
+    );
+  });
 });
