@@ -63,7 +63,7 @@ describe("canDeleteCategory", () => {
 describe("storeSettingsSchema — pagamento, entrega e instagram (novo)", () => {
   const base = {
     name: "Ateliê Mira",
-    whatsapp: null,
+    whatsapp: "5511999990000",
     accentColor: "#C9A96E",
     description: null,
     monogram: null,
@@ -117,5 +117,35 @@ describe("storeSettingsSchema — pagamento, entrega e instagram (novo)", () => 
     expect(
       storeSettingsSchema.safeParse({ ...base, paymentMethods: [], deliveryMethods: [] }).success
     ).toBe(true);
+  });
+});
+
+describe("storeSettingsSchema — whatsapp obrigatório (novo)", () => {
+  const base = {
+    name: "Ateliê Mira",
+    accentColor: "#C9A96E",
+    description: null,
+    monogram: null,
+    instagram: null,
+    paymentMethods: [],
+    deliveryMethods: [],
+    analyticsId: null,
+    pixelId: null,
+    messageTemplate: null,
+  };
+
+  it("rejeita whatsapp nulo", () => {
+    const r = storeSettingsSchema.safeParse({ ...base, whatsapp: null });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejeita whatsapp vazio", () => {
+    const r = storeSettingsSchema.safeParse({ ...base, whatsapp: "" });
+    expect(r.success).toBe(false);
+  });
+
+  it("aceita whatsapp preenchido", () => {
+    const r = storeSettingsSchema.safeParse({ ...base, whatsapp: "5511999990000" });
+    expect(r.success).toBe(true);
   });
 });

@@ -16,7 +16,7 @@ export const categoryNameSchema = z
 
 export const storeSettingsSchema = z.object({
   name: z.string().min(2, "Nome da loja é obrigatório"),
-  whatsapp: z.string().nullable(),
+  whatsapp: z.string().min(1, "WhatsApp é obrigatório"),
   accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida"),
   description: z.string().nullable(),
   monogram: z.string().max(3, "Monograma deve ter no máximo 3 letras").nullable(),
