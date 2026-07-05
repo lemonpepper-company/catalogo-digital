@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Toast } from "@/components/ui/Toast";
-import { ACCENT_COLOR_OPTIONS } from "@/lib/data";
+import { ToggleRow } from "@/components/ui/Switch";
+import { ACCENT_COLOR_OPTIONS, PAYMENT_METHODS, DELIVERY_METHODS } from "@/lib/data";
 import { signOut } from "@/app/actions/auth";
 import type { StoreSettings } from "@/lib/types";
 import { useConfiguracoes, MSG_VARS } from "./use-configuracoes";
@@ -15,13 +16,17 @@ const MSG_MOCK = {
   itens:
     "01. Produto Exemplo\n    Quantidade: 2x | Valor unitário: R$ 50,00\n    Tamanho: M\n    Cor: Preto\n    Subtotal: R$ 100,00",
   total: "R$ 100,00",
+  pagamento: "Forma de pagamento: Pix",
+  entrega: "Entrega: Retirar no local",
 };
 
 function renderTemplate(tpl: string) {
   return tpl
     .replace(/\{saudacao\}/g, MSG_MOCK.saudacao)
     .replace(/\{itens\}/g, MSG_MOCK.itens)
-    .replace(/\{total\}/g, MSG_MOCK.total);
+    .replace(/\{total\}/g, MSG_MOCK.total)
+    .replace(/\{pagamento\}/g, MSG_MOCK.pagamento)
+    .replace(/\{entrega\}/g, MSG_MOCK.entrega);
 }
 
 function WhatsPreviewText({ text }: { text: string }) {
@@ -130,7 +135,13 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
             value={f.monogram}
             onChange={(e) => f.setMonogram(e.target.value)}
           />
-          <div className="hidden sm:block" />
+          <Input
+            name="instagram"
+            label="Instagram (opcional)"
+            prefix="@"
+            value={f.instagram}
+            onChange={(e) => f.setInstagram(e.target.value)}
+          />
           <div className="sm:col-span-2">
             <Input
               name="description"
@@ -227,6 +238,43 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
               <WhatsPreviewText text={renderTemplate(f.msgTpl)} />
             </div>
           </div>
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="font-display font-medium text-[16px] text-obsidian mb-1">
+          Pagamento e entrega
+        </h2>
+        <p className="font-body text-[13px] text-graphite mb-4">
+          O cliente só vê essas opções no checkout se você marcar ao menos uma aqui.
+        </p>
+
+        <h3 className="font-body font-medium text-[13px] tracking-[0.04em] uppercase text-graphite mb-1">
+          Formas de pagamento aceitas
+        </h3>
+        <div className="mb-5">
+          {PAYMENT_METHODS.map((method) => (
+            <ToggleRow
+              key={method.value}
+              label={method.label}
+              checked={f.paymentMethods.includes(method.value)}
+              onChange={() => f.togglePaymentMethod(method.value)}
+            />
+          ))}
+        </div>
+
+        <h3 className="font-body font-medium text-[13px] tracking-[0.04em] uppercase text-graphite mb-1">
+          Formas de entrega
+        </h3>
+        <div>
+          {DELIVERY_METHODS.map((method) => (
+            <ToggleRow
+              key={method.value}
+              label={method.label}
+              checked={f.deliveryMethods.includes(method.value)}
+              onChange={() => f.toggleDeliveryMethod(method.value)}
+            />
+          ))}
         </div>
       </Card>
 
