@@ -75,3 +75,33 @@ describe("StoreHeader", () => {
     expect(onSearchChange).toHaveBeenCalledWith("vestido");
   });
 });
+
+describe("StoreHeader — descrição e links (novo)", () => {
+  it("mostra a descrição da loja quando presente", () => {
+    renderHeader(baseStore);
+    expect(screen.getByText("Vitrine premium")).toBeTruthy();
+  });
+
+  it("não renderiza a descrição quando vazia", () => {
+    renderHeader({ ...baseStore, description: "" });
+    expect(screen.queryByText("Vitrine premium")).toBeNull();
+  });
+
+  it("mostra o link de WhatsApp sem mensagem pré-preenchida", () => {
+    renderHeader(baseStore);
+    const link = screen.getByRole("link", { name: /WhatsApp/i });
+    expect(link.getAttribute("href")).toBe("https://wa.me/5511999990000");
+  });
+
+  it("mostra o link de Instagram com o @ do usuário", () => {
+    renderHeader({ ...baseStore, instagram: "atelieming" });
+    const link = screen.getByRole("link", { name: /@atelieming/i });
+    expect(link.getAttribute("href")).toBe("https://instagram.com/atelieming");
+  });
+
+  it("não mostra a linha de links quando não há whatsapp nem instagram", () => {
+    renderHeader({ ...baseStore, whatsapp: "" });
+    expect(screen.queryByRole("link", { name: /WhatsApp/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: /^@/i })).toBeNull();
+  });
+});
