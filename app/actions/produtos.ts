@@ -103,6 +103,7 @@ export async function createProduct(
   if (error) return { error: "Erro ao salvar o produto." };
 
   revalidatePath("/painel/produtos");
+  revalidatePath("/painel");
   updateTag(`catalog-${store.slug}`);
   redirect("/painel/produtos");
 }
@@ -184,6 +185,7 @@ export async function updateProduct(
   if (error) return { error: "Erro ao atualizar o produto." };
 
   revalidatePath("/painel/produtos");
+  revalidatePath("/painel");
   updateTag(`catalog-${store.slug}`);
   redirect("/painel/produtos");
 }
@@ -227,6 +229,7 @@ export async function deleteProduct(
   if (error) return { error: "Erro ao excluir o produto." };
 
   revalidatePath("/painel/produtos");
+  revalidatePath("/painel");
   updateTag(`catalog-${store.slug}`);
   return { ok: true };
 }
@@ -257,6 +260,7 @@ export async function toggleProductActive(
   if (error) return { error: "Erro ao atualizar visibilidade." };
 
   revalidatePath("/painel/produtos");
+  revalidatePath("/painel");
   updateTag(`catalog-${store.slug}`);
   return { ok: true };
 }

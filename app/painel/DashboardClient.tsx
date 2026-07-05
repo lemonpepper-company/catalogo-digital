@@ -130,7 +130,12 @@ export function DashboardClient({
                     {formatCents(p.priceCents)}
                   </div>
                 </div>
-                {p.stock === 0 ? (
+                {!p.isActive ? (
+                  <span className="inline-flex items-center gap-1.5 font-body text-[13px] text-inactive">
+                    <span className="w-1.5 h-1.5 rounded-full bg-inactive" />
+                    Inativo
+                  </span>
+                ) : p.stock === 0 ? (
                   <span className="inline-flex h-[22px] items-center px-2.5 rounded-pill bg-soldout text-white font-body font-medium text-[11px] tracking-[0.06em] uppercase">
                     Esgotado
                   </span>
