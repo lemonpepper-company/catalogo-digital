@@ -21,6 +21,9 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
   const [bagOpen, setBagOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(CATALOG_BATCH_SIZE);
+  const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
+  const [selectedDelivery, setSelectedDelivery] = useState<string | null>(null);
+  const [address, setAddress] = useState("");
 
   const flash = useCallback((msg: string) => {
     setToast(msg);
@@ -52,6 +55,13 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
 
   const bagCount = cart.reduce((s, it) => s + it.qty, 0);
   const hasWhatsapp = !!store.whatsapp;
+  const paymentMethods = store.paymentMethods ?? [];
+  const deliveryMethods = store.deliveryMethods ?? [];
+  const paymentComplete = paymentMethods.length === 0 || !!selectedPayment;
+  const deliveryComplete =
+    deliveryMethods.length === 0 ||
+    (!!selectedDelivery && (selectedDelivery !== "entrega" || address.trim() !== ""));
+  const canCheckout = hasWhatsapp && paymentComplete && deliveryComplete;
 
   const handleAdd = useCallback(
     (product: Product, size: string | null, color: string | null, qty: number) => {
@@ -88,13 +98,17 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
       flash("Esta loja ainda não configurou o WhatsApp.");
       return;
     }
-    const msg = renderWhatsAppMessage(store.messageTemplate, cart);
+    const msg = renderWhatsAppMessage(store.messageTemplate, cart, {
+      payment: selectedPayment,
+      delivery: selectedDelivery,
+      address,
+    });
     flash("Abrindo o WhatsApp…");
     window.open(
       `https://wa.me/${normalizeWhatsapp(store.whatsapp)}?text=${encodeURIComponent(msg)}`,
       "_blank"
     );
-  }, [cart, store.whatsapp, store.messageTemplate, flash]);
+  }, [cart, store.whatsapp, store.messageTemplate, selectedPayment, selectedDelivery, address, flash]);
 
   return {
     activeCategory,
@@ -115,6 +129,15 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     activeProducts: products,
     bagCount,
     hasWhatsapp,
+    paymentMethods,
+    selectedPayment,
+    setSelectedPayment,
+    deliveryMethods,
+    selectedDelivery,
+    setSelectedDelivery,
+    address,
+    setAddress,
+    canCheckout,
     handleAdd,
     handleQty,
     handleRemove,
