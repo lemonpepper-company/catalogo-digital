@@ -174,6 +174,21 @@ export const FASHION_COLORS = [
   { name: "Bordô", hex: "#5B2433" },
 ];
 
+export const PAYMENT_METHOD_VALUES = ["pix", "cartao", "dinheiro"] as const;
+
+export const PAYMENT_METHODS: { value: (typeof PAYMENT_METHOD_VALUES)[number]; label: string }[] = [
+  { value: "pix", label: "Pix" },
+  { value: "cartao", label: "Cartão" },
+  { value: "dinheiro", label: "Dinheiro" },
+];
+
+export const DELIVERY_METHOD_VALUES = ["retirada", "entrega"] as const;
+
+export const DELIVERY_METHODS: { value: (typeof DELIVERY_METHOD_VALUES)[number]; label: string }[] = [
+  { value: "retirada", label: "Retirar no local" },
+  { value: "entrega", label: "Enviar no endereço" },
+];
+
 export function getProductById(id: string): Product | undefined {
   return PRODUCTS.find((p) => p.id === id);
 }
