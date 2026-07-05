@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { PRODUCTS, STORE } from "@/lib/data";
+import { PRODUCTS, STORE, PAYMENT_METHODS, DELIVERY_METHODS } from "@/lib/data";
 
 describe("STORE", () => {
   it("has required fields", () => {
@@ -38,5 +38,19 @@ describe("PRODUCTS", () => {
     const ids = PRODUCTS.map((p) => p.id);
     const unique = new Set(ids);
     expect(unique.size).toBe(ids.length);
+  });
+});
+
+describe("PAYMENT_METHODS", () => {
+  it("tem os três métodos esperados, na ordem", () => {
+    expect(PAYMENT_METHODS.map((m) => m.value)).toEqual(["pix", "cartao", "dinheiro"]);
+    expect(PAYMENT_METHODS.map((m) => m.label)).toEqual(["Pix", "Cartão", "Dinheiro"]);
+  });
+});
+
+describe("DELIVERY_METHODS", () => {
+  it("tem os dois métodos esperados, na ordem", () => {
+    expect(DELIVERY_METHODS.map((m) => m.value)).toEqual(["retirada", "entrega"]);
+    expect(DELIVERY_METHODS.map((m) => m.label)).toEqual(["Retirar no local", "Enviar no endereço"]);
   });
 });
