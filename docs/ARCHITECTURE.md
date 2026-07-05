@@ -51,7 +51,8 @@ Implementada com **Supabase Auth** + **`@supabase/ssr`** (cookies httpOnly). Sem
 ```sql
 profiles   (id → auth.users, full_name, created_at)
 stores     (id, owner_id → profiles, name, slug unique, plan, trial_ends_at (nullable), is_active,
-            whatsapp, accent_color, logo_url, description, monogram,
+            whatsapp, accent_color, logo_url, description, monogram, instagram,
+            payment_methods[], delivery_methods[],
             analytics_id, pixel_id, message_template, created_at)
 categories (id, store_id → stores, name, position, created_at)
 products   (id, store_id → stores, name, price_cents, description, category_id → categories,
@@ -93,9 +94,9 @@ Emails de confirmação ficam em **Mailpit**: `http://localhost:54324`
 
 | Arquivo | Propósito |
 |---|---|
-| `lib/data.ts` | Mock data legada (STORE, PRODUCTS) — mantida apenas para referência, não usada em produção |
+| `lib/data.ts` | Mock data legada (`STORE`, `PRODUCTS`) mantida como referência; também guarda listas de opções usadas em produção (`ACCENT_COLOR_OPTIONS`, `FASHION_COLORS`, `PAYMENT_METHODS`, `DELIVERY_METHODS`) |
 | `lib/types.ts` | Tipos TypeScript do domínio |
-| `lib/utils.ts` | `parsePrice`, `formatMoney`, `buildWhatsAppMessage`, `formatCents` |
+| `lib/utils.ts` | `parsePrice`, `formatMoney`, `buildWhatsAppMessage`, `renderWhatsAppMessage`, `formatPaymentLine`, `formatDeliveryLine`, `formatCents` |
 | `lib/auth/slugify.ts` | `slugify()` e `isValidSlug()` com testes |
 | `lib/plan-limits.ts` | `getPlanLimits()`, `isTrialActive()` — limites por plano (Starter/Pro) |
 | `lib/supabase/client.ts` | `createBrowserClient` para componentes client-side |
@@ -154,7 +155,8 @@ A função `getPublicCatalog(slug)` em `lib/server/catalog.ts` encapsula toda a 
 - **Autenticação**: completa — cadastro 2 etapas, login email/senha, recuperação/redefinição de senha, confirmação de email
 - **Modo demo**: cadastro pula a escolha de plano; toda loja nova nasce com `plan = 'starter'` e `trial_ends_at = null` (indeterminado). Na landing: preços ocultos (texto "Em breve"), botões "Começar" removidos dos cards de plano, e a seção de depoimentos (fictícios) oculta. A página `/escolha-de-plano` mantém a UI original com preços — não é revisada porque fica inacessível no fluxo
 - **Painel do lojista** (`/painel`): totalmente conectado ao Supabase — dashboard, produtos (CRUD + upload de fotos), categorias (CRUD + limites de plano), configurações da loja
-- **Catálogo público** (`/[slug]`): dados reais do Supabase via RLS anon — grid de produtos, detalhe, sacola (drawer), checkout WhatsApp com template customizável, página de loja expirada
+- **Catálogo público** (`/[slug]`): dados reais do Supabase via RLS anon — grid de produtos, detalhe, sacola (drawer), checkout WhatsApp com template customizável, header com descrição e links de WhatsApp/Instagram, página de loja expirada
+- **Checkout**: pagamento e forma de entrega configuráveis por loja (`stores.payment_methods`/`delivery_methods`); o cliente escolhe entre as opções habilitadas antes de enviar o pedido — grupos sem nenhuma opção configurada não aparecem na sacola
 - **Limites de plano**: `getPlanLimits()` aplicado em Server Actions de produtos e categorias — como toda loja demo nasce Starter, os limites de Starter (30 produtos, 5 categorias, 3 fotos) se aplicam normalmente
 - **Storage**: bucket `product-images` com upload, compressão no cliente e remoção de imagens antigas ao editar
 
