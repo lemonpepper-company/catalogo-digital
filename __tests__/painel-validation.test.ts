@@ -3,6 +3,7 @@ import {
   productSchema,
   categoryNameSchema,
   canDeleteCategory,
+  storeSettingsSchema,
 } from "@/lib/validation/painel";
 
 describe("productSchema", () => {
@@ -56,5 +57,65 @@ describe("canDeleteCategory", () => {
   });
   it("bloqueia categoria com produtos", () => {
     expect(canDeleteCategory(3)).toBe(false);
+  });
+});
+
+describe("storeSettingsSchema — pagamento, entrega e instagram (novo)", () => {
+  const base = {
+    name: "Ateliê Mira",
+    whatsapp: null,
+    accentColor: "#C9A96E",
+    description: null,
+    monogram: null,
+    instagram: null,
+    analyticsId: null,
+    pixelId: null,
+    messageTemplate: null,
+  };
+
+  it("aceita arrays vazios de pagamento e entrega", () => {
+    const r = storeSettingsSchema.safeParse({ ...base, paymentMethods: [], deliveryMethods: [] });
+    expect(r.success).toBe(true);
+  });
+
+  it("aceita valores válidos de pagamento e entrega", () => {
+    const r = storeSettingsSchema.safeParse({
+      ...base,
+      paymentMethods: ["pix", "cartao"],
+      deliveryMethods: ["retirada"],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("rejeita forma de pagamento desconhecida", () => {
+    const r = storeSettingsSchema.safeParse({
+      ...base,
+      paymentMethods: ["boleto"],
+      deliveryMethods: [],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejeita forma de entrega desconhecida", () => {
+    const r = storeSettingsSchema.safeParse({
+      ...base,
+      paymentMethods: [],
+      deliveryMethods: ["motoboy"],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("aceita instagram nulo ou preenchido", () => {
+    expect(
+      storeSettingsSchema.safeParse({
+        ...base,
+        paymentMethods: [],
+        deliveryMethods: [],
+        instagram: "atelieming",
+      }).success
+    ).toBe(true);
+    expect(
+      storeSettingsSchema.safeParse({ ...base, paymentMethods: [], deliveryMethods: [] }).success
+    ).toBe(true);
   });
 });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PAYMENT_METHOD_VALUES, DELIVERY_METHOD_VALUES } from "@/lib/data";
 
 export const productSchema = z.object({
   name: z.string().min(2, "Nome do produto é obrigatório"),
@@ -19,6 +20,9 @@ export const storeSettingsSchema = z.object({
   accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida"),
   description: z.string().nullable(),
   monogram: z.string().max(3, "Monograma deve ter no máximo 3 letras").nullable(),
+  instagram: z.string().nullable(),
+  paymentMethods: z.array(z.enum(PAYMENT_METHOD_VALUES)),
+  deliveryMethods: z.array(z.enum(DELIVERY_METHOD_VALUES)),
   analyticsId: z.string().nullable(),
   pixelId: z.string().nullable(),
   messageTemplate: z.string().nullable(),
