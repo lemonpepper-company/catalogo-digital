@@ -61,6 +61,17 @@ describe("BagDrawer — checkout (CAT-09)", () => {
     renderDrawer();
     expect(screen.queryByText(/não configurou o WhatsApp/i)).toBeNull();
   });
+
+  it("mostra o blockedReason em vez do aviso de WhatsApp quando fornecido", () => {
+    renderDrawer({
+      canCheckout: false,
+      blockedReason: "Selecione forma de pagamento e entrega para continuar.",
+    });
+    expect(
+      screen.getByText("Selecione forma de pagamento e entrega para continuar.")
+    ).toBeTruthy();
+    expect(screen.queryByText(/não configurou o WhatsApp/i)).toBeNull();
+  });
 });
 
 describe("BagDrawer — pagamento e entrega (novo)", () => {
