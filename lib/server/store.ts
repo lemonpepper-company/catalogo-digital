@@ -22,6 +22,9 @@ type StoreRow = {
   analytics_id: string | null;
   pixel_id: string | null;
   message_template: string | null;
+  instagram: string | null;
+  payment_methods: string[] | null;
+  delivery_methods: string[] | null;
 };
 
 type ProductRow = {
@@ -54,6 +57,9 @@ export function mapStore(row: StoreRow): StoreSettings {
     analyticsId: row.analytics_id,
     pixelId: row.pixel_id,
     messageTemplate: row.message_template,
+    instagram: row.instagram,
+    paymentMethods: row.payment_methods ?? [],
+    deliveryMethods: row.delivery_methods ?? [],
   };
 }
 
@@ -85,7 +91,7 @@ export const getCurrentStore = cache(async (): Promise<StoreSettings | null> => 
   const { data } = await supabase
     .from("stores")
     .select(
-      "id, name, slug, plan, trial_ends_at, whatsapp, accent_color, logo_url, description, monogram, analytics_id, pixel_id, message_template"
+      "id, name, slug, plan, trial_ends_at, whatsapp, accent_color, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods"
     )
     .eq("owner_id", user.id)
     .maybeSingle();

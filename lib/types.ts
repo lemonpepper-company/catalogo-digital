@@ -95,4 +95,7 @@ export interface StoreSettings {
   analyticsId: string | null;
   pixelId: string | null;
   messageTemplate: string | null;
+  instagram: string | null;
+  paymentMethods: string[];
+  deliveryMethods: string[];
 }
