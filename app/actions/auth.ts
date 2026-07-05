@@ -18,8 +18,6 @@ const signUpSchema = z
     email: z.string().email('E-mail inválido'),
     password: passwordSchema,
     confirm_password: z.string(),
-    store_name: z.string().min(2, 'Nome da loja deve ter ao menos 2 caracteres'),
-    slug: z.string().regex(/^[a-z0-9-]{2,50}$/, 'Link inválido'),
   })
   .refine((d) => d.password === d.confirm_password, {
     message: 'As senhas não coincidem',
@@ -58,22 +56,20 @@ export async function signUp(
     email: formData.get('email'),
     password: formData.get('password'),
     confirm_password: formData.get('confirm_password'),
-    store_name: formData.get('store_name'),
-    slug: formData.get('slug'),
   })
 
   if (!result.success) {
     return { error: result.error.issues[0].message }
   }
 
-  const { full_name, email, password, store_name, slug } = result.data
+  const { full_name, email, password } = result.data
   const supabase = await createClient()
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { full_name, store_name, slug },
+      data: { full_name },
       emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
     },
   })
