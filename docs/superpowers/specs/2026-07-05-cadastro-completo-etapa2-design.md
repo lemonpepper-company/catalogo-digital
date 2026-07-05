@@ -18,7 +18,7 @@ Sua loja (existente, sem mudança)
 
 Identidade (novo)
   - Logo (upload)
-  - WhatsApp para pedidos (obrigatório nesta tela — diferente de Configurações, onde é opcional)
+  - WhatsApp para pedidos (obrigatório — em Configurações também passa a ser obrigatório, ver seção "`updateStoreSettings`" abaixo)
   - Monograma (até 3 letras, opcional)
   - Instagram (opcional) — substitui o campo solto que já existia
   - Descrição curta (opcional)
@@ -52,7 +52,13 @@ Cada um recebe os valores e callbacks via props (sem buscar dados nem conhecer d
 
 ## `createStore` (Server Action)
 
-`storeSchema` ganha os novos campos, com `whatsapp` obrigatório (`z.string().min(1, 'WhatsApp é obrigatório')` — diferente de `storeSettingsSchema`, onde é opcional) e os demais seguindo a mesma forma já usada em `storeSettingsSchema`: `monogram`, `description`, `accentColor`, `paymentMethods` (enum de `PAYMENT_METHOD_VALUES`), `deliveryMethods` (enum de `DELIVERY_METHOD_VALUES`).
+`storeSchema` ganha os novos campos, com `whatsapp` obrigatório (`z.string().min(1, 'WhatsApp é obrigatório')`) e os demais seguindo a mesma forma já usada em `storeSettingsSchema`: `monogram`, `description`, `accentColor`, `paymentMethods` (enum de `PAYMENT_METHOD_VALUES`), `deliveryMethods` (enum de `DELIVERY_METHOD_VALUES`).
+
+## `updateStoreSettings` (Server Action) — WhatsApp passa a ser obrigatório também aqui
+
+`storeSettingsSchema.whatsapp` muda de `z.string().nullable()` para a mesma regra usada em `storeSchema` (`z.string().min(1, 'WhatsApp é obrigatório')`) — WhatsApp deixa de ser opcional em qualquer lugar do sistema, não só no cadastro. Isso é a única mudança de comportamento em Configurações; o resto da tela (upload de logo, cor, pagamento/entrega, mensagem do pedido) segue igual.
+
+**Lojas existentes com `whatsapp = null`** (criadas antes desta mudança) não são migradas retroativamente — na próxima vez que o lojista tentar salvar qualquer alteração em Configurações, a validação vai exigir que ele preencha o WhatsApp antes de conseguir salvar.
 
 Fluxo em duas fases por causa do logo (o caminho do arquivo no Storage usa o `id` da loja, que só existe depois do insert):
 
@@ -64,11 +70,12 @@ Fluxo em duas fases por causa do logo (o caminho do arquivo no Storage usa o `id
 ## Fora de escopo
 
 - "Mensagem do pedido" continua exclusiva de Configurações.
-- Nenhuma mudança em `updateStoreSettings`/`storeSettingsSchema` além de eventualmente importar os mesmos componentes de apresentação — a lógica de persistência de Configurações não muda.
+- Fora a mudança de `whatsapp` para obrigatório (seção acima), a lógica de persistência de `updateStoreSettings` não muda — só passa a reusar os mesmos componentes de apresentação.
 - Google OAuth (`signInWithGoogle`) permanece fora de escopo, oculto na UI.
 
 ## Testes
 
 - Os testes hoje embutidos em `ConfiguracoesClient.test.tsx` que cobrem os campos extraídos (Instagram, pagamento/entrega, WhatsApp/monograma/descrição) são adaptados para continuar passando através dos componentes compartilhados — sem perda de cobertura.
 - Novo teste para `CadastroForm` cobrindo a etapa 2: presença dos novos cards, e que o WhatsApp é exigido (mensagem de erro quando vazio).
+- `storeSettingsSchema` ganha teste cobrindo a rejeição de `whatsapp` vazio/nulo (mudança de comportamento em relação ao que existe hoje).
 - Sem teste dedicado para o fluxo de upload de logo em duas fases dentro de `createStore` (mantém o padrão do projeto de não testar diretamente Server Actions que dependem de Supabase Storage) — coberto por verificação manual no plano de implementação.
