@@ -4,11 +4,20 @@ import Image from "next/image";
 import { X, ShoppingBag, Trash2, MessageCircle } from "lucide-react";
 import type { CartItem } from "@/lib/types";
 import { formatMoney, parsePrice } from "@/lib/utils";
+import { PAYMENT_METHODS, DELIVERY_METHODS } from "@/lib/data";
 
 interface BagDrawerProps {
   open: boolean;
   items: CartItem[];
   canCheckout?: boolean;
+  paymentMethods?: string[];
+  selectedPayment?: string | null;
+  onSelectPayment?: (method: string) => void;
+  deliveryMethods?: string[];
+  selectedDelivery?: string | null;
+  onSelectDelivery?: (method: string) => void;
+  address?: string;
+  onAddressChange?: (value: string) => void;
   onClose: () => void;
   onQty: (key: string, qty: number) => void;
   onRemove: (key: string) => void;
@@ -19,6 +28,14 @@ export function BagDrawer({
   open,
   items,
   canCheckout = true,
+  paymentMethods = [],
+  selectedPayment = null,
+  onSelectPayment,
+  deliveryMethods = [],
+  selectedDelivery = null,
+  onSelectDelivery,
+  address = "",
+  onAddressChange,
   onClose,
   onQty,
   onRemove,
@@ -153,6 +170,75 @@ export function BagDrawer({
                 {formatMoney(total)}
               </span>
             </div>
+
+            {paymentMethods.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <span className="font-body font-medium text-[13px] text-obsidian">
+                  Forma de pagamento
+                </span>
+                <div className="flex gap-2 flex-wrap">
+                  {paymentMethods.map((value) => {
+                    const label = PAYMENT_METHODS.find((m) => m.value === value)?.label ?? value;
+                    const isSelected = selectedPayment === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => onSelectPayment?.(value)}
+                        className={[
+                          "h-9 px-3.5 rounded-pill font-body font-medium text-[13px] transition-all duration-200 border",
+                          isSelected
+                            ? "text-white border-transparent"
+                            : "border-sand text-obsidian hover:bg-surface-hover",
+                        ].join(" ")}
+                        style={isSelected ? { background: "var(--color-primary)" } : undefined}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {deliveryMethods.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <span className="font-body font-medium text-[13px] text-obsidian">Entrega</span>
+                <div className="flex gap-2 flex-wrap">
+                  {deliveryMethods.map((value) => {
+                    const label = DELIVERY_METHODS.find((m) => m.value === value)?.label ?? value;
+                    const isSelected = selectedDelivery === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => onSelectDelivery?.(value)}
+                        className={[
+                          "h-9 px-3.5 rounded-pill font-body font-medium text-[13px] transition-all duration-200 border",
+                          isSelected
+                            ? "text-white border-transparent"
+                            : "border-sand text-obsidian hover:bg-surface-hover",
+                        ].join(" ")}
+                        style={isSelected ? { background: "var(--color-primary)" } : undefined}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedDelivery === "entrega" && (
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => onAddressChange?.(e.target.value)}
+                    placeholder="Endereço completo para entrega"
+                    aria-label="Endereço completo para entrega"
+                    className="w-full h-11 px-3.5 bg-white border border-sand rounded-input font-body text-[14px] text-obsidian placeholder:text-inactive outline-none focus:border-obsidian transition-colors"
+                  />
+                )}
+              </div>
+            )}
+
             {!canCheckout && (
               <p className="font-body text-[13px] text-graphite text-center">
                 Esta loja ainda não configurou o WhatsApp.

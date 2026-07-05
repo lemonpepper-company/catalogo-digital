@@ -34,7 +34,15 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
     loadMore,
     activeProducts,
     bagCount,
-    hasWhatsapp,
+    paymentMethods,
+    selectedPayment,
+    setSelectedPayment,
+    deliveryMethods,
+    selectedDelivery,
+    setSelectedDelivery,
+    address,
+    setAddress,
+    canCheckout,
     handleAdd,
     handleQty,
     handleRemove,
@@ -137,7 +145,15 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
       <BagDrawer
         open={bagOpen}
         items={cart}
-        canCheckout={hasWhatsapp}
+        canCheckout={canCheckout}
+        paymentMethods={paymentMethods}
+        selectedPayment={selectedPayment}
+        onSelectPayment={setSelectedPayment}
+        deliveryMethods={deliveryMethods}
+        selectedDelivery={selectedDelivery}
+        onSelectDelivery={setSelectedDelivery}
+        address={address}
+        onAddressChange={setAddress}
         onClose={() => setBagOpen(false)}
         onQty={handleQty}
         onRemove={handleRemove}
