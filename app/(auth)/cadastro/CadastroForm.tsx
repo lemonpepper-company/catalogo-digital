@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { User, Mail, ArrowLeft, ArrowRight, Store, Instagram } from 'lucide-react'
 import { useCadastroForm } from './use-cadastro-form'
+import { signOut } from '@/app/actions/auth'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { SlugInput } from '@/components/ui/SlugInput'
 import { VtrineLogo } from '@/components/ui/VtrineLogo'
@@ -233,12 +234,27 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
         </div>
 
         <div className="flex justify-center mt-[26px]">
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-1.5 font-body text-[13px] text-graphite hover:text-obsidian transition-colors"
-          >
-            <ArrowLeft size={15} /> Voltar para o login
-          </Link>
+          {stepLoja ? (
+            // Usuário já está autenticado nesta etapa (confirmou o e-mail) — um
+            // link para /login seria interceptado pelo middleware e devolvido
+            // pra esta mesma tela (autenticado sem loja). Sair de verdade é o
+            // único jeito de "voltar" daqui.
+            <form action={signOut}>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-1.5 font-body text-[13px] text-graphite hover:text-obsidian transition-colors"
+              >
+                <ArrowLeft size={15} /> Sair
+              </button>
+            </form>
+          ) : (
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-1.5 font-body text-[13px] text-graphite hover:text-obsidian transition-colors"
+            >
+              <ArrowLeft size={15} /> Voltar para o login
+            </Link>
+          )}
         </div>
       </div>
     </div>
