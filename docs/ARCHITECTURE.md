@@ -16,9 +16,10 @@ Implementada com **Supabase Auth** + **`@supabase/ssr`** (cookies httpOnly). Sem
 
 ```
 /cadastro (etapa 1: dados pessoais)
-  → /cadastro?step=loja (etapa 2: nome e slug da loja)
   → /verificar-email?email=X (aguarda confirmação)
-  → [clique no email] → /auth/callback (cria profile + store no banco, já com plan='starter')
+  → [clique no email] → /auth/callback (cria só o profile no banco)
+  → /cadastro?step=loja (etapa 2: nome e slug da loja)
+  → createStore (cria a loja, já com plan='starter')
   → /painel
 ```
 
@@ -111,7 +112,7 @@ Emails de confirmação ficam em **Mailpit**: `http://localhost:54324`
 | `app/actions/produtos.ts` | Server Actions: `createProduct`, `updateProduct`, `deleteProduct`, `toggleProductActive` |
 | `app/actions/categorias.ts` | Server Actions: `createCategory`, `updateCategory`, `deleteCategory` |
 | `app/actions/store.ts` | Server Actions: `updateStoreSettings` |
-| `app/auth/callback/route.ts` | Route Handler OAuth/PKCE: cria `profiles` + `stores` após confirmação |
+| `app/auth/callback/route.ts` | Route Handler OAuth/PKCE: cria `profiles` após confirmação; sem loja, redireciona para `/cadastro?step=loja` |
 | `app/api/slug/check/route.ts` | Endpoint público de verificação de slug disponível |
 | `app/globals.css` | Tokens CSS como custom properties |
 | `tailwind.config.ts` | Mapeamento dos tokens para classes Tailwind |
