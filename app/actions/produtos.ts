@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
 import { getPlanLimits, isTrialActive } from "@/lib/plan-limits";
@@ -103,7 +103,7 @@ export async function createProduct(
   if (error) return { error: "Erro ao salvar o produto." };
 
   revalidatePath("/painel/produtos");
-  revalidateTag(`catalog-${store.slug}`, "max");
+  updateTag(`catalog-${store.slug}`);
   redirect("/painel/produtos");
 }
 
@@ -184,7 +184,7 @@ export async function updateProduct(
   if (error) return { error: "Erro ao atualizar o produto." };
 
   revalidatePath("/painel/produtos");
-  revalidateTag(`catalog-${store.slug}`, "max");
+  updateTag(`catalog-${store.slug}`);
   redirect("/painel/produtos");
 }
 
@@ -227,7 +227,7 @@ export async function deleteProduct(
   if (error) return { error: "Erro ao excluir o produto." };
 
   revalidatePath("/painel/produtos");
-  revalidateTag(`catalog-${store.slug}`, "max");
+  updateTag(`catalog-${store.slug}`);
   return { ok: true };
 }
 
@@ -257,6 +257,6 @@ export async function toggleProductActive(
   if (error) return { error: "Erro ao atualizar visibilidade." };
 
   revalidatePath("/painel/produtos");
-  revalidateTag(`catalog-${store.slug}`, "max");
+  updateTag(`catalog-${store.slug}`);
   return { ok: true };
 }
