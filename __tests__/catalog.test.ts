@@ -27,6 +27,9 @@ const storeRow: PublicStoreRow = {
   analytics_id: null,
   pixel_id: null,
   message_template: null,
+  instagram: null,
+  payment_methods: null,
+  delivery_methods: null,
 };
 
 function product(overrides: Partial<PublicProductRow>): PublicProductRow {
@@ -208,5 +211,29 @@ describe("resolveCatalog — montagem (CAT-01, CAT-06)", () => {
     if (r.status !== "ok") throw new Error("esperado ok");
     expect(r.products).toHaveLength(0);
     expect(r.store.categories).toEqual(["Todos"]);
+  });
+});
+
+describe("mapPublicStore — perfil social e checkout (novo)", () => {
+  it("mapeia instagram, payment_methods e delivery_methods quando presentes", () => {
+    const store = mapPublicStore(
+      {
+        ...storeRow,
+        instagram: "atelieming",
+        payment_methods: ["pix"],
+        delivery_methods: ["retirada", "entrega"],
+      },
+      []
+    );
+    expect(store.instagram).toBe("atelieming");
+    expect(store.paymentMethods).toEqual(["pix"]);
+    expect(store.deliveryMethods).toEqual(["retirada", "entrega"]);
+  });
+
+  it("usa arrays vazios quando payment_methods/delivery_methods são null", () => {
+    const store = mapPublicStore(storeRow, []);
+    expect(store.paymentMethods).toEqual([]);
+    expect(store.deliveryMethods).toEqual([]);
+    expect(store.instagram).toBeUndefined();
   });
 });
