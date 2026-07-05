@@ -1,12 +1,13 @@
 "use client";
 
-import { Upload, ExternalLink, LogOut } from "lucide-react";
+import { ExternalLink, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Toast } from "@/components/ui/Toast";
-import { ToggleRow } from "@/components/ui/Switch";
-import { ACCENT_COLOR_OPTIONS, PAYMENT_METHODS, DELIVERY_METHODS } from "@/lib/data";
+import { IdentidadeFields } from "@/components/loja/IdentidadeFields";
+import { CorDestaqueFields } from "@/components/loja/CorDestaqueFields";
+import { PagamentoEntregaFields } from "@/components/loja/PagamentoEntregaFields";
 import { signOut } from "@/app/actions/auth";
 import type { StoreSettings } from "@/lib/types";
 import { useConfiguracoes, MSG_VARS } from "./use-configuracoes";
@@ -86,71 +87,30 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
         <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
           Identidade
         </h2>
-        <div className="flex gap-5 items-center mb-5">
-          {f.logoPreview || settings.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={f.logoPreview ?? settings.logoUrl!}
-              alt={settings.name}
-              className="w-[72px] h-[72px] rounded-full object-cover flex-shrink-0"
-            />
-          ) : (
-            <div
-              className="w-[72px] h-[72px] rounded-full text-white flex items-center justify-center font-display font-semibold text-[26px] flex-shrink-0"
-              style={{ background: "var(--color-primary)" }}
-            >
-              {settings.monogram ?? settings.name.slice(0, 2).toUpperCase()}
-            </div>
-          )}
-          <label className="inline-flex items-center gap-2 min-h-11 px-5 py-2.5 rounded-btn border border-sand bg-transparent text-obsidian font-display font-medium text-[15px] cursor-pointer hover:bg-surface-hover transition-colors">
-            <Upload size={18} />
-            {f.logo ? f.logo.name : "Enviar logo"}
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => f.setLogo(e.target.files?.[0] ?? null)}
-            />
-          </label>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-[18px]">
-          <Input
-            name="name"
-            label="Nome da loja"
-            value={f.storeName}
-            onChange={(e) => f.setStoreName(e.target.value)}
-          />
-          <Input
-            name="whatsapp"
-            label="WhatsApp para pedidos"
-            prefix="+55"
-            value={f.whatsapp}
-            onChange={(e) => f.setWhatsapp(e.target.value)}
-          />
-          <Input
-            name="monogram"
-            label="Monograma (até 3 letras)"
-            placeholder="Ex: MR"
-            maxLength={3}
-            value={f.monogram}
-            onChange={(e) => f.setMonogram(e.target.value)}
-          />
-          <Input
-            name="instagram"
-            label="Instagram (opcional)"
-            prefix="@"
-            value={f.instagram}
-            onChange={(e) => f.setInstagram(e.target.value)}
-          />
-          <div className="sm:col-span-2">
+        <IdentidadeFields
+          nameForInitials={f.storeName}
+          logoUrl={settings.logoUrl}
+          logoPreview={f.logoPreview}
+          logoFileName={f.logo?.name}
+          onLogoChange={f.setLogo}
+          whatsapp={f.whatsapp}
+          onWhatsappChange={f.setWhatsapp}
+          monogram={f.monogram}
+          onMonogramChange={f.setMonogram}
+          instagram={f.instagram}
+          onInstagramChange={f.setInstagram}
+          storeDescription={f.storeDescription}
+          onStoreDescriptionChange={f.setStoreDescription}
+        >
+          <div className="mb-[18px]">
             <Input
-              name="description"
-              label="Descrição curta"
-              value={f.storeDescription}
-              onChange={(e) => f.setStoreDescription(e.target.value)}
+              name="name"
+              label="Nome da loja"
+              value={f.storeName}
+              onChange={(e) => f.setStoreName(e.target.value)}
             />
           </div>
-        </div>
+        </IdentidadeFields>
       </Card>
 
       <Card>
@@ -160,38 +120,7 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
             · aplicada nos botões primários e pills ativos
           </span>
         </h2>
-        <div className="flex gap-3 flex-wrap mb-5">
-          {ACCENT_COLOR_OPTIONS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => f.setAccent(c)}
-              aria-label={c}
-              className="w-10 h-10 rounded-full transition-all duration-200"
-              style={{
-                background: c,
-                border:
-                  f.accent === c
-                    ? "2px solid var(--color-primary)"
-                    : "1px solid var(--color-border)",
-                outline: f.accent === c ? "2px solid var(--color-bg)" : "none",
-                outlineOffset: f.accent === c ? "-4px" : "0",
-                boxSizing: "border-box",
-              }}
-            />
-          ))}
-        </div>
-        <div className="flex items-center flex-wrap gap-3">
-          <span
-            className="inline-flex min-h-11 items-center px-[22px] py-2.5 rounded-btn font-display font-medium text-[15px] text-white"
-            style={{ background: f.accent }}
-          >
-            Comprar via WhatsApp
-          </span>
-          <span className="font-body text-[13px] text-graphite">
-            Pré-visualização do CTA
-          </span>
-        </div>
+        <CorDestaqueFields accent={f.accent} onAccentChange={f.setAccent} />
       </Card>
 
       <Card>
@@ -248,34 +177,12 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
         <p className="font-body text-[13px] text-graphite mb-4">
           O cliente só vê essas opções no checkout se você marcar ao menos uma aqui.
         </p>
-
-        <h3 className="font-body font-medium text-[13px] tracking-[0.04em] uppercase text-graphite mb-1">
-          Formas de pagamento aceitas
-        </h3>
-        <div className="mb-5">
-          {PAYMENT_METHODS.map((method) => (
-            <ToggleRow
-              key={method.value}
-              label={method.label}
-              checked={f.paymentMethods.includes(method.value)}
-              onChange={() => f.togglePaymentMethod(method.value)}
-            />
-          ))}
-        </div>
-
-        <h3 className="font-body font-medium text-[13px] tracking-[0.04em] uppercase text-graphite mb-1">
-          Formas de entrega
-        </h3>
-        <div>
-          {DELIVERY_METHODS.map((method) => (
-            <ToggleRow
-              key={method.value}
-              label={method.label}
-              checked={f.deliveryMethods.includes(method.value)}
-              onChange={() => f.toggleDeliveryMethod(method.value)}
-            />
-          ))}
-        </div>
+        <PagamentoEntregaFields
+          paymentMethods={f.paymentMethods}
+          onTogglePaymentMethod={f.togglePaymentMethod}
+          deliveryMethods={f.deliveryMethods}
+          onToggleDeliveryMethod={f.toggleDeliveryMethod}
+        />
       </Card>
 
       {/* Integrações (Google Analytics + Facebook Pixel) — temporariamente ocultas da UI.
