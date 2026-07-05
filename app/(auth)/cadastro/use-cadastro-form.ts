@@ -13,6 +13,7 @@ export function useCadastroForm(stepLoja: boolean) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [storeName, setStoreName] = useState('')
   const [slug, setSlug] = useState('')
+  const [instagram, setInstagram] = useState('')
 
   const [state, action, pending] = useActionState<FormState, FormData>(
     stepLoja ? createStore : signUp,
@@ -37,6 +38,8 @@ export function useCadastroForm(stepLoja: boolean) {
     handleStoreNameChange,
     slug,
     setSlug,
+    instagram,
+    setInstagram,
     state,
     action,
     pending,

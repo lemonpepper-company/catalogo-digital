@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { User, Mail, ArrowLeft, ArrowRight, Store } from 'lucide-react'
+import { User, Mail, ArrowLeft, ArrowRight, Store, Instagram } from 'lucide-react'
 import { useCadastroForm } from './use-cadastro-form'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { SlugInput } from '@/components/ui/SlugInput'
@@ -24,6 +24,7 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
     confirmPassword, setConfirmPassword,
     storeName, handleStoreNameChange,
     slug, setSlug,
+    instagram, setInstagram,
     state, action, pending,
   } = useCadastroForm(stepLoja)
 
@@ -162,6 +163,25 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
                   Link da loja
                 </label>
                 <SlugInput name="slug" value={slug} onChange={setSlug} />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="font-body font-medium text-[13px] text-obsidian">
+                  Instagram <span className="text-graphite font-normal">(opcional)</span>
+                </label>
+                <div className={inputWrap}>
+                  <Instagram size={18} className="text-graphite flex-shrink-0" />
+                  <span className="font-body text-[15px] text-graphite flex-shrink-0">@</span>
+                  <input
+                    type="text"
+                    name="instagram"
+                    placeholder="seu.usuario"
+                    autoComplete="off"
+                    className={inputBase}
+                    value={instagram}
+                    onChange={(e) => setInstagram(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
 
