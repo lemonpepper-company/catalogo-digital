@@ -62,3 +62,73 @@ describe("BagDrawer — checkout (CAT-09)", () => {
     expect(screen.queryByText(/não configurou o WhatsApp/i)).toBeNull();
   });
 });
+
+describe("BagDrawer — pagamento e entrega (novo)", () => {
+  it("não mostra seletor de pagamento quando a loja não configurou nenhuma forma", () => {
+    renderDrawer({ paymentMethods: [] });
+    expect(screen.queryByText("Forma de pagamento")).toBeNull();
+  });
+
+  it("mostra as opções de pagamento configuradas, nenhuma pré-selecionada", () => {
+    renderDrawer({ paymentMethods: ["pix", "cartao"], selectedPayment: null });
+    const pix = screen.getByRole("button", { name: "Pix" });
+    const cartao = screen.getByRole("button", { name: "Cartão" });
+    expect(pix.className).not.toContain("text-white");
+    expect(cartao.className).not.toContain("text-white");
+  });
+
+  it("aciona onSelectPayment ao clicar em uma opção", () => {
+    const onSelectPayment = vi.fn();
+    renderDrawer({ paymentMethods: ["pix", "cartao"], onSelectPayment });
+    fireEvent.click(screen.getByRole("button", { name: "Pix" }));
+    expect(onSelectPayment).toHaveBeenCalledWith("pix");
+  });
+
+  it("não mostra seletor de entrega quando a loja não configurou nenhuma forma", () => {
+    renderDrawer({ deliveryMethods: [] });
+    expect(screen.queryByText("Entrega")).toBeNull();
+  });
+
+  it("mostra o campo de endereço somente quando 'entrega' está selecionada", () => {
+    const { rerender } = render(
+      <BagDrawer
+        open
+        items={items}
+        deliveryMethods={["retirada", "entrega"]}
+        selectedDelivery="retirada"
+        onClose={vi.fn()}
+        onQty={vi.fn()}
+        onRemove={vi.fn()}
+        onCheckout={vi.fn()}
+      />
+    );
+    expect(screen.queryByLabelText(/Endereço completo/i)).toBeNull();
+
+    rerender(
+      <BagDrawer
+        open
+        items={items}
+        deliveryMethods={["retirada", "entrega"]}
+        selectedDelivery="entrega"
+        onClose={vi.fn()}
+        onQty={vi.fn()}
+        onRemove={vi.fn()}
+        onCheckout={vi.fn()}
+      />
+    );
+    expect(screen.getByLabelText(/Endereço completo/i)).toBeTruthy();
+  });
+
+  it("aciona onAddressChange ao digitar no campo de endereço", () => {
+    const onAddressChange = vi.fn();
+    renderDrawer({
+      deliveryMethods: ["retirada", "entrega"],
+      selectedDelivery: "entrega",
+      onAddressChange,
+    });
+    fireEvent.change(screen.getByLabelText(/Endereço completo/i), {
+      target: { value: "Rua X, 123" },
+    });
+    expect(onAddressChange).toHaveBeenCalledWith("Rua X, 123");
+  });
+});
