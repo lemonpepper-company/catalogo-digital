@@ -131,41 +131,41 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
               </div>
             )}
 
-            {/* Seção B: Sua loja — sempre visível */}
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <h2 className="font-display font-semibold text-[13px] tracking-[0.08em] uppercase text-obsidian whitespace-nowrap">
-                  Sua loja
-                </h2>
-                <div className="h-px bg-sand flex-1" />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="font-body font-medium text-[13px] text-obsidian">
-                  Nome da loja
-                </label>
-                <div className={inputWrap}>
-                  <Store size={18} className="text-graphite flex-shrink-0" />
-                  <input
-                    type="text"
-                    name="store_name"
-                    placeholder="Ex.: Ateliê Mira"
-                    autoComplete="organization"
-                    className={inputBase}
-                    value={storeName}
-                    onChange={(e) => handleStoreNameChange(e.target.value)}
-                  />
+            {/* Seção B: Sua loja — só na etapa 2 (após confirmar e-mail) */}
+            {stepLoja && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <h2 className="font-display font-semibold text-[13px] tracking-[0.08em] uppercase text-obsidian whitespace-nowrap">
+                    Sua loja
+                  </h2>
+                  <div className="h-px bg-sand flex-1" />
                 </div>
-              </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="font-body font-medium text-[13px] text-obsidian">
-                  Link da loja
-                </label>
-                <SlugInput name="slug" value={slug} onChange={setSlug} />
-              </div>
+                <div className="flex flex-col gap-2">
+                  <label className="font-body font-medium text-[13px] text-obsidian">
+                    Nome da loja
+                  </label>
+                  <div className={inputWrap}>
+                    <Store size={18} className="text-graphite flex-shrink-0" />
+                    <input
+                      type="text"
+                      name="store_name"
+                      placeholder="Ex.: Ateliê Mira"
+                      autoComplete="organization"
+                      className={inputBase}
+                      value={storeName}
+                      onChange={(e) => handleStoreNameChange(e.target.value)}
+                    />
+                  </div>
+                </div>
 
-              {stepLoja && (
+                <div className="flex flex-col gap-2">
+                  <label className="font-body font-medium text-[13px] text-obsidian">
+                    Link da loja
+                  </label>
+                  <SlugInput name="slug" value={slug} onChange={setSlug} />
+                </div>
+
                 <div className="flex flex-col gap-2">
                   <label className="font-body font-medium text-[13px] text-obsidian">
                     Instagram <span className="text-graphite font-normal">(opcional)</span>
@@ -184,8 +184,8 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
                     />
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             <button
               type="submit"
