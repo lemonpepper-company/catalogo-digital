@@ -62,6 +62,34 @@ describe("useCatalogo — canCheckout com pagamento e entrega (novo)", () => {
   });
 });
 
+describe("useCatalogo — checkoutBlockedReason (novo)", () => {
+  it("fica null quando canCheckout é true", () => {
+    const { result } = renderHook(() => useCatalogo({ store: baseStore, products }));
+    expect(result.current.canCheckout).toBe(true);
+    expect(result.current.checkoutBlockedReason).toBeNull();
+  });
+
+  it("fica null quando a loja não tem whatsapp (mensagem fica a cargo do BagDrawer)", () => {
+    const { result } = renderHook(() =>
+      useCatalogo({ store: { ...baseStore, whatsapp: "" }, products })
+    );
+    expect(result.current.checkoutBlockedReason).toBeNull();
+  });
+
+  it("informa para selecionar pagamento/entrega quando a loja tem whatsapp mas faltam seleções", () => {
+    const { result } = renderHook(() =>
+      useCatalogo({
+        store: { ...baseStore, paymentMethods: ["pix", "cartao"] },
+        products,
+      })
+    );
+    expect(result.current.canCheckout).toBe(false);
+    expect(result.current.checkoutBlockedReason).toBe(
+      "Selecione forma de pagamento e entrega para continuar."
+    );
+  });
+});
+
 describe("useCatalogo — handleCheckout com pagamento e entrega (novo)", () => {
   const productA: Product = {
     id: "p1",

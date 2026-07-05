@@ -62,6 +62,10 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     deliveryMethods.length === 0 ||
     (!!selectedDelivery && (selectedDelivery !== "entrega" || address.trim() !== ""));
   const canCheckout = hasWhatsapp && paymentComplete && deliveryComplete;
+  const checkoutBlockedReason =
+    hasWhatsapp && !canCheckout
+      ? "Selecione forma de pagamento e entrega para continuar."
+      : null;
 
   const handleAdd = useCallback(
     (product: Product, size: string | null, color: string | null, qty: number) => {
@@ -138,6 +142,7 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     address,
     setAddress,
     canCheckout,
+    checkoutBlockedReason,
     handleAdd,
     handleQty,
     handleRemove,

@@ -97,7 +97,7 @@ export function StoreHeader({
               )}
               {store.instagram && (
                 <a
-                  href={`https://instagram.com/${store.instagram}`}
+                  href={`https://instagram.com/${encodeURIComponent(store.instagram)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 font-body text-[12px] text-graphite hover:text-obsidian transition-colors"

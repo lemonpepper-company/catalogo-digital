@@ -165,24 +165,26 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
                 <SlugInput name="slug" value={slug} onChange={setSlug} />
               </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="font-body font-medium text-[13px] text-obsidian">
-                  Instagram <span className="text-graphite font-normal">(opcional)</span>
-                </label>
-                <div className={inputWrap}>
-                  <Instagram size={18} className="text-graphite flex-shrink-0" />
-                  <span className="font-body text-[15px] text-graphite flex-shrink-0">@</span>
-                  <input
-                    type="text"
-                    name="instagram"
-                    placeholder="seu.usuario"
-                    autoComplete="off"
-                    className={inputBase}
-                    value={instagram}
-                    onChange={(e) => setInstagram(e.target.value)}
-                  />
+              {stepLoja && (
+                <div className="flex flex-col gap-2">
+                  <label className="font-body font-medium text-[13px] text-obsidian">
+                    Instagram <span className="text-graphite font-normal">(opcional)</span>
+                  </label>
+                  <div className={inputWrap}>
+                    <Instagram size={18} className="text-graphite flex-shrink-0" />
+                    <span className="font-body text-[15px] text-graphite flex-shrink-0">@</span>
+                    <input
+                      type="text"
+                      name="instagram"
+                      placeholder="seu.usuario"
+                      autoComplete="off"
+                      className={inputBase}
+                      value={instagram}
+                      onChange={(e) => setInstagram(e.target.value)}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <button

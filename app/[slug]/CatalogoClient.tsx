@@ -43,6 +43,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
     address,
     setAddress,
     canCheckout,
+    checkoutBlockedReason,
     handleAdd,
     handleQty,
     handleRemove,
@@ -146,6 +147,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
         open={bagOpen}
         items={cart}
         canCheckout={canCheckout}
+        blockedReason={checkoutBlockedReason}
         paymentMethods={paymentMethods}
         selectedPayment={selectedPayment}
         onSelectPayment={setSelectedPayment}

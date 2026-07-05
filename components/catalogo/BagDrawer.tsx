@@ -10,6 +10,7 @@ interface BagDrawerProps {
   open: boolean;
   items: CartItem[];
   canCheckout?: boolean;
+  blockedReason?: string | null;
   paymentMethods?: string[];
   selectedPayment?: string | null;
   onSelectPayment?: (method: string) => void;
@@ -28,6 +29,7 @@ export function BagDrawer({
   open,
   items,
   canCheckout = true,
+  blockedReason = null,
   paymentMethods = [],
   selectedPayment = null,
   onSelectPayment,
@@ -239,11 +241,17 @@ export function BagDrawer({
               </div>
             )}
 
-            {!canCheckout && (
-              <p className="font-body text-[13px] text-graphite text-center">
-                Esta loja ainda não configurou o WhatsApp.
-              </p>
-            )}
+            {(() => {
+              const message =
+                blockedReason ?? (canCheckout ? null : "Esta loja ainda não configurou o WhatsApp.");
+              return (
+                message && (
+                  <p className="font-body text-[13px] text-graphite text-center">
+                    {message}
+                  </p>
+                )
+              );
+            })()}
             <button
               onClick={onCheckout}
               disabled={!canCheckout}
