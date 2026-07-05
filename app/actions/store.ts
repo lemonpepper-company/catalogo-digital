@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
 import { storeSettingsSchema } from "@/lib/validation/painel";
@@ -65,6 +65,6 @@ export async function updateStoreSettings(
 
   revalidatePath("/painel/configuracoes");
   revalidatePath("/painel");
-  revalidateTag(`catalog-${store.slug}`, "max");
+  updateTag(`catalog-${store.slug}`);
   return { ok: true };
 }

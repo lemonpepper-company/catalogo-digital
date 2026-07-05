@@ -34,7 +34,6 @@ async function fetchPublicCatalog(slug: string): Promise<PublicCatalog> {
       .select(PRODUCT_COLS)
       .eq("store_id", (storeRow as PublicStoreRow).id)
       .eq("is_active", true)
-      .gt("stock", 0)
       .order("created_at", { ascending: false }),
     supabase
       .from("categories")
