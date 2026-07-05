@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useRef } from "react";
 import { updateStoreSettings } from "@/app/actions/store";
-import { compressImage } from "@/lib/image-compress";
+import { useLojaFields } from "@/components/loja/use-loja-fields";
 import type { StoreSettings, ToastState } from "@/lib/types";
 
 export const MSG_DEFAULT = `{saudacao}\n\n{itens}\n\n{pagamento}\n\n{entrega}\n\n━━━━━━━━━━━━━━━━━\n*Total: {total}*\n━━━━━━━━━━━━━━━━━`;
@@ -19,48 +19,32 @@ type State = { error: string } | { ok: true } | null;
 
 export function useConfiguracoes(settings: StoreSettings) {
   const [storeName, setStoreName] = useState(settings.name);
-  const [whatsapp, setWhatsapp] = useState(settings.whatsapp ?? '');
-  const [monogram, setMonogram] = useState(settings.monogram ?? '');
-  const [storeDescription, setStoreDescription] = useState(settings.description ?? '');
-  const [instagram, setInstagram] = useState(settings.instagram ?? '');
-  const [paymentMethods, setPaymentMethods] = useState<string[]>(settings.paymentMethods ?? []);
-  const [deliveryMethods, setDeliveryMethods] = useState<string[]>(settings.deliveryMethods ?? []);
-
-  const togglePaymentMethod = (value: string) => {
-    setPaymentMethods((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
-    );
-  };
-
-  const toggleDeliveryMethod = (value: string) => {
-    setDeliveryMethods((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
-    );
-  };
-  // analyticsId e pixelId removidos do estado local — UI temporariamente oculta
-  const [accent, setAccent] = useState(settings.accentColor);
+  const loja = useLojaFields({
+    whatsapp: settings.whatsapp,
+    monogram: settings.monogram,
+    storeDescription: settings.description,
+    instagram: settings.instagram,
+    accentColor: settings.accentColor,
+    paymentMethods: settings.paymentMethods,
+    deliveryMethods: settings.deliveryMethods,
+  });
   const [msgTpl, setMsgTpl] = useState(settings.messageTemplate ?? MSG_DEFAULT);
-  const [logo, setLogoState] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const setLogo = async (file: File | null) => {
-    const compressed = file ? await compressImage(file) : null;
-    setLogoState(compressed);
-    setLogoPreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return compressed ? URL.createObjectURL(compressed) : null;
-    });
-  };
   const [toast, setToast] = useState<ToastState | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const flash = (msg: string, tone: ToastState["tone"] = "success") => {
+    setToast({ msg, tone });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const [state, formAction, pending] = useActionState<State, FormData>(
     async (prev, formData) => {
-      formData.set("accentColor", accent);
+      formData.set("accentColor", loja.accent);
       formData.set("messageTemplate", msgTpl);
-      formData.set("instagram", instagram);
-      formData.set("paymentMethods", JSON.stringify(paymentMethods));
-      formData.set("deliveryMethods", JSON.stringify(deliveryMethods));
-      if (logo) formData.set("logo", logo);
+      formData.set("instagram", loja.instagram);
+      formData.set("paymentMethods", JSON.stringify(loja.paymentMethods));
+      formData.set("deliveryMethods", JSON.stringify(loja.deliveryMethods));
+      if (loja.logo) formData.set("logo", loja.logo);
       const res = await updateStoreSettings(prev, formData);
       if (res && "ok" in res) flash("Configurações salvas");
       if (res && "error" in res) flash(res.error, "error");
@@ -68,11 +52,6 @@ export function useConfiguracoes(settings: StoreSettings) {
     },
     null
   );
-
-  const flash = (msg: string, tone: ToastState["tone"] = "success") => {
-    setToast({ msg, tone });
-    setTimeout(() => setToast(null), 3000);
-  };
 
   const insertToken = (token: string) => {
     const el = textareaRef.current;
@@ -98,25 +77,9 @@ export function useConfiguracoes(settings: StoreSettings) {
     settings,
     storeName,
     setStoreName,
-    whatsapp,
-    setWhatsapp,
-    monogram,
-    setMonogram,
-    storeDescription,
-    setStoreDescription,
-    instagram,
-    setInstagram,
-    paymentMethods,
-    togglePaymentMethod,
-    deliveryMethods,
-    toggleDeliveryMethod,
-    accent,
-    setAccent,
+    ...loja,
     msgTpl,
     setMsgTpl,
-    logo,
-    logoPreview,
-    setLogo,
     state,
     formAction,
     pending,
