@@ -120,6 +120,20 @@ Sistema baseado em múltiplos de 8px. Nunca usar valores fora dessa escala.
 - Sem `box-shadow` — borda sutil `0.5px solid #E2DFDA`
 - Fechar: botão X no canto superior direito ou clique no overlay
 
+### 5.6 Linha de contato do header
+
+- Aparece abaixo do nome da loja no catálogo público, só quando há descrição, WhatsApp ou Instagram cadastrados
+- Descrição: DM Sans 13px, cor Graphite
+- Links: ícone Lucide (`MessageCircle` para WhatsApp, `Instagram` para Instagram) + label, 12px, cor Graphite, hover Obsidian
+- Link de WhatsApp do header abre conversa vazia (sem mensagem) — diferente do CTA de checkout da sacola, que já leva o pedido
+
+### 5.7 Seletor de pagamento/entrega (sacola)
+
+- Mesmo estilo de chip usado na seleção de tamanho em `ProductDetail`: pílula com borda Sand, texto Obsidian; selecionado vira fundo Obsidian + texto branco
+- Nenhuma opção vem pré-selecionada, mesmo havendo uma única opção configurada — padroniza com tamanho/cor
+- Grupo (pagamento ou entrega) só aparece se a loja tiver ao menos 1 opção habilitada em Configurações
+- Campo de endereço (input de texto livre) aparece só quando "Enviar no endereço" está selecionado
+
 ---
 
 ## 6. Grid e breakpoints
