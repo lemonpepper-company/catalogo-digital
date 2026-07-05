@@ -1,3 +1,5 @@
+import { PAYMENT_METHODS, DELIVERY_METHODS } from "@/lib/data";
+
 export function parsePrice(price: string): number {
   return parseFloat(price.replace(/R\$\s*/, "").trim().replace(",", "."));
 }
@@ -15,6 +17,32 @@ type WhatsAppItem = {
 
 export const WHATSAPP_GREETING = "Olá! Gostaria de fazer um pedido:";
 const WHATSAPP_SEPARATOR = "━━━━━━━━━━━━━━━━━";
+
+export interface OrderInfo {
+  payment?: string | null;
+  delivery?: string | null;
+  address?: string | null;
+}
+
+export function formatPaymentLine(payment?: string | null): string {
+  const method = PAYMENT_METHODS.find((m) => m.value === payment);
+  return method ? `Forma de pagamento: ${method.label}` : "";
+}
+
+export function formatDeliveryLine(delivery?: string | null, address?: string | null): string {
+  const method = DELIVERY_METHODS.find((m) => m.value === delivery);
+  if (!method) return "";
+  if (method.value === "entrega" && address?.trim()) {
+    return `Entrega: ${method.label} — ${address.trim()}`;
+  }
+  return `Entrega: ${method.label}`;
+}
+
+// {pagamento}/{entrega} podem resolver para string vazia quando a loja não
+// configurou aquele grupo — colapsa as quebras de linha extras que sobram.
+function collapseBlankLines(message: string): string {
+  return message.replace(/\n{3,}/g, "\n\n").trim();
+}
 
 export function cartTotal(items: WhatsAppItem[]): number {
   return items.reduce((s, it) => s + parsePrice(it.product.price) * it.qty, 0);
@@ -37,9 +65,12 @@ export function formatItemsBlock(items: WhatsAppItem[]): string {
     .join("\n\n");
 }
 
-export function buildWhatsAppMessage(items: WhatsAppItem[]): string {
+export function buildWhatsAppMessage(items: WhatsAppItem[], order?: OrderInfo): string {
   const total = cartTotal(items);
-  return `${WHATSAPP_GREETING}\n\n${formatItemsBlock(items)}\n\n${WHATSAPP_SEPARATOR}\n*Total: ${formatMoney(total)}*\n${WHATSAPP_SEPARATOR}`;
+  const pagamento = formatPaymentLine(order?.payment);
+  const entrega = formatDeliveryLine(order?.delivery, order?.address);
+  const message = `${WHATSAPP_GREETING}\n\n${formatItemsBlock(items)}\n\n${pagamento}\n\n${entrega}\n\n${WHATSAPP_SEPARATOR}\n*Total: ${formatMoney(total)}*\n${WHATSAPP_SEPARATOR}`;
+  return collapseBlankLines(message);
 }
 
 // Normaliza um número de WhatsApp para o formato do wa.me: só dígitos, com código do país BR (55).
@@ -62,14 +93,18 @@ export function normalizeWhatsapp(input: string | null | undefined): string {
 // Variáveis desconhecidas ({foo}) são mantidas literais.
 export function renderWhatsAppMessage(
   template: string | null | undefined,
-  items: WhatsAppItem[]
+  items: WhatsAppItem[],
+  order?: OrderInfo
 ): string {
   const trimmed = template?.trim();
-  if (!trimmed) return buildWhatsAppMessage(items);
-  return trimmed
+  if (!trimmed) return buildWhatsAppMessage(items, order);
+  const rendered = trimmed
     .replaceAll("{saudacao}", WHATSAPP_GREETING)
     .replaceAll("{itens}", formatItemsBlock(items))
-    .replaceAll("{total}", formatMoney(cartTotal(items)));
+    .replaceAll("{total}", formatMoney(cartTotal(items)))
+    .replaceAll("{pagamento}", formatPaymentLine(order?.payment))
+    .replaceAll("{entrega}", formatDeliveryLine(order?.delivery, order?.address));
+  return collapseBlankLines(rendered);
 }
 
 export function cn(...classes: (string | undefined | null | false)[]): string {
