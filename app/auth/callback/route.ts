@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/redefinir-senha`)
   }
 
-  // Verifica se loja já existe (login Google de usuário existente)
+  // Verifica se loja já existe (usuário existente, ex.: login Google)
   const { data: store } = await supabase
     .from('stores')
     .select('plan')
@@ -75,51 +75,8 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // Usuário novo — verifica se veio do cadastro por e-mail (tem metadata)
+  // Usuário novo — cria o profile e segue para a etapa de dados da loja
   const meta = user.user_metadata ?? {}
-
-  if (meta.store_name && meta.slug) {
-    // Cadastro por e-mail confirmado: cria profile + store
-    await supabase.from('profiles').upsert({
-      id: user.id,
-      full_name: meta.full_name ?? '',
-    })
-
-    // MODO DEMO (a partir de jul/2026): toda loja nasce Starter, sem expiração.
-    // Para voltar ao modelo com trial + escolha de plano, restaurar o bloco abaixo:
-    //
-    // const trialEndsAt = new Date()
-    // trialEndsAt.setDate(trialEndsAt.getDate() + 14)
-    //
-    // const { error: storeError } = await supabase.from('stores').insert({
-    //   owner_id: user.id,
-    //   name: meta.store_name,
-    //   slug: meta.slug,
-    //   trial_ends_at: trialEndsAt.toISOString(),
-    // })
-    //
-    // if (storeError) {
-    //   return NextResponse.redirect(`${origin}/cadastro?error=store`)
-    // }
-    //
-    // return NextResponse.redirect(`${origin}/escolha-de-plano`)
-
-    const { error: storeError } = await supabase.from('stores').insert({
-      owner_id: user.id,
-      name: meta.store_name,
-      slug: meta.slug,
-      plan: 'starter',
-      trial_ends_at: null,
-    })
-
-    if (storeError) {
-      return NextResponse.redirect(`${origin}/cadastro?error=store`)
-    }
-
-    return NextResponse.redirect(`${origin}/painel`)
-  }
-
-  // Google OAuth para usuário novo — precisa preencher dados da loja
   await supabase.from('profiles').upsert({
     id: user.id,
     full_name: meta.full_name ?? meta.name ?? '',
