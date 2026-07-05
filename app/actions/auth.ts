@@ -3,6 +3,8 @@
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { PAYMENT_METHOD_VALUES, DELIVERY_METHOD_VALUES } from '@/lib/data'
+import { uploadToBucket } from '@/lib/server/upload'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -42,7 +44,13 @@ const resetPasswordSchema = z
 const storeSchema = z.object({
   store_name: z.string().min(2, 'Nome da loja deve ter ao menos 2 caracteres'),
   slug: z.string().regex(/^[a-z0-9-]{2,50}$/, 'Link inválido'),
+  whatsapp: z.string().min(1, 'WhatsApp é obrigatório'),
+  monogram: z.string().max(3, 'Monograma deve ter no máximo 3 letras').nullable(),
+  description: z.string().nullable(),
   instagram: z.string().nullable(),
+  accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Cor inválida'),
+  paymentMethods: z.array(z.enum(PAYMENT_METHOD_VALUES)),
+  deliveryMethods: z.array(z.enum(DELIVERY_METHOD_VALUES)),
 })
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -136,7 +144,13 @@ export async function createStore(
   const result = storeSchema.safeParse({
     store_name: formData.get('store_name'),
     slug: formData.get('slug'),
+    whatsapp: (formData.get('whatsapp') as string) || '',
+    monogram: (formData.get('monogram') as string) || null,
+    description: (formData.get('description') as string) || null,
     instagram: (formData.get('instagram') as string)?.replace(/^@+/, '').trim() || null,
+    accentColor: formData.get('accentColor'),
+    paymentMethods: JSON.parse((formData.get('paymentMethods') as string) || '[]'),
+    deliveryMethods: JSON.parse((formData.get('deliveryMethods') as string) || '[]'),
   })
 
   if (!result.success) {
@@ -162,29 +176,47 @@ export async function createStore(
   // const trialEndsAt = new Date()
   // trialEndsAt.setDate(trialEndsAt.getDate() + 14)
   //
-  // const { error } = await supabase.from('stores').insert({
-  //   owner_id: user.id,
-  //   name: result.data.store_name,
-  //   slug: result.data.slug,
-  //   trial_ends_at: trialEndsAt.toISOString(),
-  // })
-  //
   // ... e trocar o redirect final para '/escolha-de-plano'
 
-  const { error } = await supabase.from('stores').insert({
-    owner_id: user.id,
-    name: result.data.store_name,
-    slug: result.data.slug,
-    plan: 'starter',
-    trial_ends_at: null,
-    instagram: result.data.instagram,
-  })
+  const { data: store, error } = await supabase
+    .from('stores')
+    .insert({
+      owner_id: user.id,
+      name: result.data.store_name,
+      slug: result.data.slug,
+      plan: 'starter',
+      trial_ends_at: null,
+      whatsapp: result.data.whatsapp,
+      monogram: result.data.monogram,
+      description: result.data.description,
+      instagram: result.data.instagram,
+      accent_color: result.data.accentColor,
+      payment_methods: result.data.paymentMethods,
+      delivery_methods: result.data.deliveryMethods,
+    })
+    .select('id')
+    .single()
 
   if (error) {
     if (error.code === '23505') {
       return { error: 'Esse link já está em uso. Tente outro.' }
     }
     return { error: 'Erro ao criar loja. Tente novamente.' }
+  }
+
+  // Logo é opcional e só pode ser enviado depois que a loja existe (o caminho
+  // no Storage usa o id da loja). Falha no upload não desfaz a loja já criada
+  // — o lojista pode enviar o logo depois em Configurações.
+  const logo = formData.get('logo') as File | null
+  if (logo && logo.size > 0) {
+    const ext = logo.name.split('.').pop() || 'png'
+    const path = `${store.id}/logo/${crypto.randomUUID()}.${ext}`
+    try {
+      const logoUrl = await uploadToBucket(supabase, path, logo)
+      await supabase.from('stores').update({ logo_url: logoUrl }).eq('id', store.id)
+    } catch {
+      // Ignorado de propósito — loja já foi criada com sucesso.
+    }
   }
 
   redirect('/painel')
