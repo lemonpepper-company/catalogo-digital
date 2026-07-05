@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parsePrice, formatMoney, buildWhatsAppMessage, renderWhatsAppMessage, normalizeWhatsapp, formatItemsBlock, WHATSAPP_GREETING, cn, parseReaisToCents, formatCents, formatPriceInput } from "@/lib/utils";
+import { parsePrice, formatMoney, buildWhatsAppMessage, renderWhatsAppMessage, normalizeWhatsapp, formatItemsBlock, WHATSAPP_GREETING, cn, parseReaisToCents, formatCents, formatPriceInput, formatPaymentLine, formatDeliveryLine } from "@/lib/utils";
 
 describe("parsePrice", () => {
   it("parses a Brazilian real price string", () => {
@@ -262,5 +262,80 @@ describe("formatPriceInput", () => {
 
   it("retorna string vazia para entrada vazia", () => {
     expect(formatPriceInput("")).toBe("");
+  });
+});
+
+describe("formatPaymentLine", () => {
+  it("retorna a linha formatada para um método conhecido", () => {
+    expect(formatPaymentLine("pix")).toBe("Forma de pagamento: Pix");
+    expect(formatPaymentLine("cartao")).toBe("Forma de pagamento: Cartão");
+  });
+
+  it("retorna vazio para método desconhecido, null ou undefined", () => {
+    expect(formatPaymentLine("boleto")).toBe("");
+    expect(formatPaymentLine(null)).toBe("");
+    expect(formatPaymentLine(undefined)).toBe("");
+  });
+});
+
+describe("formatDeliveryLine", () => {
+  it("retorna a linha de retirada", () => {
+    expect(formatDeliveryLine("retirada")).toBe("Entrega: Retirar no local");
+  });
+
+  it("retorna a linha de entrega com o endereço embutido", () => {
+    expect(formatDeliveryLine("entrega", "Rua X, 123")).toBe(
+      "Entrega: Enviar no endereço — Rua X, 123"
+    );
+  });
+
+  it("retorna a linha de entrega sem endereço quando ele não é informado", () => {
+    expect(formatDeliveryLine("entrega", "")).toBe("Entrega: Enviar no endereço");
+    expect(formatDeliveryLine("entrega")).toBe("Entrega: Enviar no endereço");
+  });
+
+  it("retorna vazio para método desconhecido, null ou undefined", () => {
+    expect(formatDeliveryLine("sedex")).toBe("");
+    expect(formatDeliveryLine(null)).toBe("");
+    expect(formatDeliveryLine(undefined)).toBe("");
+  });
+});
+
+describe("buildWhatsAppMessage — pagamento e entrega (novo)", () => {
+  const items = [
+    { product: { name: "Blusa", price: "R$ 80,00" }, size: null, color: null, qty: 1 },
+  ];
+
+  it("inclui as linhas de pagamento e entrega quando informadas", () => {
+    const msg = buildWhatsAppMessage(items, { payment: "pix", delivery: "retirada" });
+    expect(msg).toContain("Forma de pagamento: Pix");
+    expect(msg).toContain("Entrega: Retirar no local");
+  });
+
+  it("não deixa linhas em branco soltas quando pagamento/entrega não são informados", () => {
+    const msg = buildWhatsAppMessage(items);
+    expect(msg).not.toMatch(/\n{3,}/);
+    expect(msg).not.toContain("Forma de pagamento:");
+    expect(msg).not.toContain("Entrega:");
+  });
+});
+
+describe("renderWhatsAppMessage — pagamento e entrega (novo)", () => {
+  const items = [
+    { product: { name: "Blusa", price: "R$ 80,00" }, size: null, color: null, qty: 1 },
+  ];
+
+  it("substitui {pagamento} e {entrega} quando informados", () => {
+    const msg = renderWhatsAppMessage("{pagamento}\n{entrega}", items, {
+      payment: "cartao",
+      delivery: "entrega",
+      address: "Rua Y, 45",
+    });
+    expect(msg).toBe("Forma de pagamento: Cartão\nEntrega: Enviar no endereço — Rua Y, 45");
+  });
+
+  it("colapsa linhas em branco quando pagamento/entrega ficam vazios", () => {
+    const msg = renderWhatsAppMessage("Início\n\n{pagamento}\n\n{entrega}\n\nFim", items);
+    expect(msg).toBe("Início\n\nFim");
   });
 });
