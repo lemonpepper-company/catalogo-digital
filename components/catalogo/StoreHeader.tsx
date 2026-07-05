@@ -1,7 +1,8 @@
 "use client";
 
-import { Search, ShoppingBag, X } from "lucide-react";
+import { Search, ShoppingBag, X, MessageCircle, Instagram } from "lucide-react";
 import type { Store } from "@/lib/types";
+import { normalizeWhatsapp } from "@/lib/utils";
 
 interface StoreHeaderProps {
   store: Store;
@@ -73,6 +74,41 @@ export function StoreHeader({
           )}
         </button>
       </div>
+
+      {(store.description || store.whatsapp || store.instagram) && (
+        <div className="flex flex-col gap-1.5">
+          {store.description && (
+            <p className="font-body text-[13px] text-graphite leading-snug">
+              {store.description}
+            </p>
+          )}
+          {(store.whatsapp || store.instagram) && (
+            <div className="flex items-center gap-4">
+              {store.whatsapp && (
+                <a
+                  href={`https://wa.me/${normalizeWhatsapp(store.whatsapp)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 font-body text-[12px] text-graphite hover:text-obsidian transition-colors"
+                >
+                  <MessageCircle size={14} />
+                  WhatsApp
+                </a>
+              )}
+              {store.instagram && (
+                <a
+                  href={`https://instagram.com/${store.instagram}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 font-body text-[12px] text-graphite hover:text-obsidian transition-colors"
+                >
+                  <Instagram size={14} />@{store.instagram}
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {searchOpen && (
         <div className="relative">
