@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { ConfiguracoesClient } from "@/app/painel/configuracoes/ConfiguracoesClient";
 import type { StoreSettings } from "@/lib/types";
 
@@ -25,6 +25,9 @@ const baseSettings: StoreSettings = {
   analyticsId: null,
   pixelId: null,
   messageTemplate: null,
+  instagram: null,
+  paymentMethods: [],
+  deliveryMethods: [],
 };
 
 describe("ConfiguracoesClient logo avatar", () => {
@@ -42,5 +45,40 @@ describe("ConfiguracoesClient logo avatar", () => {
     render(<ConfiguracoesClient settings={baseSettings} />);
     expect(screen.getByText("AM")).toBeTruthy();
     expect(screen.queryByRole("img")).toBeNull();
+  });
+});
+
+describe("ConfiguracoesClient — Instagram (novo)", () => {
+  it("renderiza o instagram salvo", () => {
+    render(<ConfiguracoesClient settings={{ ...baseSettings, instagram: "atelieming" }} />);
+    expect(screen.getByLabelText(/Instagram/i)).toHaveValue("atelieming");
+  });
+});
+
+describe("ConfiguracoesClient — pagamento e entrega (novo)", () => {
+  it("renderiza todas as opções desmarcadas por padrão", () => {
+    render(<ConfiguracoesClient settings={baseSettings} />);
+    const pixRow = screen.getByText("Pix").closest("div")!.parentElement!.parentElement!;
+    expect(within(pixRow).getByRole("switch").getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("marca a forma de pagamento salva anteriormente", () => {
+    render(<ConfiguracoesClient settings={{ ...baseSettings, paymentMethods: ["pix"] }} />);
+    const pixRow = screen.getByText("Pix").closest("div")!.parentElement!.parentElement!;
+    expect(within(pixRow).getByRole("switch").getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("alterna a forma de pagamento ao clicar no switch", () => {
+    render(<ConfiguracoesClient settings={baseSettings} />);
+    const pixRow = screen.getByText("Pix").closest("div")!.parentElement!.parentElement!;
+    const toggle = within(pixRow).getByRole("switch");
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("marca a forma de entrega salva anteriormente", () => {
+    render(<ConfiguracoesClient settings={{ ...baseSettings, deliveryMethods: ["entrega"] }} />);
+    const entregaRow = screen.getByText("Enviar no endereço").closest("div")!.parentElement!.parentElement!;
+    expect(within(entregaRow).getByRole("switch").getAttribute("aria-checked")).toBe("true");
   });
 });
