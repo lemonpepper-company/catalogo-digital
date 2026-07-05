@@ -57,6 +57,18 @@ export const metadata: Metadata = {
       "Crie sua vitrine digital e catálogo de produtos em minutos. O cliente escolhe a peça e vai direto pro seu WhatsApp.",
     creator: "@vtrinedigital",
   },
+  icons: {
+    icon: [
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  manifest: "/site.webmanifest",
+  appleWebApp: {
+    title: "Vtrine",
+  },
   robots: {
     index: true,
     follow: true,
