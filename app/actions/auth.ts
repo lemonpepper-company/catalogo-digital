@@ -44,6 +44,7 @@ const resetPasswordSchema = z
 const storeSchema = z.object({
   store_name: z.string().min(2, 'Nome da loja deve ter ao menos 2 caracteres'),
   slug: z.string().regex(/^[a-z0-9-]{2,50}$/, 'Link inválido'),
+  instagram: z.string().nullable(),
 })
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -139,6 +140,7 @@ export async function createStore(
   const result = storeSchema.safeParse({
     store_name: formData.get('store_name'),
     slug: formData.get('slug'),
+    instagram: (formData.get('instagram') as string)?.replace(/^@+/, '').trim() || null,
   })
 
   if (!result.success) {
@@ -179,6 +181,7 @@ export async function createStore(
     slug: result.data.slug,
     plan: 'starter',
     trial_ends_at: null,
+    instagram: result.data.instagram,
   })
 
   if (error) {
