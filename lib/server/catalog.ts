@@ -10,7 +10,7 @@ import {
 } from "@/lib/catalog";
 
 const STORE_COLS =
-  "id, name, slug, is_active, whatsapp, accent_color, logo_url, description, monogram, analytics_id, pixel_id, message_template";
+  "id, name, slug, is_active, whatsapp, accent_color, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods";
 const PRODUCT_COLS =
   "id, name, price_cents, description, category_id, sizes, sold_sizes, colors, images, stock, is_active, is_new";
 

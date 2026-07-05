@@ -25,6 +25,7 @@ export interface Store {
   monogram: string;
   logoUrl?: string | null;
   whatsapp: string;
+  instagram?: string;
   categories: string[];
   description: string;
   accentColor: string;
@@ -32,6 +33,8 @@ export interface Store {
   analyticsId?: string;
   pixelId?: string;
   messageTemplate?: string | null;
+  paymentMethods?: string[];
+  deliveryMethods?: string[];
 }
 
 export interface CartItem {

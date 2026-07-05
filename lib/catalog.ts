@@ -18,6 +18,9 @@ export interface PublicStoreRow {
   analytics_id: string | null;
   pixel_id: string | null;
   message_template: string | null;
+  instagram: string | null;
+  payment_methods: string[] | null;
+  delivery_methods: string[] | null;
 }
 
 export interface PublicProductRow {
@@ -69,6 +72,9 @@ export function mapPublicStore(
     analyticsId: row.analytics_id ?? undefined,
     pixelId: row.pixel_id ?? undefined,
     messageTemplate: row.message_template,
+    instagram: row.instagram ?? undefined,
+    paymentMethods: row.payment_methods ?? [],
+    deliveryMethods: row.delivery_methods ?? [],
   };
 }
 
