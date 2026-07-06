@@ -51,6 +51,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
   } = useCatalogo({ store, products });
 
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const accentStyle = { "--color-primary": store.accentColor } as React.CSSProperties;
 
   useEffect(() => {
     if (!hasMore) return;
@@ -71,6 +72,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
     return (
       <div
         className="fixed inset-0 z-20 bg-ivory md:flex md:items-center md:justify-center md:bg-black/50 md:p-6"
+        style={accentStyle}
         onClick={(e) => {
           if (e.target === e.currentTarget) setOpenProduct(null);
         }}
@@ -88,7 +90,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-ivory relative">
+    <div className="min-h-screen bg-ivory relative" style={accentStyle}>
       <div className="sticky top-0 z-10 bg-ivory">
         <StoreHeader
           store={store}
