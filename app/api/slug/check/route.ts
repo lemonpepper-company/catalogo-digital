@@ -1,9 +1,23 @@
 import { createClient } from '@/lib/supabase/server'
+import { checkRateLimit } from '@/lib/server/rate-limit'
+import { buildSlugCandidates, pickAvailableSlug } from '@/lib/server/slug-suggest'
 import { NextRequest, NextResponse } from 'next/server'
 
 const SLUG_REGEX = /^[a-z0-9-]{2,50}$/
 
+function getClientIp(request: NextRequest): string {
+  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+}
+
 export async function GET(request: NextRequest) {
+  const allowed = await checkRateLimit(`slug-check:${getClientIp(request)}`)
+  if (!allowed) {
+    return NextResponse.json(
+      { available: false, error: 'Muitas requisições. Tente novamente em instantes.' },
+      { status: 429 }
+    )
+  }
+
   const slug = new URL(request.url).searchParams.get('slug') ?? ''
 
   if (!SLUG_REGEX.test(slug)) {
@@ -25,32 +39,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ available: true })
   }
 
-  // Encontra sugestão disponível com sufixo numérico
-  let suffix = 2
-  let suggestion = `${slug}-${suffix}`
-
-  while (suffix <= 10) {
-    const { data } = await supabase
-      .from('stores')
-      .select('id')
-      .eq('slug', suggestion)
-      .maybeSingle()
-
-    if (!data) break
-
-    suffix++
-    suggestion = `${slug}-${suffix}`
-  }
-
-  // Verify the suggestion is actually available (handles loop exhaustion)
-  const { data: verify } = await supabase
+  // Busca todos os candidatos de uma vez (1 query) em vez de checar um a um
+  const candidates = buildSlugCandidates(slug)
+  const { data: taken } = await supabase
     .from('stores')
-    .select('id')
-    .eq('slug', suggestion)
-    .maybeSingle()
+    .select('slug')
+    .in('slug', candidates)
 
-  if (verify) {
-    // No good suggestion found
+  const suggestion = pickAvailableSlug(
+    candidates,
+    (taken ?? []).map((row) => row.slug)
+  )
+
+  if (!suggestion) {
     return NextResponse.json({ available: false })
   }
 
