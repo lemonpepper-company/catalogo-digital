@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi } from "vitest";
 import {
   uploadToBucket,
@@ -6,8 +7,17 @@ import {
 } from "@/lib/server/upload";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-function makeFile(name: string, size: number, type = "image/jpeg") {
-  const file = new File([new Uint8Array(Math.max(size, 1))], name, { type });
+const JPEG_MAGIC_BYTES = [0xff, 0xd8, 0xff, 0xe0];
+
+function makeFile(
+  name: string,
+  size: number,
+  type = "image/jpeg",
+  bytes: number[] = JPEG_MAGIC_BYTES
+) {
+  const content = new Uint8Array(Math.max(size, bytes.length));
+  content.set(bytes);
+  const file = new File([content], name, { type });
   Object.defineProperty(file, "size", { value: size });
   return file;
 }
@@ -35,6 +45,46 @@ describe("uploadToBucket", () => {
     await expect(
       uploadToBucket(supabase, "store1/foo.jpg", makeFile("foo.jpg", 100))
     ).rejects.toThrow();
+  });
+
+  it("rejeita arquivo maior que 5MB", async () => {
+    const supabase = makeSupabaseMock(() => ({ error: null }));
+    const bigFile = makeFile("foo.jpg", 6 * 1024 * 1024);
+    await expect(uploadToBucket(supabase, "store1/foo.jpg", bigFile)).rejects.toThrow(
+      /muito grande/
+    );
+  });
+
+  it("rejeita conteúdo cujo tipo real não é uma imagem suportada, mesmo com file.type mentindo", async () => {
+    const supabase = makeSupabaseMock(() => ({ error: null }));
+    const fakeImage = makeFile("foo.jpg", 100, "image/jpeg", [
+      ...new TextEncoder().encode("<svg onload=alert(1)>"),
+    ]);
+    await expect(uploadToBucket(supabase, "store1/foo.jpg", fakeImage)).rejects.toThrow(
+      /não permitido/
+    );
+  });
+
+  it("usa o content-type detectado pelos magic bytes, não o file.type do cliente", async () => {
+    const upload = vi.fn(() => Promise.resolve({ error: null }));
+    const supabase = {
+      storage: {
+        from: vi.fn(() => ({
+          upload,
+          getPublicUrl: () => ({ data: { publicUrl: "https://example.com/x" } }),
+        })),
+      },
+    } as unknown as SupabaseClient;
+
+    // file.type diz PNG, mas os bytes reais são de um JPEG
+    const file = makeFile("foo.png", 100, "image/png", JPEG_MAGIC_BYTES);
+    await uploadToBucket(supabase, "store1/foo.png", file);
+
+    expect(upload).toHaveBeenCalledWith(
+      "store1/foo.png",
+      file,
+      expect.objectContaining({ contentType: "image/jpeg" })
+    );
   });
 });
 
