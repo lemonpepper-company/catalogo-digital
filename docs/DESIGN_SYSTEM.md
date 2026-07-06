@@ -9,8 +9,8 @@
 
 | Token | Hex | Nome | Uso |
 |---|---|---|---|
-| `--color-primary` | `#0D0D0D` | Obsidian | Navbar, botão primário, textos de peso |
-| `--color-accent` | `#C9A96E` | Gold Dust | CTA de compra, ênfase máxima — usar com parcimônia |
+| `--color-primary` | `#0D0D0D` | Obsidian | Navbar, botão primário, textos de peso. **No catálogo público, é sobrescrita por página** com a cor de destaque (`accentColor`) configurada pela loja — ver §5.8 |
+| `--color-accent` | `#C9A96E` | Gold Dust | Valor padrão de `accentColor` para lojas novas; CTA de compra, ênfase máxima — usar com parcimônia |
 | `--color-bg` | `#F9F9F7` | Ivory | Background principal de todas as páginas |
 | `--color-surface` | `#F0EDE8` | Linen | Cards, inputs, seções alternadas |
 | `--color-text-1` | `#0D0D0D` | Obsidian | Títulos e textos de alto contraste |
@@ -88,7 +88,7 @@ Sistema baseado em múltiplos de 8px. Nunca usar valores fora dessa escala.
 | Variante | Fundo | Texto | Uso |
 |---|---|---|---|
 | Primary | `#0D0D0D` | Branco | Ação principal do painel (salvar, publicar) |
-| CTA Compra | `#C9A96E` | Branco | Exclusivo para "Enviar pedido via WhatsApp" |
+| CTA Compra | `var(--color-primary)` (cor de destaque da loja, padrão `#C9A96E`) | Branco | "Adicionar à sacola", "Comprar" e "Enviar pedido via WhatsApp" — ver §5.8 |
 | Ghost | Transparente | Obsidian | Ações secundárias (cancelar, restaurar padrão) |
 | Destructive | `#FDECEA` | `#C0392B` | Excluir produto, ação irreversível |
 
@@ -133,6 +133,13 @@ Sistema baseado em múltiplos de 8px. Nunca usar valores fora dessa escala.
 - Nenhuma opção vem pré-selecionada, mesmo havendo uma única opção configurada — padroniza com tamanho/cor
 - Grupo (pagamento ou entrega) só aparece se a loja tiver ao menos 1 opção habilitada em Configurações
 - Campo de endereço (input de texto livre) aparece só quando "Enviar no endereço" está selecionado
+
+### 5.8 Cor de destaque (por loja)
+
+- A loja escolhe uma cor em Configurações/Cadastro (paleta `ACCENT_COLOR_OPTIONS`, padrão Gold Dust `#C9A96E`), persistida em `stores.accent_color`
+- No catálogo público (`app/[slug]/CatalogoClient.tsx`), essa cor é injetada como a variável CSS `--color-primary` num `style` na raiz da página — não é uma classe Tailwind fixa
+- Componentes que usam `var(--color-primary)` diretamente no `style` (não a classe `bg-gold`) refletem essa cor automaticamente: monograma do header, botão de busca ativo (`StoreHeader`), botão "Adicionar à sacola" (`ProductCard`, `ProductDetail`) e "Enviar pedido via WhatsApp" (`BagDrawer`)
+- No painel do lojista (`/painel`), `--color-primary` permanece fixo em Obsidian — a cor de destaque só tema o catálogo público, não o painel administrativo
 
 ---
 

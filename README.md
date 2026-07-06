@@ -13,7 +13,7 @@ O sistema tem duas superfícies:
 
 ### Tema visual
 
-**Bold Minimal Premium.** Obsidian (`#0D0D0D`) como âncora, Gold Dust (`#C9A96E`) como único accent (reservado ao CTA de compra), neutros quentes Ivory/Linen, muito espaço em branco. Sem gradientes, sem box-shadow.
+**Bold Minimal Premium.** Obsidian (`#0D0D0D`) como âncora, neutros quentes Ivory/Linen, muito espaço em branco. Sem gradientes, sem box-shadow. No catálogo público, o CTA de compra usa a cor de destaque escolhida por cada loja (padrão Gold Dust `#C9A96E`) — ver `docs/DESIGN_SYSTEM.md` §5.8.
 
 ## Stack
 
@@ -60,6 +60,7 @@ app/
 components/
   ui/                   # Primitivos reutilizáveis (Button, Badge, Pill, Input…)
   catalogo/             # Componentes da vitrine (BagDrawer, ProductCard, StoreHeader…)
+  loja/                 # Identidade/cor/pagamento-entrega compartilhados (Configurações + cadastro)
 lib/
   server/               # Funções server-side (store, catalog, upload)
   supabase/             # Clients Supabase (browser + server)

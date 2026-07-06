@@ -118,6 +118,7 @@ Emails de confirmação ficam em **Mailpit**: `http://localhost:54324`
 | `tailwind.config.ts` | Mapeamento dos tokens para classes Tailwind |
 | `components/ui/` | Primitivos reutilizáveis (Button, Badge, Pill, Input, Switch, PasswordInput, SlugInput, StatCard…) |
 | `components/catalogo/` | Componentes do catálogo público (BagDrawer, ProductCard, ProductDetail, StoreHeader, CatalogExpired) |
+| `components/loja/` | `IdentidadeFields`, `CorDestaqueFields`, `PagamentoEntregaFields` e o hook `useLojaFields` — compartilhados entre Configurações e a etapa 2 do cadastro, para não duplicar a mesma UI/lógica nas duas telas |
 | `supabase/config.toml` | Configuração do Supabase local (auth, email, rate limits) |
 | `supabase/migrations/` | Migrations SQL versionadas |
 | `docs/DESIGN_SYSTEM.md` | Design system completo |
@@ -156,7 +157,7 @@ A função `getPublicCatalog(slug)` em `lib/server/catalog.ts` encapsula toda a 
 - **Autenticação**: completa — cadastro 2 etapas, login email/senha, recuperação/redefinição de senha, confirmação de email
 - **Modo demo**: cadastro pula a escolha de plano; toda loja nova nasce com `plan = 'starter'` e `trial_ends_at = null` (indeterminado). Na landing: preços ocultos (texto "Em breve"), botões "Começar" removidos dos cards de plano, e a seção de depoimentos (fictícios) oculta. A página `/escolha-de-plano` mantém a UI original com preços — não é revisada porque fica inacessível no fluxo
 - **Painel do lojista** (`/painel`): totalmente conectado ao Supabase — dashboard, produtos (CRUD + upload de fotos), categorias (CRUD + limites de plano), configurações da loja
-- **Catálogo público** (`/[slug]`): dados reais do Supabase via RLS anon — grid de produtos, detalhe, sacola (drawer), checkout WhatsApp com template customizável, header com descrição e links de WhatsApp/Instagram, página de loja expirada
+- **Catálogo público** (`/[slug]`): dados reais do Supabase via RLS anon — grid de produtos, detalhe, sacola (drawer), checkout WhatsApp com template customizável, header com descrição e links de WhatsApp/Instagram, página de loja expirada. A cor de destaque (`accentColor`) configurada pela loja é injetada como `--color-primary` na raiz da página e reflete no monograma, na busca ativa e nos botões de CTA (adicionar à sacola, comprar, enviar pedido)
 - **Checkout**: pagamento e forma de entrega configuráveis por loja (`stores.payment_methods`/`delivery_methods`); o cliente escolhe entre as opções habilitadas antes de enviar o pedido — grupos sem nenhuma opção configurada não aparecem na sacola
 - **Limites de plano**: `getPlanLimits()` aplicado em Server Actions de produtos e categorias — como toda loja demo nasce Starter, os limites de Starter (30 produtos, 5 categorias, 3 fotos) se aplicam normalmente
 - **Storage**: bucket `product-images` com upload, compressão no cliente e remoção de imagens antigas ao editar
