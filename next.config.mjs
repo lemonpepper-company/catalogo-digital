@@ -9,12 +9,33 @@ const supabaseProtocol = supabaseUrl
 // fora de produção, onde a proteção continua ativa.
 const allowLocalImageHost = process.env.NODE_ENV !== "production";
 
+// React/Turbopack usam eval() em dev para HMR e stack traces; nunca em produção.
+const scriptSrc = allowLocalImageHost
+  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://va.vercel-scripts.com"
+  : "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://va.vercel-scripts.com";
+
+const csp = [
+  "default-src 'self'",
+  scriptSrc,
+  "style-src 'self' 'unsafe-inline'",
+  `img-src 'self' data: https://images.unsplash.com${supabaseHost ? ` https://${supabaseHost}` : ""}`,
+  `connect-src 'self' https://www.google-analytics.com${supabaseHost ? ` https://${supabaseHost} wss://${supabaseHost}` : ""}`,
+  "font-src 'self'",
+  "frame-ancestors 'self'",
+].join("; ");
+
 const nextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: "8mb",
     },
   },
+  headers: async () => [
+    {
+      source: "/(.*)",
+      headers: [{ key: "Content-Security-Policy", value: csp }],
+    },
+  ],
   images: {
     dangerouslyAllowLocalIP: allowLocalImageHost,
     remotePatterns: [

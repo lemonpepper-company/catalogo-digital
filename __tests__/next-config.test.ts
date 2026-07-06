@@ -29,3 +29,33 @@ describe("next.config image remotePatterns", () => {
     expect(supa!.protocol).toBe("https");
   });
 });
+
+async function loadCsp(nodeEnv: string) {
+  vi.resetModules();
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://abc.supabase.co");
+  vi.stubEnv("NODE_ENV", nodeEnv);
+  const mod = await import("@/next.config.mjs");
+  const headersFn = mod.default.headers as () => Promise<
+    { source: string; headers: { key: string; value: string }[] }[]
+  >;
+  const [{ headers }] = await headersFn();
+  return headers.find((h) => h.key === "Content-Security-Policy")!.value;
+}
+
+describe("next.config Content-Security-Policy", () => {
+  it("inclui unsafe-eval em desenvolvimento (necessário para HMR/React DevTools)", async () => {
+    const csp = await loadCsp("development");
+    expect(csp).toContain("'unsafe-eval'");
+  });
+
+  it("não inclui unsafe-eval em produção", async () => {
+    const csp = await loadCsp("production");
+    expect(csp).not.toContain("'unsafe-eval'");
+  });
+
+  it("permite o host do Supabase em img-src e connect-src", async () => {
+    const csp = await loadCsp("production");
+    expect(csp).toContain("img-src 'self' data: https://images.unsplash.com https://abc.supabase.co");
+    expect(csp).toContain("https://abc.supabase.co wss://abc.supabase.co");
+  });
+});
