@@ -3,6 +3,8 @@
 import { useActionState, useState } from 'react'
 import { slugify } from '@/lib/auth/slugify'
 import { signUp, createStore } from '@/app/actions/auth'
+import { useLojaFields } from '@/components/loja/use-loja-fields'
+import { ACCENT_COLOR_OPTIONS } from '@/lib/data'
 
 type FormState = { error: string } | null
 
@@ -13,10 +15,27 @@ export function useCadastroForm(stepLoja: boolean) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [storeName, setStoreName] = useState('')
   const [slug, setSlug] = useState('')
-  const [instagram, setInstagram] = useState('')
+
+  const loja = useLojaFields({
+    whatsapp: null,
+    monogram: null,
+    storeDescription: null,
+    instagram: null,
+    accentColor: ACCENT_COLOR_OPTIONS[0],
+    paymentMethods: [],
+    deliveryMethods: [],
+  })
 
   const [state, action, pending] = useActionState<FormState, FormData>(
-    stepLoja ? createStore : signUp,
+    async (prev, formData) => {
+      if (!stepLoja) return signUp(prev, formData)
+      formData.set('accentColor', loja.accent)
+      formData.set('instagram', loja.instagram)
+      formData.set('paymentMethods', JSON.stringify(loja.paymentMethods))
+      formData.set('deliveryMethods', JSON.stringify(loja.deliveryMethods))
+      if (loja.logo) formData.set('logo', loja.logo)
+      return createStore(prev, formData)
+    },
     null
   )
 
@@ -38,8 +57,7 @@ export function useCadastroForm(stepLoja: boolean) {
     handleStoreNameChange,
     slug,
     setSlug,
-    instagram,
-    setInstagram,
+    ...loja,
     state,
     action,
     pending,
