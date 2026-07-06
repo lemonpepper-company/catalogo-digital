@@ -18,8 +18,8 @@ Implementada com **Supabase Auth** + **`@supabase/ssr`** (cookies httpOnly). Sem
 /cadastro (etapa 1: dados pessoais)
   → /verificar-email?email=X (aguarda confirmação)
   → [clique no email] → /auth/callback (cria só o profile no banco)
-  → /cadastro?step=loja (etapa 2: nome e slug da loja)
-  → createStore (cria a loja, já com plan='starter')
+  → /cadastro?step=loja (etapa 2: nome/slug da loja, WhatsApp, logo, monograma, Instagram, descrição, cor de destaque e formas de pagamento/entrega)
+  → createStore (cria a loja, já com plan='starter' e o perfil completo)
   → /painel
 ```
 
@@ -108,7 +108,7 @@ Emails de confirmação ficam em **Mailpit**: `http://localhost:54324`
 | `lib/image-compress.ts` | Compressão de imagens no cliente antes do upload |
 | `lib/validation/painel.ts` | Schemas Zod para produtos, categorias, configurações da loja |
 | `middleware.ts` | Proteção de rotas e redirecionamentos por estado de auth |
-| `app/actions/auth.ts` | Server Actions: `signUp`, `signIn`, `signInWithGoogle`, `createStore`, `selectPlan`, `requestPasswordReset`, `resetPassword`, `resendConfirmation`, `signOut` |
+| `app/actions/auth.ts` | Server Actions: `signUp`, `signIn`, `signInWithGoogle`, `createStore`, `selectPlan`, `requestPasswordReset`, `resetPassword`, `resendConfirmation`, `signOut`. `createStore` agora coleta o perfil completo (WhatsApp obrigatório, logo, monograma, Instagram, descrição, cor de destaque, formas de pagamento/entrega) durante a etapa 2 do cadastro |
 | `app/actions/produtos.ts` | Server Actions: `createProduct`, `updateProduct`, `deleteProduct`, `toggleProductActive` |
 | `app/actions/categorias.ts` | Server Actions: `createCategory`, `updateCategory`, `deleteCategory` |
 | `app/actions/store.ts` | Server Actions: `updateStoreSettings` |
