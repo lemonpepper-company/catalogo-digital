@@ -7,6 +7,9 @@ import { signOut } from '@/app/actions/auth'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { SlugInput } from '@/components/ui/SlugInput'
 import { VtrineLogo } from '@/components/ui/VtrineLogo'
+import { IdentidadeFields } from '@/components/loja/IdentidadeFields'
+import { CorDestaqueFields } from '@/components/loja/CorDestaqueFields'
+import { PagamentoEntregaFields } from '@/components/loja/PagamentoEntregaFields'
 
 const inputWrap =
   'flex items-center gap-2 h-12 px-4 bg-white border border-sand rounded-input focus-within:outline focus-within:outline-2 focus-within:outline-obsidian focus-within:outline-offset-2 focus-within:border-obsidian transition-all'
@@ -26,6 +29,13 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
     storeName, handleStoreNameChange,
     slug, setSlug,
     instagram, setInstagram,
+    whatsapp, setWhatsapp,
+    monogram, setMonogram,
+    storeDescription, setStoreDescription,
+    accent, setAccent,
+    paymentMethods, togglePaymentMethod,
+    deliveryMethods, toggleDeliveryMethod,
+    logo, logoPreview, setLogo,
     state, action, pending,
   } = useCadastroForm(stepLoja)
 
@@ -167,24 +177,47 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
                   <SlugInput name="slug" value={slug} onChange={setSlug} />
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <label className="font-body font-medium text-[13px] text-obsidian">
-                    Instagram <span className="text-graphite font-normal">(opcional)</span>
-                  </label>
-                  <div className={inputWrap}>
-                    <Instagram size={18} className="text-graphite flex-shrink-0" />
-                    <span className="font-body text-[15px] text-graphite flex-shrink-0">@</span>
-                    <input
-                      type="text"
-                      name="instagram"
-                      placeholder="seu.usuario"
-                      autoComplete="off"
-                      className={inputBase}
-                      value={instagram}
-                      onChange={(e) => setInstagram(e.target.value)}
-                    />
-                  </div>
+                <div className="flex items-center gap-3 mt-2">
+                  <h2 className="font-display font-semibold text-[13px] tracking-[0.08em] uppercase text-obsidian whitespace-nowrap">
+                    Identidade
+                  </h2>
+                  <div className="h-px bg-sand flex-1" />
                 </div>
+                <IdentidadeFields
+                  nameForInitials={storeName}
+                  logoPreview={logoPreview}
+                  logoFileName={logo?.name}
+                  onLogoChange={setLogo}
+                  whatsapp={whatsapp}
+                  onWhatsappChange={setWhatsapp}
+                  monogram={monogram}
+                  onMonogramChange={setMonogram}
+                  instagram={instagram}
+                  onInstagramChange={setInstagram}
+                  storeDescription={storeDescription}
+                  onStoreDescriptionChange={setStoreDescription}
+                />
+
+                <div className="flex items-center gap-3 mt-2">
+                  <h2 className="font-display font-semibold text-[13px] tracking-[0.08em] uppercase text-obsidian whitespace-nowrap">
+                    Cor de destaque
+                  </h2>
+                  <div className="h-px bg-sand flex-1" />
+                </div>
+                <CorDestaqueFields accent={accent} onAccentChange={setAccent} />
+
+                <div className="flex items-center gap-3 mt-2">
+                  <h2 className="font-display font-semibold text-[13px] tracking-[0.08em] uppercase text-obsidian whitespace-nowrap">
+                    Pagamento e entrega
+                  </h2>
+                  <div className="h-px bg-sand flex-1" />
+                </div>
+                <PagamentoEntregaFields
+                  paymentMethods={paymentMethods}
+                  onTogglePaymentMethod={togglePaymentMethod}
+                  deliveryMethods={deliveryMethods}
+                  onToggleDeliveryMethod={toggleDeliveryMethod}
+                />
               </div>
             )}
 
