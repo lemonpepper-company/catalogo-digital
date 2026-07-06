@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { detectImageMimeType } from "./image-signature";
 
 const BUCKET = "product-images";
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export function publicUrlToPath(url: string): string | null {
   const marker = `/${BUCKET}/`;
@@ -13,9 +15,21 @@ export async function uploadToBucket(
   path: string,
   file: File
 ): Promise<string> {
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error("Arquivo muito grande. Tamanho máximo: 5MB.");
+  }
+
+  // Confia no conteúdo real do arquivo (magic bytes), não no file.type
+  // declarado pelo cliente — evita upload de SVG/HTML disfarçado de imagem.
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const contentType = detectImageMimeType(bytes);
+  if (!contentType) {
+    throw new Error("Tipo de arquivo não permitido. Envie JPEG, PNG, WEBP ou GIF.");
+  }
+
   const { error } = await supabase.storage
     .from(BUCKET)
-    .upload(path, file, { contentType: file.type });
+    .upload(path, file, { contentType });
   if (error) throw new Error("Falha no upload.");
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
