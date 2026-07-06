@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { User, Mail, ArrowLeft, ArrowRight, Store, Instagram } from 'lucide-react'
+import { User, Mail, ArrowLeft, ArrowRight, Store } from 'lucide-react'
 import { useCadastroForm } from './use-cadastro-form'
 import { signOut } from '@/app/actions/auth'
 import { PasswordInput } from '@/components/ui/PasswordInput'
