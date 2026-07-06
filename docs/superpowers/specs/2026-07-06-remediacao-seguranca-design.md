@@ -13,17 +13,18 @@
   ⚠️ **Nota de verificação:** `git log --all --full-history -- .env.local` não retorna nada e o arquivo não está em `git ls-files` — nunca foi commitado. Não é necessário rotacionar a chave por exposição no repo. A única exposição real é a chave ter sido colada em texto claro no PDF/relatório salvo em `~/Downloads`; avaliar se vale rotacionar por essa via.
   Ação restante: adicionar scanner de segredos ao CI (`gitleaks` ou `trufflehog`) como prevenção futura.
 
-- [ ] **ALTA-02** — Ausência de Content Security Policy (CSP)
-  Arquivos: `next.config.mjs`, `middleware.ts`, `app/layout.tsx`
-  Ação: adicionar header CSP via `next.config.mjs` cobrindo GA, Vercel Speed Insights e Supabase.
+- [x] **ALTA-02** — Ausência de Content Security Policy (CSP)
+  Arquivos: `next.config.mjs`, `__tests__/next-config.test.ts`
+  Feito: header CSP via `next.config.mjs` (`default-src 'self'`, allowlist para GA/Speed Insights/Supabase, `unsafe-eval` só em dev para HMR/React DevTools). Verificado no dev server: header presente na resposta, sem erros de console, home carrega normalmente.
 
-- [ ] **ALTA-03** — Sem rate limiting em `/api/slug/check`
-  Arquivo: `app/api/slug/check/route.ts`
-  Ação: adicionar rate limiting (Upstash Redis ou similar) e reduzir o loop de sugestão de slug (hoje até 12 queries sequenciais por request).
+- [x] **ALTA-03** — Sem rate limiting em `/api/slug/check`
+  Arquivos: `app/api/slug/check/route.ts`, `lib/server/rate-limit.ts`, `lib/server/slug-suggest.ts`
+  Feito: rate limiting via Upstash Redis (`@upstash/ratelimit` + `@upstash/redis`, sliding window 10 req/10s por IP) — fica inativo automaticamente se `UPSTASH_REDIS_REST_URL`/`TOKEN` não estiverem provisionados ainda. Loop de sugestão de slug reduzido de até 12 queries sequenciais para no máximo 2 (`.in()` com os 9 candidatos de uma vez).
+  ⚠️ **Pendente do seu lado:** provisionar a integração Upstash no Vercel Marketplace (`vercel integration add upstash` ou dashboard) — não tenho Vercel CLI/projeto linkado nesta sessão para provisionar. Sem isso o rate limit fica desativado (fail-open), mas a redução de queries já vale sozinha.
 
-- [ ] **ALTA-04** — Sem validação de MIME/tamanho no upload de imagens
-  Arquivos: `lib/server/upload.ts`, `app/actions/produtos.ts`
-  Ação: validar `file.type` contra allowlist e `file.size` no servidor antes do upload ao bucket público.
+- [x] **ALTA-04** — Sem validação de MIME/tamanho no upload de imagens
+  Arquivos: `lib/server/upload.ts`, `lib/server/image-signature.ts`
+  Feito: validação por magic bytes (JPEG/PNG/GIF/WEBP) em vez de confiar no `file.type` do cliente, limite de 5MB, `contentType` do Storage definido pelo tipo detectado (não pelo declarado). Cobre todos os callers (`produtos.ts`, `auth.ts`, `store.ts`) por ser um único ponto de upload.
 
 ---
 
