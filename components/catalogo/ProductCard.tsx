@@ -63,12 +63,13 @@ export function ProductCard({ product, onOpen, priority = false }: ProductCardPr
             e.stopPropagation();
             if (!isSoldOut) onOpen(product);
           }}
+          style={isSoldOut ? undefined : { background: "var(--color-primary)" }}
           className={[
             "w-full h-[38px] rounded-btn flex items-center justify-center gap-1.5",
             "font-display font-medium text-[12px] tracking-[0.02em] whitespace-nowrap transition-colors",
             isSoldOut
               ? "bg-linen text-inactive cursor-not-allowed"
-              : "bg-gold text-white hover:bg-gold-hover",
+              : "text-white hover:brightness-90",
           ].join(" ")}
         >
           {isSoldOut ? (

@@ -255,10 +255,11 @@ export function BagDrawer({
             <button
               onClick={onCheckout}
               disabled={!canCheckout}
+              style={canCheckout ? { background: "var(--color-primary)" } : undefined}
               className={[
                 "w-full h-[52px] rounded-btn font-display font-medium text-[16px] flex items-center justify-center gap-2.5 transition-colors",
                 canCheckout
-                  ? "bg-gold text-white hover:bg-gold-hover"
+                  ? "text-white hover:brightness-90"
                   : "bg-linen text-inactive cursor-not-allowed",
               ].join(" ")}
             >

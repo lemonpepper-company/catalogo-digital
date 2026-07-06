@@ -314,11 +314,12 @@ export function ProductDetail({ product, onBack, onAdd }: ProductDetailProps) {
           <button
             onClick={() => canAdd && onAdd(product, selectedSize, selectedColor, qty)}
             disabled={!canAdd}
+            style={canAdd ? { background: "var(--color-primary)" } : undefined}
             className={[
               "w-full h-[52px] rounded-btn flex items-center justify-center gap-2.5",
               "font-display font-medium text-[16px] transition-all duration-200",
               canAdd
-                ? "bg-gold text-white hover:bg-gold-hover"
+                ? "text-white hover:brightness-90"
                 : "bg-linen text-inactive cursor-not-allowed",
             ].join(" ")}
           >
