@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { checkRateLimit } from '@/lib/server/rate-limit'
 import { buildSlugCandidates, pickAvailableSlug } from '@/lib/server/slug-suggest'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -7,8 +6,7 @@ const SLUG_REGEX = /^[a-z0-9-]{2,50}$/
 
 // Único consumidor: o passo "step=loja" do cadastro, alcançado apenas por quem
 // já confirmou a conta (ver app/(auth)/cadastro/page.tsx). Por isso a rota exige
-// sessão em vez de ficar pública — fecha o caminho de abuso/enumeração anônima
-// na raiz, não só nos sintomas (rate limit fica como defesa secundária).
+// sessão em vez de ficar pública — fecha o caminho de abuso/enumeração anônima.
 export async function GET(request: NextRequest) {
   const slug = new URL(request.url).searchParams.get('slug') ?? ''
 
@@ -27,14 +25,6 @@ export async function GET(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ available: false, error: 'Não autenticado.' }, { status: 401 })
-  }
-
-  const allowed = await checkRateLimit(`slug-check:${user.id}`)
-  if (!allowed) {
-    return NextResponse.json(
-      { available: false, error: 'Muitas requisições. Tente novamente em instantes.' },
-      { status: 429 }
-    )
   }
 
   const { data: existing } = await supabase
