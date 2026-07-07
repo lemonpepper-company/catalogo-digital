@@ -18,9 +18,9 @@
   Feito: header CSP via `next.config.mjs` (`default-src 'self'`, allowlist para GA/Speed Insights/Supabase, `unsafe-eval` só em dev para HMR/React DevTools). Verificado no dev server: header presente na resposta, sem erros de console, home carrega normalmente.
 
 - [x] **ALTA-03** — Sem rate limiting em `/api/slug/check`
-  Arquivos: `app/api/slug/check/route.ts`, `lib/server/rate-limit.ts`, `lib/server/slug-suggest.ts`
-  Feito: rate limiting via Upstash Redis (`@upstash/ratelimit` + `@upstash/redis`, sliding window 10 req/10s por IP) — fica inativo automaticamente se `UPSTASH_REDIS_REST_URL`/`TOKEN` não estiverem provisionados ainda. Loop de sugestão de slug reduzido de até 12 queries sequenciais para no máximo 2 (`.in()` com os 9 candidatos de uma vez).
-  ⚠️ **Pendente do seu lado:** provisionar a integração Upstash no Vercel Marketplace (`vercel integration add upstash` ou dashboard) — não tenho Vercel CLI/projeto linkado nesta sessão para provisionar. Sem isso o rate limit fica desativado (fail-open), mas a redução de queries já vale sozinha.
+  Arquivos: `app/api/slug/check/route.ts`, `app/(auth)/cadastro/page.tsx`, `lib/server/rate-limit.ts`, `lib/server/slug-suggest.ts`
+  **Revisão do achado:** a causa raiz não era só a ausência de rate limit — o endpoint só é usado no passo "step=loja" do cadastro, que só deveria ser alcançável por quem já confirmou a conta, mas a página não tinha nenhuma verificação de sessão. Defesa primária agora é **autenticação** (rota retorna 401 sem sessão; página `/cadastro?step=loja` redireciona para `/login` sem sessão). Rate limiting via Upstash mantido como defesa secundária (sliding window 10 req/10s por usuário autenticado) — fica inativo automaticamente se `UPSTASH_REDIS_REST_URL`/`TOKEN` não estiverem provisionados. Loop de sugestão de slug reduzido de até 12 queries sequenciais para no máximo 2 (`.in()` com os 9 candidatos de uma vez).
+  ⚠️ **Pendente do seu lado (opcional agora):** provisionar a integração Upstash no Vercel Marketplace (`vercel integration add upstash` ou dashboard) para ativar a defesa secundária — não tenho Vercel CLI/projeto linkado nesta sessão para provisionar. Menos urgente agora que a rota exige autenticação.
 
 - [x] **ALTA-04** — Sem validação de MIME/tamanho no upload de imagens
   Arquivos: `lib/server/upload.ts`, `lib/server/image-signature.ts`
