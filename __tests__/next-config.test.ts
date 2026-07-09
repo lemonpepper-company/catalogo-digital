@@ -59,3 +59,25 @@ describe("next.config Content-Security-Policy", () => {
     expect(csp).toContain("https://abc.supabase.co wss://abc.supabase.co");
   });
 });
+
+async function loadSecurityHeaders() {
+  vi.resetModules();
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://abc.supabase.co");
+  const mod = await import("@/next.config.mjs");
+  const headersFn = mod.default.headers as () => Promise<
+    { source: string; headers: { key: string; value: string }[] }[]
+  >;
+  const [{ headers }] = await headersFn();
+  return Object.fromEntries(headers.map((h) => [h.key, h.value]));
+}
+
+describe("next.config security headers", () => {
+  it("define os headers HTTP essenciais", async () => {
+    const headers = await loadSecurityHeaders();
+    expect(headers["X-Frame-Options"]).toBe("SAMEORIGIN");
+    expect(headers["X-Content-Type-Options"]).toBe("nosniff");
+    expect(headers["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
+    expect(headers["Permissions-Policy"]).toBe("camera=(), microphone=(), geolocation=()");
+    expect(headers["Strict-Transport-Security"]).toBe("max-age=63072000; includeSubDomains");
+  });
+});
