@@ -66,21 +66,21 @@
 
 ## 🟡 Baixas (melhorias incrementais)
 
-- [ ] **BAIXA-01** — CSRF em `selectPlan` sem FormData explícito
-  Arquivo: `app/actions/auth.ts` (linha 225)
-  Risco documentado como baixo (Server Actions do Next.js já têm proteção CSRF built-in).
+- [x] **BAIXA-01** — CSRF em `selectPlan` sem FormData explícito
+  Arquivo: `app/actions/auth.ts` (linha 226)
+  ✅ **Verificado, sem ação necessária:** `selectPlan` já chama `getUser()` como a primeira linha, antes de qualquer leitura/escrita, e o update é escopado com `.eq('owner_id', user.id)` — exatamente a defesa que o relatório pedia como mitigação (risco em si já documentado como baixo).
 
-- [ ] **BAIXA-02** — Sem `.max()` em campos de texto livre
-  Arquivo: `lib/validation/painel.ts`
-  Ação: adicionar limites (`description` 500, `messageTemplate` 2000, `instagram` 100, etc.).
-
-- [ ] **BAIXA-03** — Sem validação de formato do WhatsApp no servidor
+- [x] **BAIXA-02** — Sem `.max()` em campos de texto livre
   Arquivos: `lib/validation/painel.ts`, `app/actions/auth.ts`
-  Ação: adicionar regex de validação de telefone.
+  Feito: `description` (500), `messageTemplate` (2000), `instagram` (100) em ambos os schemas (configurações e cadastro inicial da loja).
 
-- [ ] **BAIXA-04** — `dangerouslyAllowLocalIP` em dev
-  Arquivo: `next.config.mjs` (linhas 10-19)
-  Já documentado e restrito a não-produção; sem ação necessária além de manter comentário explicativo.
+- [x] **BAIXA-03** — Sem validação de formato do WhatsApp no servidor
+  Arquivos: `lib/validation/painel.ts`, `app/actions/auth.ts`
+  Feito: `whatsappSchema` compartilhado (regex `/^\+?[0-9\s()-]{10,20}$/`) usado nos dois schemas, em vez de duas validações divergentes.
+
+- [x] **BAIXA-04** — `dangerouslyAllowLocalIP` em dev
+  Arquivo: `next.config.mjs`
+  ✅ **Verificado, sem ação necessária:** já restrito a `NODE_ENV !== "production"` com comentário explicativo desde antes deste relatório.
 
 ---
 
@@ -88,9 +88,11 @@
 
 - [ ] **INFO-01** — CAPTCHA disponível mas não habilitado
   Arquivo: `supabase/config.toml` (linhas 213-218)
+  Deixado de fora a pedido.
 
-- [ ] **INFO-02** — GA sem banner de consentimento LGPD
-  Arquivo: `app/layout.tsx` (linhas 89-100)
+- [x] **INFO-02** — GA sem banner de consentimento LGPD
+  Arquivos: `components/analytics/` (novo), `app/layout.tsx`
+  Feito: banner de consentimento (aceitar/recusar, com link pra `/politica-de-privacidade`) que aparece em toda página até o visitante decidir; o script do GA só é injetado depois de "Aceitar". Decisão persistida em `localStorage`. Testado ponta a ponta no dev server: sem decisão → banner aparece e nenhum request ao GA acontece; clicar em Aceitar → banner some, `gtag/js` carrega; decisão já salva → banner não aparece.
 
 ---
 

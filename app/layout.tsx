@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Sora, DM_Sans } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import Script from "next/script";
+import { Analytics } from "@/components/analytics/Analytics";
 import "./globals.css";
 
 const sora = Sora({
@@ -87,22 +87,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         {children}
         <SpeedInsights />
-        {gaId && (
-          <>
-            <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-              strategy="afterInteractive"
-            />
-            <Script id="google-analytics" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${gaId}');
-              `}
-            </Script>
-          </>
-        )}
+        <Analytics gaId={gaId} />
       </body>
     </html>
   );
