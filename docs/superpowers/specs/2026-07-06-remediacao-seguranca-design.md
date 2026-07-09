@@ -30,18 +30,19 @@
 
 ## 🟠 Médias (Prioridade 2 — após lançamento inicial)
 
-- [ ] **MEDIA-01** — Open redirect via `?next=` no login
-  Arquivo: `app/actions/auth.ts` (linha ~119)
-  Ação: substituir o check `startsWith('/')` por validação via `new URL(url, base).origin === base`.
+- [x] **MEDIA-01** — Open redirect via `?next=` no login
+  Arquivos: `app/actions/auth.ts`, `lib/auth/safe-redirect.ts`
+  Feito: `getSafeRedirect()` usa o parser de URL nativo (`new URL(next, base).origin === base`) em vez de `startsWith('/')`, fechando os bypasses via barra invertida (`/\evil.com`, `\\evil.com`) citados no relatório. 9 testes cobrindo os casos.
 
-- [ ] **MEDIA-02** — Faltam headers HTTP essenciais
+- [x] **MEDIA-02** — Faltam headers HTTP essenciais
   Arquivo: `next.config.mjs`
-  Ação: adicionar `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`.
+  Feito: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`. Verificado na resposta real do dev server.
 
-- [ ] **MEDIA-03** — RLS de `stores` expõe todas as colunas ao público
-  Arquivo: `supabase/migrations/20260616031248_init_auth.sql` (linha 27)
-  ✅ **Confirmado real:** a policy `using (true)` permite leitura de todas as colunas (`whatsapp`, `payment_methods`, `delivery_methods`, etc.) via PostgREST direto, não só o `id` usado pela aplicação.
-  Ação: criar view pública restrita aos campos necessários ou reescrever a policy para expor só as colunas do catálogo público.
+- [x] **MEDIA-03** — RLS de `stores` expõe todas as colunas ao público
+  Arquivo: `supabase/migrations/20260709000000_restringe_colunas_publicas_stores.sql`
+  ✅ **Confirmado real:** a policy `using (true)` permitia leitura de `owner_id`, `plan`, `trial_ends_at` via PostgREST direto com o papel `anon` — testado com `psql`/`curl` contra o Supabase local antes e depois do fix.
+  **Revisão do achado:** não usei `is_active = true` na policy (a sugestão do relatório) porque o app depende de conseguir ler lojas inativas para mostrar o estado "loja pausada" (`lib/catalog.ts:resolveCatalog`, status `hidden`) — restringir por linha quebraria essa UX. A policy de linha (`using (true)`) ficou como estava; a correção foi por **coluna**: `revoke select` do `anon` na tabela inteira + `grant select` só nas 15 colunas que o catálogo público já usa (`STORE_COLS` em `lib/server/catalog.ts`), excluindo `owner_id`, `plan`, `trial_ends_at`, `created_at`. Testado ponta a ponta via REST local: a query real do app continua funcionando, `select owner_id` e `select *` retornam `42501 permission denied`.
+  ⚠️ **Residual fora de escopo:** um lojista autenticado ainda consegue ler `owner_id`/`plan`/`trial_ends_at` de **outras** lojas ativas (o grant amplo de `authenticated` não é restringido por essa migration, só o de `anon` — o relatório fala especificamente de leitura *anônima*). Fechar isso por completo exigiria mover o catálogo público pra uma view dedicada; não fiz por não ser o que o achado pedia, mas fica registrado aqui se quiser revisitar.
 
 - [ ] **MEDIA-04** — MFA (TOTP) desabilitado
   Arquivo: `supabase/config.toml` (linhas 310-312)
