@@ -55,8 +55,16 @@ describe("next.config Content-Security-Policy", () => {
 
   it("permite o host do Supabase em img-src e connect-src", async () => {
     const csp = await loadCsp("production");
-    expect(csp).toContain("img-src 'self' data: https://images.unsplash.com https://abc.supabase.co");
+    expect(csp).toContain(
+      "img-src 'self' data: https://images.unsplash.com https://www.googletagmanager.com https://abc.supabase.co"
+    );
     expect(csp).toContain("https://abc.supabase.co wss://abc.supabase.co");
+  });
+
+  it("permite googletagmanager.com em img-src e connect-src (pixel de fallback do GA/GTM)", async () => {
+    const csp = await loadCsp("production");
+    expect(csp).toContain("img-src 'self' data: https://images.unsplash.com https://www.googletagmanager.com");
+    expect(csp).toContain("connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com");
   });
 });
 

@@ -18,8 +18,8 @@ const csp = [
   "default-src 'self'",
   scriptSrc,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: https://images.unsplash.com${supabaseHost ? ` https://${supabaseHost}` : ""}`,
-  `connect-src 'self' https://www.google-analytics.com${supabaseHost ? ` https://${supabaseHost} wss://${supabaseHost}` : ""}`,
+  `img-src 'self' data: https://images.unsplash.com https://www.googletagmanager.com${supabaseHost ? ` https://${supabaseHost}` : ""}`,
+  `connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com${supabaseHost ? ` https://${supabaseHost} wss://${supabaseHost}` : ""}`,
   "font-src 'self'",
   "frame-ancestors 'self'",
 ].join("; ");
