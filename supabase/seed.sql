@@ -5,10 +5,15 @@
 -- Owner de demonstração
 -- Tokens abaixo precisam ser '' (não NULL): o GoTrue quebra com 500 em /recover
 -- ao escanear NULL nessas colunas para usuários inseridos direto via SQL.
+--
+-- Este usuário existe só pra satisfazer o FK stores.owner_id -> profiles -> auth.users;
+-- ninguém precisa logar como ele (o link "Ver um catálogo" da landing aponta pro
+-- catálogo público, que não exige sessão). Por isso a senha é aleatória por reset,
+-- em vez de uma credencial fixa e conhecida — nunca use este seed em produção.
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at,
                         confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current, phone_change_token)
 values ('00000000-0000-0000-0000-000000000000', '11111111-1111-1111-1111-111111111111', 'authenticated', 'authenticated',
-        'demo@vtrinedigital.com.br', crypt('demo-seed', gen_salt('bf')), now(), now(), now(),
+        'demo@vtrinedigital.com.br', crypt(gen_random_uuid()::text, gen_salt('bf')), now(), now(), now(),
         '', '', '', '', '', '')
 on conflict (id) do nothing;
 

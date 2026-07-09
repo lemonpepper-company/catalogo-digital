@@ -48,9 +48,9 @@
   Arquivo: `supabase/config.toml` (linhas 310-312)
   Ação: habilitar `enroll_enabled`/`verify_enabled` para TOTP; oferecer como opcional para lojistas.
 
-- [ ] **MEDIA-05** — Senha do usuário de seed hardcoded
-  Arquivo: `supabase/seed.sql` (linha 11)
-  Ação: mover para variável de ambiente ou senha aleatória; restringir execução a ambiente `development`.
+- [x] **MEDIA-05** — Senha do usuário de seed hardcoded
+  Arquivo: `supabase/seed.sql`
+  **Revisão do achado:** não dava pra usar variável de ambiente de fato — `seed.sql` é executado como SQL puro pela CLI do Supabase (`supabase db reset`), sem interpolação de env vars do processo Node. Também não havia necessidade real de senha alguma: o usuário de seed só existe pra satisfazer o FK `stores.owner_id`, ninguém loga com ele (o link "Ver um catálogo" da landing é o catálogo público, sem sessão). Troquei `crypt('demo-seed', ...)` por `crypt(gen_random_uuid()::text, ...)` — senha aleatória a cada reset, nunca persistida em texto claro. Testado no Supabase local: a senha antiga (`demo-seed`) não bate mais com o hash gerado.
 
 - [ ] **MEDIA-06** — Google Analytics ID hardcoded
   Arquivo: `app/layout.tsx` (linhas 90, 98)
