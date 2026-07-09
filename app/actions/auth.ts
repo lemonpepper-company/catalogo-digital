@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { PAYMENT_METHOD_VALUES, DELIVERY_METHOD_VALUES } from '@/lib/data'
 import { uploadToBucket } from '@/lib/server/upload'
+import { getSafeRedirect } from '@/lib/auth/safe-redirect'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -117,7 +118,7 @@ export async function signIn(
   }
 
   const next = formData.get('next') as string | null
-  redirect(next && next.startsWith('/') && !next.startsWith('//') ? next : '/painel')
+  redirect(getSafeRedirect(next, '/painel'))
 }
 
 export async function signInWithGoogle(): Promise<never> {
