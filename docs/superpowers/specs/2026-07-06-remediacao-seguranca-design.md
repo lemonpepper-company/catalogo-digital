@@ -52,9 +52,10 @@
   Arquivo: `supabase/seed.sql`
   **Revisão do achado:** não dava pra usar variável de ambiente de fato — `seed.sql` é executado como SQL puro pela CLI do Supabase (`supabase db reset`), sem interpolação de env vars do processo Node. Também não havia necessidade real de senha alguma: o usuário de seed só existe pra satisfazer o FK `stores.owner_id`, ninguém loga com ele (o link "Ver um catálogo" da landing é o catálogo público, sem sessão). Troquei `crypt('demo-seed', ...)` por `crypt(gen_random_uuid()::text, ...)` — senha aleatória a cada reset, nunca persistida em texto claro. Testado no Supabase local: a senha antiga (`demo-seed`) não bate mais com o hash gerado.
 
-- [ ] **MEDIA-06** — Google Analytics ID hardcoded
-  Arquivo: `app/layout.tsx` (linhas 90, 98)
-  Ação: mover `G-01EYR8VF7D` para `NEXT_PUBLIC_GA_ID`.
+- [x] **MEDIA-06** — Google Analytics ID hardcoded
+  Arquivo: `app/layout.tsx`
+  Feito: `G-01EYR8VF7D` movido para `NEXT_PUBLIC_GA_ID`; o script só é injetado se a env var existir (antes sempre carregava, mesmo em dev). Verificado no dev server: sem a env var, nenhum script de GA aparece no HTML.
+  ⚠️ **Pendente do seu lado:** adicionar `NEXT_PUBLIC_GA_ID=G-01EYR8VF7D` nas env vars do projeto (Vercel dashboard / `.env.local`) — não pude escrever em `.env*` aqui (bloqueado por hook do projeto).
 
 - [ ] **MEDIA-07** — `secure_password_change = false`
   Arquivo: `supabase/config.toml` (linha 228)
