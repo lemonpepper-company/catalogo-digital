@@ -10,17 +10,19 @@ const supabaseProtocol = supabaseUrl
 const allowLocalImageHost = process.env.NODE_ENV !== "production";
 
 // React/Turbopack usam eval() em dev para HMR e stack traces; nunca em produção.
+// vercel.live é o toolbar de "Live Feedback" injetado só em preview/dev, nunca em produção.
 const scriptSrc = allowLocalImageHost
-  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://va.vercel-scripts.com"
+  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://va.vercel-scripts.com https://vercel.live"
   : "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://va.vercel-scripts.com";
 
 const csp = [
   "default-src 'self'",
   scriptSrc,
-  "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: https://images.unsplash.com${supabaseHost ? ` https://${supabaseHost}` : ""}`,
-  `connect-src 'self' https://www.google-analytics.com${supabaseHost ? ` https://${supabaseHost} wss://${supabaseHost}` : ""}`,
-  "font-src 'self'",
+  `style-src 'self' 'unsafe-inline'${allowLocalImageHost ? " https://vercel.live" : ""}`,
+  `img-src 'self' data: https://images.unsplash.com${supabaseHost ? ` https://${supabaseHost}` : ""}${allowLocalImageHost ? " https://vercel.live" : ""}`,
+  `connect-src 'self' https://www.google-analytics.com${supabaseHost ? ` https://${supabaseHost} wss://${supabaseHost}` : ""}${allowLocalImageHost ? " https://vercel.live wss://ws-us3.pusher.com" : ""}`,
+  `font-src 'self'${allowLocalImageHost ? " https://vercel.live" : ""}`,
+  `frame-src 'self'${allowLocalImageHost ? " https://vercel.live" : ""}`,
   "frame-ancestors 'self'",
 ].join("; ");
 
