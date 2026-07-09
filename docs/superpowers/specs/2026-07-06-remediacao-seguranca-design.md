@@ -57,9 +57,10 @@
   Feito: `G-01EYR8VF7D` movido para `NEXT_PUBLIC_GA_ID`; o script só é injetado se a env var existir (antes sempre carregava, mesmo em dev). Verificado no dev server: sem a env var, nenhum script de GA aparece no HTML.
   ⚠️ **Pendente do seu lado:** adicionar `NEXT_PUBLIC_GA_ID=G-01EYR8VF7D` nas env vars do projeto (Vercel dashboard / `.env.local`) — não pude escrever em `.env*` aqui (bloqueado por hook do projeto).
 
-- [ ] **MEDIA-07** — `secure_password_change = false`
-  Arquivo: `supabase/config.toml` (linha 228)
-  Ação: habilitar `secure_password_change = true` em produção.
+- [x] **MEDIA-07** — `secure_password_change = false`
+  Arquivo: `supabase/config.toml`
+  Feito: `secure_password_change = true`. Testado ponta a ponta no Supabase local (signup → confirmação → login → `PUT /auth/v1/user` com senha nova): a troca de senha logo após login continua funcionando normalmente, então o fluxo de `resetPassword` da app (que roda logo após a sessão do link de recuperação) não é afetado.
+  ⚠️ **Pendente do seu lado:** este arquivo controla o Supabase **local**; se o projeto hospedado (produção) tiver essa config divergente, também precisa habilitar `secure_password_change` lá — via `supabase config push` (se o projeto usa "config as code") ou manualmente no dashboard em Authentication → Settings.
 
 ---
 
