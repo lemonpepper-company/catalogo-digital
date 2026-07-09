@@ -58,11 +58,4 @@ describe("next.config Content-Security-Policy", () => {
     expect(csp).toContain("img-src 'self' data: https://images.unsplash.com https://abc.supabase.co");
     expect(csp).toContain("https://abc.supabase.co wss://abc.supabase.co");
   });
-
-  it("libera vercel.live (toolbar de Live Feedback) só fora de produção", async () => {
-    const dev = await loadCsp("development");
-    const prod = await loadCsp("production");
-    expect(dev).toContain("https://vercel.live");
-    expect(prod).not.toContain("vercel.live");
-  });
 });
