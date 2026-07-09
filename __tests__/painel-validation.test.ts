@@ -148,4 +148,75 @@ describe("storeSettingsSchema — whatsapp obrigatório (novo)", () => {
     const r = storeSettingsSchema.safeParse({ ...base, whatsapp: "5511999990000" });
     expect(r.success).toBe(true);
   });
+
+  it("aceita whatsapp formatado com parênteses, espaço e hífen", () => {
+    const r = storeSettingsSchema.safeParse({ ...base, whatsapp: "(11) 99999-0000" });
+    expect(r.success).toBe(true);
+  });
+
+  it("aceita whatsapp com + na frente", () => {
+    const r = storeSettingsSchema.safeParse({ ...base, whatsapp: "+55 11 99999-0000" });
+    expect(r.success).toBe(true);
+  });
+
+  it("rejeita whatsapp com letras", () => {
+    const r = storeSettingsSchema.safeParse({ ...base, whatsapp: "meu-whatsapp-aqui" });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejeita whatsapp curto demais", () => {
+    const r = storeSettingsSchema.safeParse({ ...base, whatsapp: "123456" });
+    expect(r.success).toBe(false);
+  });
+});
+
+describe("storeSettingsSchema — limites de tamanho em campos livres (novo)", () => {
+  const base = {
+    name: "Ateliê Mira",
+    whatsapp: "5511999990000",
+    accentColor: "#C9A96E",
+    monogram: null,
+    instagram: null,
+    paymentMethods: [],
+    deliveryMethods: [],
+    analyticsId: null,
+    pixelId: null,
+  };
+
+  it("rejeita description acima de 500 caracteres", () => {
+    const r = storeSettingsSchema.safeParse({
+      ...base,
+      description: "a".repeat(501),
+      messageTemplate: null,
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("aceita description no limite de 500 caracteres", () => {
+    const r = storeSettingsSchema.safeParse({
+      ...base,
+      description: "a".repeat(500),
+      messageTemplate: null,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("rejeita messageTemplate acima de 2000 caracteres", () => {
+    const r = storeSettingsSchema.safeParse({
+      ...base,
+      description: null,
+      messageTemplate: "a".repeat(2001),
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejeita instagram acima de 100 caracteres", () => {
+    const r = storeSettingsSchema.safeParse({
+      ...base,
+      description: null,
+      messageTemplate: null,
+      instagram: "a".repeat(101),
+    });
+    expect(r.success).toBe(false);
+  });
 });

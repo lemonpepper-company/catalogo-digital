@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { PAYMENT_METHOD_VALUES, DELIVERY_METHOD_VALUES } from '@/lib/data'
 import { uploadToBucket } from '@/lib/server/upload'
 import { getSafeRedirect } from '@/lib/auth/safe-redirect'
+import { whatsappSchema } from '@/lib/validation/painel'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -45,10 +46,10 @@ const resetPasswordSchema = z
 const storeSchema = z.object({
   store_name: z.string().min(2, 'Nome da loja deve ter ao menos 2 caracteres'),
   slug: z.string().regex(/^[a-z0-9-]{2,50}$/, 'Link inválido'),
-  whatsapp: z.string().min(1, 'WhatsApp é obrigatório'),
+  whatsapp: whatsappSchema,
   monogram: z.string().max(3, 'Monograma deve ter no máximo 3 letras').nullable(),
-  description: z.string().nullable(),
-  instagram: z.string().nullable(),
+  description: z.string().max(500, 'Descrição muito longa').nullable(),
+  instagram: z.string().max(100, 'Instagram muito longo').nullable(),
   accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Cor inválida'),
   paymentMethods: z.array(z.enum(PAYMENT_METHOD_VALUES)),
   deliveryMethods: z.array(z.enum(DELIVERY_METHOD_VALUES)),
