@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
 import { getPlanLimits, isTrialActive } from "@/lib/plan-limits";
@@ -104,7 +104,7 @@ export async function createProduct(
 
   revalidatePath("/painel/produtos");
   revalidatePath("/painel");
-  updateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`, "max");
   redirect("/painel/produtos");
 }
 
@@ -186,7 +186,7 @@ export async function updateProduct(
 
   revalidatePath("/painel/produtos");
   revalidatePath("/painel");
-  updateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`, "max");
   redirect("/painel/produtos");
 }
 
@@ -230,7 +230,7 @@ export async function deleteProduct(
 
   revalidatePath("/painel/produtos");
   revalidatePath("/painel");
-  updateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`, "max");
   return { ok: true };
 }
 
@@ -261,6 +261,6 @@ export async function toggleProductActive(
 
   revalidatePath("/painel/produtos");
   revalidatePath("/painel");
-  updateTag(`catalog-${store.slug}`);
+  revalidateTag(`catalog-${store.slug}`, "max");
   return { ok: true };
 }
