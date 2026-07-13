@@ -104,7 +104,7 @@ export async function createProduct(
 
   revalidatePath("/painel/produtos");
   revalidatePath("/painel");
-  revalidateTag(`catalog-${store.slug}`, "max");
+  revalidateTag(`catalog-${store.slug}`, { expire: 0 });
   redirect("/painel/produtos");
 }
 
@@ -186,7 +186,7 @@ export async function updateProduct(
 
   revalidatePath("/painel/produtos");
   revalidatePath("/painel");
-  revalidateTag(`catalog-${store.slug}`, "max");
+  revalidateTag(`catalog-${store.slug}`, { expire: 0 });
   redirect("/painel/produtos");
 }
 
@@ -230,7 +230,7 @@ export async function deleteProduct(
 
   revalidatePath("/painel/produtos");
   revalidatePath("/painel");
-  revalidateTag(`catalog-${store.slug}`, "max");
+  revalidateTag(`catalog-${store.slug}`, { expire: 0 });
   return { ok: true };
 }
 
@@ -261,6 +261,6 @@ export async function toggleProductActive(
 
   revalidatePath("/painel/produtos");
   revalidatePath("/painel");
-  revalidateTag(`catalog-${store.slug}`, "max");
+  revalidateTag(`catalog-${store.slug}`, { expire: 0 });
   return { ok: true };
 }

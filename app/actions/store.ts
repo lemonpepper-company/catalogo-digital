@@ -71,6 +71,6 @@ export async function updateStoreSettings(
 
   revalidatePath("/painel/configuracoes");
   revalidatePath("/painel");
-  revalidateTag(`catalog-${store.slug}`, "max");
+  revalidateTag(`catalog-${store.slug}`, { expire: 0 });
   return { ok: true };
 }
