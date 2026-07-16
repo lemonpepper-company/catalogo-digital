@@ -22,7 +22,6 @@ export const whatsappSchema = z
 export const storeSettingsSchema = z.object({
   name: z.string().min(2, "Nome da loja é obrigatório"),
   whatsapp: whatsappSchema,
-  accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida"),
   description: z.string().max(500, "Descrição muito longa").nullable(),
   monogram: z.string().max(3, "Monograma deve ter no máximo 3 letras").nullable(),
   instagram: z.string().max(100, "Instagram muito longo").nullable(),
@@ -31,6 +30,10 @@ export const storeSettingsSchema = z.object({
   analyticsId: z.string().nullable(),
   pixelId: z.string().nullable(),
   messageTemplate: z.string().max(2000, "Mensagem muito longa").nullable(),
+});
+
+export const personalizacaoSchema = z.object({
+  accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida"),
 });
 
 export function canDeleteCategory(productCount: number): boolean {
