@@ -1,5 +1,6 @@
 import NextLink from "next/link";
 import { VtrineLogo } from "@/components/ui/VtrineLogo";
+import { WhatsAppFloatingButton } from "@/components/landing/WhatsAppFloatingButton";
 import {
   CheckCircle2,
   Check,
@@ -545,6 +546,8 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <WhatsAppFloatingButton />
     </div>
   );
 }
