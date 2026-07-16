@@ -4,7 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
 import { storeSettingsSchema, personalizacaoSchema } from "@/lib/validation/painel";
-import { uploadToBucket } from "@/lib/server/upload";
+import { uploadToBucket, deleteFromBucket } from "@/lib/server/upload";
 
 export type StoreActionState = { error: string } | { ok: true } | null;
 
@@ -67,6 +67,11 @@ export async function updateStoreSettings(
 
   if (error) return { error: "Erro ao salvar as configurações." };
 
+  // Remove o logo anterior do bucket quando foi substituído (evita órfãos).
+  if (store.logoUrl && store.logoUrl !== logoUrl) {
+    await deleteFromBucket(supabase, store.logoUrl);
+  }
+
   revalidatePath("/painel/configuracoes");
   revalidatePath("/painel");
   revalidateTag(`catalog-${store.slug}`, { expire: 0 });
@@ -115,6 +120,11 @@ export async function updatePersonalizacao(
     .eq("id", store.id);
 
   if (error) return { error: "Erro ao salvar a personalização." };
+
+  // Remove a capa anterior do bucket quando foi substituída ou removida.
+  if (store.coverUrl && store.coverUrl !== coverUrl) {
+    await deleteFromBucket(supabase, store.coverUrl);
+  }
 
   revalidatePath("/painel/personalizacao");
   revalidatePath("/painel");

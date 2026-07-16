@@ -4,6 +4,7 @@ import {
   uploadToBucket,
   uploadPhotos,
   publicUrlToPath,
+  deleteFromBucket,
 } from "@/lib/server/upload";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -115,5 +116,41 @@ describe("publicUrlToPath", () => {
 
   it("returns null when there is no match", () => {
     expect(publicUrlToPath("https://example.com/other-bucket/foo.jpg")).toBeNull();
+  });
+});
+
+describe("deleteFromBucket", () => {
+  function makeRemoveMock(removeImpl: () => unknown = () => ({ error: null })) {
+    const remove = vi.fn(() => Promise.resolve(removeImpl()));
+    const from = vi.fn(() => ({ remove }));
+    const supabase = { storage: { from } } as unknown as SupabaseClient;
+    return { supabase, remove, from };
+  }
+
+  it("removes the object at the path extracted from the URL", async () => {
+    const { supabase, remove } = makeRemoveMock();
+    await deleteFromBucket(
+      supabase,
+      "https://example.com/storage/v1/object/public/product-images/store1/cover/x.jpg"
+    );
+    expect(remove).toHaveBeenCalledWith(["store1/cover/x.jpg"]);
+  });
+
+  it("does nothing when the URL does not map to a bucket path", async () => {
+    const { supabase, remove } = makeRemoveMock();
+    await deleteFromBucket(supabase, "https://example.com/other-bucket/foo.jpg");
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it("swallows errors so a failed delete never throws", async () => {
+    const { supabase } = makeRemoveMock(() => {
+      throw new Error("boom");
+    });
+    await expect(
+      deleteFromBucket(
+        supabase,
+        "https://example.com/storage/v1/object/public/product-images/store1/logo/x.png"
+      )
+    ).resolves.toBeUndefined();
   });
 });

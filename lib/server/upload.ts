@@ -10,6 +10,22 @@ export function publicUrlToPath(url: string): string | null {
   return i === -1 ? null : url.slice(i + marker.length);
 }
 
+// Apaga um objeto do bucket a partir da sua URL pública. Best-effort:
+// nunca lança — se a URL não mapear para um path ou o arquivo já não
+// existir, apenas ignora, para não derrubar o save que já teve sucesso.
+export async function deleteFromBucket(
+  supabase: SupabaseClient,
+  url: string
+): Promise<void> {
+  const path = publicUrlToPath(url);
+  if (!path) return;
+  try {
+    await supabase.storage.from(BUCKET).remove([path]);
+  } catch {
+    // ignora falhas silenciosamente
+  }
+}
+
 export async function uploadToBucket(
   supabase: SupabaseClient,
   path: string,
