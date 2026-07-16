@@ -1,0 +1,15 @@
+-- Fix do 404 da vitrine pública.
+--
+-- A coluna `cover_url` foi adicionada em 20260716000000_store_cover.sql, mas o
+-- papel `anon` tem GRANT de SELECT POR COLUNA em `stores` (definido em
+-- 20260709000000_restringe_colunas_publicas_stores.sql). No PostgreSQL, colunas
+-- criadas depois NÃO herdam privilégios de um grant por coluna já existente.
+--
+-- Resultado: o catálogo público (STORE_COLS em lib/server/catalog.ts inclui
+-- cover_url) fazia SELECT de uma coluna sem privilégio → "permission denied for
+-- column cover_url" → storeRow null em fetchPublicCatalog → resolveCatalog(null)
+-- → notFound() → 404 em toda vitrine `/{slug}`. O painel (papel `authenticated`,
+-- com SELECT na tabela inteira) não era afetado.
+--
+-- Concede ao anon o SELECT na nova coluna, alinhando com a lista pública.
+grant select (cover_url) on public.stores to anon;
