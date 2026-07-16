@@ -14,10 +14,10 @@ interface TabItemProps {
 
 function TabItem({ href, icon, label, active }: TabItemProps) {
   return (
-    <Link href={href} className="flex flex-1 items-center justify-center py-2">
+    <Link href={href} className="flex flex-1 min-w-0 items-center justify-center py-2">
       <span
         className={cn(
-          "flex flex-col items-center gap-1 px-3.5 py-1.5 rounded-btn",
+          "flex flex-col items-center gap-1 w-full min-w-0 px-1 py-1.5 rounded-btn",
           "font-body text-[11px] transition-colors duration-200",
           active
             ? "bg-linen text-obsidian font-medium"
@@ -25,7 +25,7 @@ function TabItem({ href, icon, label, active }: TabItemProps) {
         )}
       >
         {icon}
-        {label}
+        <span className="w-full truncate text-center">{label}</span>
       </span>
     </Link>
   );
