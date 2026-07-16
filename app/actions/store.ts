@@ -3,7 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
-import { storeSettingsSchema } from "@/lib/validation/painel";
+import { storeSettingsSchema, personalizacaoSchema } from "@/lib/validation/painel";
 import { uploadToBucket } from "@/lib/server/upload";
 
 export type StoreActionState = { error: string } | { ok: true } | null;
@@ -68,6 +68,55 @@ export async function updateStoreSettings(
   if (error) return { error: "Erro ao salvar as configurações." };
 
   revalidatePath("/painel/configuracoes");
+  revalidatePath("/painel");
+  revalidateTag(`catalog-${store.slug}`, { expire: 0 });
+  return { ok: true };
+}
+
+export async function updatePersonalizacao(
+  prevState: StoreActionState,
+  formData: FormData
+): Promise<StoreActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado." };
+
+  const store = await getCurrentStore();
+  if (!store) return { error: "Loja não encontrada." };
+
+  const parsed = personalizacaoSchema.safeParse({
+    accentColor: formData.get("accentColor"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  let coverUrl = store.coverUrl;
+  const removeCover = formData.get("removeCover") === "1";
+  const cover = formData.get("cover") as File | null;
+  if (removeCover) {
+    coverUrl = null;
+  } else if (cover && cover.size > 0) {
+    const ext = cover.name.split(".").pop() || "jpg";
+    const path = `${store.id}/cover/${crypto.randomUUID()}.${ext}`;
+    try {
+      coverUrl = await uploadToBucket(supabase, path, cover);
+    } catch {
+      return { error: "Falha no upload da capa." };
+    }
+  }
+
+  const { error } = await supabase
+    .from("stores")
+    .update({
+      accent_color: parsed.data.accentColor,
+      cover_url: coverUrl,
+    })
+    .eq("id", store.id);
+
+  if (error) return { error: "Erro ao salvar a personalização." };
+
+  revalidatePath("/painel/personalizacao");
   revalidatePath("/painel");
   revalidateTag(`catalog-${store.slug}`, { expire: 0 });
   return { ok: true };
