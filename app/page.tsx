@@ -49,12 +49,14 @@ export default function LandingPage() {
             >
               Recursos
             </NextLink>
+            {/* MODO DEMO: link "Preços" oculto junto com a seção. Original:
             <NextLink
               href="#precos"
               className="hidden md:block font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
             >
               Preços
             </NextLink>
+            */}
             {/* MODO DEMO: link "Depoimentos" oculto junto com a seção. Original:
             <NextLink
               href="#depoimentos"
@@ -82,9 +84,9 @@ export default function LandingPage() {
       {/* ─── Hero ─── */}
       <section
         id="top"
-        className="bg-ivory pt-24 md:pt-[168px] pb-16 md:pb-24"
+        className="bg-ivory min-h-[100svh] flex items-center pt-24 md:pt-[120px] pb-16 md:pb-24"
       >
-        <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
+        <div className="max-w-page mx-auto w-full px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-10 lg:gap-16">
             {/* Left */}
             <div>
@@ -295,6 +297,8 @@ export default function LandingPage() {
       */}
 
       {/* ─── Pricing ─── */}
+      {/* MODO DEMO: seção de preços oculta — não vamos exibir os planos neste
+          momento. Bloco original:
       <section id="precos" className="bg-linen py-28">
         <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-[660px] mx-auto text-center mb-16">
@@ -309,7 +313,7 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 justify-center gap-6 sm:max-w-[712px] mx-auto">
-            {/* Starter */}
+            [Starter]
             <div className="bg-white border border-sand/50 rounded-card p-9 flex flex-col">
               <div className="font-display font-medium text-[18px] text-obsidian">
                 Starter
@@ -338,7 +342,7 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            {/* Pro */}
+            [Pro]
             <div className="relative bg-white border border-gold rounded-card p-9 flex flex-col">
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gold text-white font-body font-medium text-[10px] tracking-[0.08em] uppercase px-3.5 py-1.5 rounded-pill whitespace-nowrap">
                 Mais popular
@@ -372,6 +376,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      */}
 
       {/* ─── FAQ ─── */}
       <section className="bg-ivory py-28">
@@ -451,7 +456,7 @@ export default function LandingPage() {
               <div className="flex flex-col gap-[11px]">
                 {[
                   { label: "Recursos", href: "#recursos" },
-                  { label: "Preços", href: "#precos" },
+                  // MODO DEMO: link "Preços" oculto junto com a seção.
                   { label: "Ver um catálogo", href: "/atelie-mira" },
                   { label: "Painel do lojista", href: "/painel" },
                 ].map((l) => (
