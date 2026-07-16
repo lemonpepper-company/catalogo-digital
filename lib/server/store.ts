@@ -17,6 +17,7 @@ type StoreRow = {
   whatsapp: string | null;
   accent_color: string | null;
   logo_url: string | null;
+  cover_url: string | null;
   description: string | null;
   monogram: string | null;
   analytics_id: string | null;
@@ -52,6 +53,7 @@ export function mapStore(row: StoreRow): StoreSettings {
     whatsapp: row.whatsapp,
     accentColor: row.accent_color ?? "#C9A96E",
     logoUrl: row.logo_url,
+    coverUrl: row.cover_url,
     description: row.description,
     monogram: row.monogram,
     analyticsId: row.analytics_id,
@@ -91,7 +93,7 @@ export const getCurrentStore = cache(async (): Promise<StoreSettings | null> => 
   const { data } = await supabase
     .from("stores")
     .select(
-      "id, name, slug, plan, trial_ends_at, whatsapp, accent_color, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods"
+      "id, name, slug, plan, trial_ends_at, whatsapp, accent_color, cover_url, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods"
     )
     .eq("owner_id", user.id)
     .maybeSingle();

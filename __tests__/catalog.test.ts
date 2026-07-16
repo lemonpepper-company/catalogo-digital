@@ -22,6 +22,7 @@ const storeRow: PublicStoreRow = {
   whatsapp: "5511999990000",
   accent_color: "#C9A96E",
   logo_url: null,
+  cover_url: null,
   description: "Vitrine premium",
   monogram: "AM",
   analytics_id: null,
@@ -101,6 +102,14 @@ describe("mapPublicStore", () => {
     expect(
       mapPublicStore({ ...storeRow, message_template: "Oi {itens}" }, []).messageTemplate
     ).toBe("Oi {itens}");
+  });
+  it("propaga cover_url para coverUrl", () => {
+    expect(
+      mapPublicStore({ ...storeRow, cover_url: "https://img/capa.jpg" }, []).coverUrl
+    ).toBe("https://img/capa.jpg");
+  });
+  it("mapeia cover_url nulo para null", () => {
+    expect(mapPublicStore({ ...storeRow, cover_url: null }, []).coverUrl).toBeNull();
   });
 });
 
