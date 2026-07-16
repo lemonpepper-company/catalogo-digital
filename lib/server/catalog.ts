@@ -17,11 +17,19 @@ const PRODUCT_COLS =
 async function fetchPublicCatalog(slug: string): Promise<PublicCatalog> {
   const supabase = createAnonClient();
 
-  const { data: storeRow } = await supabase
+  const { data: storeRow, error } = await supabase
     .from("stores")
     .select(STORE_COLS)
     .eq("slug", slug)
     .maybeSingle();
+
+  // Distingue linha inexistente (data/error null → not_found legítimo) de erro
+  // real de banco (ex.: permission denied em coluna). Não mascarar o segundo
+  // como 404 — logar e propagar para virar 500 + rastro no servidor.
+  if (error) {
+    console.error(`fetchPublicCatalog(${slug}) — erro no SELECT de stores:`, error);
+    throw new Error(`Falha ao buscar catálogo público: ${error.message}`);
+  }
 
   if (!storeRow) return resolveCatalog(null, [], []);
   if (!(storeRow as PublicStoreRow).is_active) {

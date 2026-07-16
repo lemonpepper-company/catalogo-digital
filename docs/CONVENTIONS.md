@@ -78,6 +78,8 @@ export function useFooForm() {
 - **Server-side**: `createServerClient` via `lib/supabase/server.ts` (cookies httpOnly)
 - Nunca usar `supabase.auth.getSession()` para verificar autenticação — usar `getUser()` (valida o JWT no servidor)
 - Operações autenticadas usam a **anon key** + RLS; nunca expor a `service_role` key no cliente
+- **Coluna pública em `stores` exige GRANT ao `anon`.** O catálogo público é lido pelo papel `anon`, que tem GRANT de SELECT **por coluna** (`supabase/migrations/20260709000000_restringe_colunas_publicas_stores.sql`). No Postgres, colunas novas **não** herdam esse grant. Ao adicionar uma coluna que entre em `STORE_COLS` (`lib/server/catalog.ts`), crie também uma migration `grant select (nova_coluna) on public.stores to anon` — senão o SELECT do anon dá *permission denied* e a vitrine `/{slug}` cai em 404 (o painel, papel `authenticated`, não acusa).
+- **Não engula o `error` do Supabase** em leituras server-side. Distinga "linha inexistente" (`data` null, `error` null → 404/estado vazio legítimo) de erro real de banco (`error` preenchido → logar e propagar). Engolir o `error` transforma uma falha de privilégio/schema num 404 enganoso (ver `fetchPublicCatalog` em `lib/server/catalog.ts`).
 
 ## Estilos
 
