@@ -15,13 +15,13 @@ export function useCadastroForm(stepLoja: boolean) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [storeName, setStoreName] = useState('')
   const [slug, setSlug] = useState('')
+  const [accent, setAccent] = useState(ACCENT_COLOR_OPTIONS[0])
 
   const loja = useLojaFields({
     whatsapp: null,
     monogram: null,
     storeDescription: null,
     instagram: null,
-    accentColor: ACCENT_COLOR_OPTIONS[0],
     paymentMethods: [],
     deliveryMethods: [],
   })
@@ -29,7 +29,7 @@ export function useCadastroForm(stepLoja: boolean) {
   const [state, action, pending] = useActionState<FormState, FormData>(
     async (prev, formData) => {
       if (!stepLoja) return signUp(prev, formData)
-      formData.set('accentColor', loja.accent)
+      formData.set('accentColor', accent)
       formData.set('instagram', loja.instagram)
       formData.set('paymentMethods', JSON.stringify(loja.paymentMethods))
       formData.set('deliveryMethods', JSON.stringify(loja.deliveryMethods))
@@ -58,6 +58,8 @@ export function useCadastroForm(stepLoja: boolean) {
     slug,
     setSlug,
     ...loja,
+    accent,
+    setAccent,
     state,
     action,
     pending,

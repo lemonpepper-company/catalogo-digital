@@ -24,7 +24,6 @@ export function useConfiguracoes(settings: StoreSettings) {
     monogram: settings.monogram,
     storeDescription: settings.description,
     instagram: settings.instagram,
-    accentColor: settings.accentColor,
     paymentMethods: settings.paymentMethods,
     deliveryMethods: settings.deliveryMethods,
   });
@@ -39,7 +38,6 @@ export function useConfiguracoes(settings: StoreSettings) {
 
   const [state, formAction, pending] = useActionState<State, FormData>(
     async (prev, formData) => {
-      formData.set("accentColor", loja.accent);
       formData.set("messageTemplate", msgTpl);
       formData.set("instagram", loja.instagram);
       formData.set("paymentMethods", JSON.stringify(loja.paymentMethods));

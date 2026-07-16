@@ -11,7 +11,6 @@ const baseInit = {
   monogram: null,
   storeDescription: null,
   instagram: null,
-  accentColor: "#C9A96E",
   paymentMethods: [],
   deliveryMethods: [],
 };
@@ -35,7 +34,6 @@ describe("useLojaFields", () => {
     expect(result.current.monogram).toBe("");
     expect(result.current.storeDescription).toBe("");
     expect(result.current.instagram).toBe("");
-    expect(result.current.accent).toBe("#C9A96E");
     expect(result.current.paymentMethods).toEqual([]);
     expect(result.current.deliveryMethods).toEqual([]);
     expect(result.current.logo).toBeNull();
@@ -49,7 +47,6 @@ describe("useLojaFields", () => {
         monogram: "AM",
         storeDescription: "Vitrine premium",
         instagram: "atelieming",
-        accentColor: "#000000",
         paymentMethods: ["pix"],
         deliveryMethods: ["retirada"],
       })
@@ -58,7 +55,6 @@ describe("useLojaFields", () => {
     expect(result.current.monogram).toBe("AM");
     expect(result.current.storeDescription).toBe("Vitrine premium");
     expect(result.current.instagram).toBe("atelieming");
-    expect(result.current.accent).toBe("#000000");
     expect(result.current.paymentMethods).toEqual(["pix"]);
     expect(result.current.deliveryMethods).toEqual(["retirada"]);
   });

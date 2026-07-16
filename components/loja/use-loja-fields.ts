@@ -8,7 +8,6 @@ export interface LojaFieldsInit {
   monogram: string | null;
   storeDescription: string | null;
   instagram: string | null;
-  accentColor: string;
   paymentMethods: string[];
   deliveryMethods: string[];
 }
@@ -18,7 +17,6 @@ export function useLojaFields(init: LojaFieldsInit) {
   const [monogram, setMonogram] = useState(init.monogram ?? "");
   const [storeDescription, setStoreDescription] = useState(init.storeDescription ?? "");
   const [instagram, setInstagram] = useState(init.instagram ?? "");
-  const [accent, setAccent] = useState(init.accentColor);
   const [paymentMethods, setPaymentMethods] = useState<string[]>(init.paymentMethods);
   const [deliveryMethods, setDeliveryMethods] = useState<string[]>(init.deliveryMethods);
   const [logo, setLogoState] = useState<File | null>(null);
@@ -54,8 +52,6 @@ export function useLojaFields(init: LojaFieldsInit) {
     setStoreDescription,
     instagram,
     setInstagram,
-    accent,
-    setAccent,
     paymentMethods,
     togglePaymentMethod,
     deliveryMethods,
