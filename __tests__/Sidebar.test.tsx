@@ -37,4 +37,11 @@ describe("Sidebar", () => {
     // monogram derived from name when null
     expect(screen.getByText("LO")).toBeTruthy();
   });
+
+  it("mostra o item de navegação Personalização", () => {
+    render(
+      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} slug="ateliemira" />
+    );
+    expect(screen.getByText("Personalização")).toBeTruthy();
+  });
 });

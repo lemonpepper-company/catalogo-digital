@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Tag, Layers, Settings } from "lucide-react";
+import { LayoutDashboard, Tag, Layers, Palette, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TabItemProps {
@@ -59,6 +59,12 @@ export function MobileTabBar() {
         icon={<Layers size={20} />}
         label="Categorias"
         active={isActive("/painel/categorias")}
+      />
+      <TabItem
+        href="/painel/personalizacao"
+        icon={<Palette size={20} />}
+        label="Personalização"
+        active={isActive("/painel/personalizacao")}
       />
       <TabItem
         href="/painel/configuracoes"
