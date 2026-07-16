@@ -24,6 +24,7 @@ export interface Store {
   name: string;
   monogram: string;
   logoUrl?: string | null;
+  coverUrl?: string | null;
   whatsapp: string;
   instagram?: string;
   categories: string[];
@@ -90,6 +91,7 @@ export interface StoreSettings {
   whatsapp: string | null;
   accentColor: string;
   logoUrl: string | null;
+  coverUrl: string | null;
   description: string | null;
   monogram: string | null;
   analyticsId: string | null;

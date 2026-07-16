@@ -13,6 +13,7 @@ export interface PublicStoreRow {
   whatsapp: string | null;
   accent_color: string | null;
   logo_url: string | null;
+  cover_url: string | null;
   description: string | null;
   monogram: string | null;
   analytics_id: string | null;
@@ -64,6 +65,7 @@ export function mapPublicStore(
     name: row.name,
     monogram: row.monogram?.trim() || initialsFromName(row.name),
     logoUrl: row.logo_url,
+    coverUrl: row.cover_url,
     whatsapp: row.whatsapp ?? "",
     categories,
     description: row.description ?? "",

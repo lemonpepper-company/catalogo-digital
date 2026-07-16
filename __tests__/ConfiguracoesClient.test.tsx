@@ -20,6 +20,7 @@ const baseSettings: StoreSettings = {
   whatsapp: "5511999990000",
   accentColor: "#C9A96E",
   logoUrl: null,
+  coverUrl: null,
   description: "Vitrine premium",
   monogram: "AM",
   analyticsId: null,
