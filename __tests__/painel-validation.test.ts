@@ -4,6 +4,7 @@ import {
   categoryNameSchema,
   canDeleteCategory,
   storeSettingsSchema,
+  personalizacaoSchema,
 } from "@/lib/validation/painel";
 
 describe("productSchema", () => {
@@ -218,5 +219,25 @@ describe("storeSettingsSchema — limites de tamanho em campos livres (novo)", (
       instagram: "a".repeat(101),
     });
     expect(r.success).toBe(false);
+  });
+});
+
+describe("personalizacaoSchema", () => {
+  it("aceita cor hex de 6 dígitos", () => {
+    const r = personalizacaoSchema.safeParse({ accentColor: "#C9A96E" });
+    expect(r.success).toBe(true);
+  });
+  it("rejeita hex de 3 dígitos", () => {
+    const r = personalizacaoSchema.safeParse({ accentColor: "#FFF" });
+    expect(r.success).toBe(false);
+  });
+  it("rejeita valor sem #", () => {
+    const r = personalizacaoSchema.safeParse({ accentColor: "C9A96E" });
+    expect(r.success).toBe(false);
+  });
+  it("mensagem de erro é 'Cor inválida'", () => {
+    const r = personalizacaoSchema.safeParse({ accentColor: "xyz" });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.issues[0].message).toBe("Cor inválida");
   });
 });

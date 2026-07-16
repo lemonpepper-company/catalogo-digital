@@ -24,7 +24,6 @@ export async function updateStoreSettings(
   const parsed = storeSettingsSchema.safeParse({
     name: formData.get("name"),
     whatsapp: (formData.get("whatsapp") as string) || "",
-    accentColor: formData.get("accentColor"),
     description: (formData.get("description") as string) || null,
     monogram: (formData.get("monogram") as string) || null,
     instagram: (formData.get("instagram") as string)?.replace(/^@+/, "").trim() || null,
@@ -54,7 +53,6 @@ export async function updateStoreSettings(
     .update({
       name: parsed.data.name,
       whatsapp: parsed.data.whatsapp,
-      accent_color: parsed.data.accentColor,
       description: parsed.data.description,
       monogram: parsed.data.monogram,
       instagram: parsed.data.instagram,
