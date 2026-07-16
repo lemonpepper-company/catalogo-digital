@@ -8,7 +8,6 @@ import { PasswordInput } from '@/components/ui/PasswordInput'
 import { SlugInput } from '@/components/ui/SlugInput'
 import { VtrineLogo } from '@/components/ui/VtrineLogo'
 import { IdentidadeFields } from '@/components/loja/IdentidadeFields'
-import { CorDestaqueFields } from '@/components/loja/CorDestaqueFields'
 import { PagamentoEntregaFields } from '@/components/loja/PagamentoEntregaFields'
 
 const inputWrap =
@@ -32,7 +31,6 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
     whatsapp, setWhatsapp,
     monogram, setMonogram,
     storeDescription, setStoreDescription,
-    accent, setAccent,
     paymentMethods, togglePaymentMethod,
     deliveryMethods, toggleDeliveryMethod,
     logo, logoPreview, setLogo,
@@ -197,14 +195,6 @@ export function CadastroForm({ stepLoja = false }: CadastroFormProps) {
                   storeDescription={storeDescription}
                   onStoreDescriptionChange={setStoreDescription}
                 />
-
-                <div className="flex items-center gap-3 mt-2">
-                  <h2 className="font-display font-semibold text-[13px] tracking-[0.08em] uppercase text-obsidian whitespace-nowrap">
-                    Cor de destaque
-                  </h2>
-                  <div className="h-px bg-sand flex-1" />
-                </div>
-                <CorDestaqueFields accent={accent} onAccentChange={setAccent} />
 
                 <div className="flex items-center gap-3 mt-2">
                   <h2 className="font-display font-semibold text-[13px] tracking-[0.08em] uppercase text-obsidian whitespace-nowrap">

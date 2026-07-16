@@ -45,11 +45,11 @@ describe("CadastroForm — link de saída (novo)", () => {
 });
 
 describe("CadastroForm — perfil completo na etapa 2 (novo)", () => {
-  it("mostra as seções Identidade, Cor de destaque e Pagamento e entrega na etapa 2", () => {
+  it("mostra as seções Identidade e Pagamento e entrega na etapa 2", () => {
     render(<CadastroForm stepLoja />);
     expect(screen.getByText("Identidade")).toBeTruthy();
-    expect(screen.getByText("Cor de destaque")).toBeTruthy();
     expect(screen.getByText("Pagamento e entrega")).toBeTruthy();
+    expect(screen.queryByText("Cor de destaque")).toBeNull();
   });
 
   it("não mostra as seções novas na etapa 1", () => {
