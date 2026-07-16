@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Tag,
   Layers,
+  Palette,
   Settings,
   ExternalLink,
   LogOut,
@@ -101,6 +102,12 @@ export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
           icon={<Layers size={19} />}
           label="Categorias"
           active={isActive("/painel/categorias")}
+        />
+        <NavItem
+          href="/painel/personalizacao"
+          icon={<Palette size={19} />}
+          label="Personalização"
+          active={isActive("/painel/personalizacao")}
         />
         <NavItem
           href="/painel/configuracoes"
