@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_ACCENT_COLOR } from "@/lib/theme";
 import type {
   StoreSettings,
   StoreProduct,
@@ -51,7 +52,7 @@ export function mapStore(row: StoreRow): StoreSettings {
     plan: row.plan,
     trialEndsAt: row.trial_ends_at,
     whatsapp: row.whatsapp,
-    accentColor: row.accent_color ?? "#C9A96E",
+    accentColor: row.accent_color ?? DEFAULT_ACCENT_COLOR,
     logoUrl: row.logo_url,
     coverUrl: row.cover_url,
     description: row.description,
