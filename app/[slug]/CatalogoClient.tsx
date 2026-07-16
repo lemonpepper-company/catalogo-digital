@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pill } from "@/components/ui/Pill";
 import { Toast } from "@/components/ui/Toast";
 import { StoreHeader } from "@/components/catalogo/StoreHeader";
+import { StoreBanner } from "@/components/catalogo/StoreBanner";
 import { ProductCard } from "@/components/catalogo/ProductCard";
 import { ProductDetail } from "@/components/catalogo/ProductDetail";
 import { BagDrawer } from "@/components/catalogo/BagDrawer";
@@ -53,6 +54,19 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const accentStyle = { "--color-primary": store.accentColor } as React.CSSProperties;
 
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [headerH, setHeaderH] = useState(0);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const update = () => setHeaderH(el.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   useEffect(() => {
     if (!hasMore) return;
     const el = sentinelRef.current;
@@ -91,7 +105,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
 
   return (
     <div className="min-h-screen bg-ivory relative" style={accentStyle}>
-      <div className="sticky top-0 z-10 bg-ivory">
+      <div ref={headerRef} className="sticky top-0 z-20 bg-ivory">
         <StoreHeader
           store={store}
           activeProductCount={activeProducts.length}
@@ -102,18 +116,23 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
           onSearchChange={setSearchQuery}
           onToggleSearch={toggleSearch}
         />
+      </div>
 
-        <div className="bg-ivory flex gap-2 px-4 py-3.5 overflow-x-auto no-scrollbar">
-          {store.categories.map((cat) => (
-            <Pill
-              key={cat}
-              active={activeCategory === cat}
-              onClick={() => setActiveCategory(cat)}
-            >
-              {cat}
-            </Pill>
-          ))}
-        </div>
+      <StoreBanner store={store} />
+
+      <div
+        className="sticky z-10 bg-ivory flex gap-2 px-4 py-3.5 overflow-x-auto no-scrollbar"
+        style={{ top: headerH }}
+      >
+        {store.categories.map((cat) => (
+          <Pill
+            key={cat}
+            active={activeCategory === cat}
+            onClick={() => setActiveCategory(cat)}
+          >
+            {cat}
+          </Pill>
+        ))}
       </div>
 
       {visibleProducts.length === 0 ? (
