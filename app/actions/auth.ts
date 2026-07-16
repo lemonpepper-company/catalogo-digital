@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { PAYMENT_METHOD_VALUES, DELIVERY_METHOD_VALUES } from '@/lib/data'
+import { DEFAULT_ACCENT_COLOR } from '@/lib/theme'
 import { uploadToBucket } from '@/lib/server/upload'
 import { getSafeRedirect } from '@/lib/auth/safe-redirect'
 import { whatsappSchema } from '@/lib/validation/painel'
@@ -190,7 +191,7 @@ export async function createStore(
       monogram: result.data.monogram,
       description: result.data.description,
       instagram: result.data.instagram,
-      accent_color: '#C9A96E', // padrão Gold Dust; o lojista ajusta na aba Personalização
+      accent_color: DEFAULT_ACCENT_COLOR, // Gold Dust; o lojista ajusta na aba Personalização
       payment_methods: result.data.paymentMethods,
       delivery_methods: result.data.deliveryMethods,
     })

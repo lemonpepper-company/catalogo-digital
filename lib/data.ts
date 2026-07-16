@@ -1,4 +1,5 @@
 import type { Product, Store } from "./types";
+import { DEFAULT_ACCENT_COLOR } from "./theme";
 
 export const STORE: Store = {
   name: "Ateliê Mira",
@@ -6,7 +7,7 @@ export const STORE: Store = {
   whatsapp: "5511999990000",
   categories: ["Todos", "Vestidos", "Blusas", "Calças", "Saias"],
   description: "Vitrine digital premium · moda feminina autoral",
-  accentColor: "#C9A96E",
+  accentColor: DEFAULT_ACCENT_COLOR,
   catalogUrl: "vtrinedigital.com.br/ateliemira",
 };
 
@@ -147,7 +148,7 @@ export const PRODUCTS: Product[] = [
 ];
 
 export const ACCENT_COLOR_OPTIONS = [
-  "#C9A96E",
+  DEFAULT_ACCENT_COLOR,
   "#0D0D0D",
   "#5B2433",
   "#5A6048",

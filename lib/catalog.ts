@@ -1,4 +1,5 @@
 import { formatCents } from "@/lib/utils";
+import { DEFAULT_ACCENT_COLOR } from "@/lib/theme";
 import type { Product, ProductColor, Store } from "@/lib/types";
 
 // Placeholder neutro (cor linen) para produtos sem imagem. next/image aceita data URIs.
@@ -69,7 +70,7 @@ export function mapPublicStore(
     whatsapp: row.whatsapp ?? "",
     categories,
     description: row.description ?? "",
-    accentColor: row.accent_color ?? "#C9A96E",
+    accentColor: row.accent_color ?? DEFAULT_ACCENT_COLOR,
     catalogUrl: row.slug,
     analyticsId: row.analytics_id ?? undefined,
     pixelId: row.pixel_id ?? undefined,
