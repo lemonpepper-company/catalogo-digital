@@ -56,15 +56,21 @@ describe("next.config Content-Security-Policy", () => {
   it("permite o host do Supabase em img-src e connect-src", async () => {
     const csp = await loadCsp("production");
     expect(csp).toContain(
-      "img-src 'self' data: https://images.unsplash.com https://www.googletagmanager.com https://abc.supabase.co"
+      "img-src 'self' data: blob: https://images.unsplash.com https://www.googletagmanager.com https://abc.supabase.co"
     );
     expect(csp).toContain("https://abc.supabase.co wss://abc.supabase.co");
   });
 
   it("permite googletagmanager.com em img-src e connect-src (pixel de fallback do GA/GTM)", async () => {
     const csp = await loadCsp("production");
-    expect(csp).toContain("img-src 'self' data: https://images.unsplash.com https://www.googletagmanager.com");
+    expect(csp).toContain("img-src 'self' data: blob: https://images.unsplash.com https://www.googletagmanager.com");
     expect(csp).toContain("connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com");
+  });
+
+  it("permite blob: em img-src (previews de upload via URL.createObjectURL)", async () => {
+    const csp = await loadCsp("production");
+    const imgSrc = csp.split("; ").find((d) => d.startsWith("img-src "))!;
+    expect(imgSrc).toContain(" blob:");
   });
 });
 
