@@ -28,12 +28,16 @@ Aproveitando a mudança, a área de **personalização** da loja passa a ficar n
 | Proporção da imagem | **Proporção fixa 3:1, largura total, recortada** (`object-cover`); recomendação de ~1200×400px no upload |
 | Gate de plano | **Sem gate** — disponível para todas as lojas, igual à cor de destaque |
 | Remoção | O lojista pode **remover** a capa (é promocional/temporária) |
+| Cor no onboarding | **Removida da etapa 2 do cadastro.** A loja nasce com o padrão Gold Dust (`#C9A96E`) e define a cor depois, na aba Personalização |
+| Capa no onboarding | **Fora do cadastro** — só na aba Personalização |
 
 ---
 
 ## 3. Arquitetura
 
 Aba e Server Action **independentes** (não reaproveitar `updateStoreSettings`), seguindo o padrão do projeto de "uma action por concern, um hook por feature". Cada aba tem formulário e salvamento isolados — salvar a personalização não re-valida nem re-grava os campos da Configuração.
+
+**Refactor do `useLojaFields`:** hoje o hook compartilhado (`components/loja/use-loja-fields.ts`, usado por cadastro **e** Configurações) carrega `accent`/`setAccent`. Como a cor de destaque deixa de existir nessas duas telas (sai do cadastro e da Configurações), a `accent` **sai do `useLojaFields`** e passa a viver apenas no novo `use-personalizacao.ts`. O `useLojaFields` fica focado no que cadastro e Configurações realmente compartilham: identidade, WhatsApp, monograma, Instagram, descrição, logo e pagamento/entrega.
 
 ---
 
@@ -91,7 +95,20 @@ Novo item **"Personalização"** (ícone `Palette` do Lucide, outline ~2px) entr
 ### O que sai da Configurações
 
 - O Card "Cor de destaque" é **removido** de `app/painel/configuracoes/ConfiguracoesClient.tsx`.
+- `use-configuracoes.ts` deixa de passar/enviar `accent` (não faz mais `formData.set("accentColor", ...)`), acompanhando o refactor do `useLojaFields`.
 - Configurações mantém: **Identidade**, **Mensagem do pedido**, **Pagamento e entrega**.
+
+---
+
+## 5.1 Mudanças no onboarding (etapa 2 do cadastro)
+
+O cadastro em duas etapas tem a etapa 2 (`/cadastro?step=loja`) num fluxo próprio (`app/(auth)/cadastro/`), **separado** da Configurações, que hoje também coleta a cor de destaque. Com a Opção B, a cor sai do onboarding:
+
+- `CadastroForm.tsx` — remove a seção "Cor de destaque" (título + `CorDestaqueFields`) e o respectivo import. A etapa 2 passa a coletar: Nome/Link da loja, **Identidade**, **Pagamento e entrega**.
+- `use-cadastro-form.ts` — deixa de fazer `formData.set("accentColor", loja.accent)` (o campo não é mais enviado). Acompanha a remoção de `accent` do `useLojaFields`.
+- `app/actions/auth.ts` (`createStore`) — `accentColor` sai do `storeSchema` e do `safeParse`; o insert em `stores` passa a gravar o padrão fixo `accent_color: "#C9A96E"` (Gold Dust). A loja nasce com a cor padrão e o lojista ajusta depois na aba Personalização.
+
+Nenhuma mudança de banco necessária para isso — `accent_color` já existe e já tem uso; apenas a origem do valor muda (form → default no servidor).
 
 ---
 
@@ -158,6 +175,7 @@ Estrutura no topo da página: **StoreHeader → Capa → Pills de categoria → 
 5. Remover capa → some da vitrine.
 6. Alterar cor de destaque na nova aba → reflete nos CTAs da vitrine.
 7. Loja sem capa não renderiza o bloco (sem espaço vazio).
+8. Etapa 2 do cadastro **não** mostra mais a seção "Cor de destaque"; loja recém-criada nasce com Gold Dust e é editável na aba Personalização.
 
 ---
 
@@ -177,8 +195,10 @@ Estrutura no topo da página: **StoreHeader → Capa → Pills de categoria → 
 - `lib/validation/painel.ts` (novo `personalizacaoSchema`; `accentColor` sai de `storeSettingsSchema`)
 - `app/actions/store.ts` (nova `updatePersonalizacao`; `updateStoreSettings` perde `accentColor`)
 - `app/painel/configuracoes/ConfiguracoesClient.tsx` e `use-configuracoes.ts` (remove cor de destaque)
+- `components/loja/use-loja-fields.ts` (remove `accent`/`setAccent`)
 - `components/painel/Sidebar.tsx`, `components/painel/MobileTabBar.tsx` (novo item de navegação)
 - `app/[slug]/CatalogoClient.tsx` (render da capa + duas camadas fixas)
+- **Onboarding:** `app/(auth)/cadastro/CadastroForm.tsx` e `use-cadastro-form.ts` (remove seção de cor); `app/actions/auth.ts` (`createStore`/`storeSchema` perdem `accentColor`, default `#C9A96E` no insert)
 
 ---
 
