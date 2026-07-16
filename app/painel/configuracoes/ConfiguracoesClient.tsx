@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Toast } from "@/components/ui/Toast";
 import { IdentidadeFields } from "@/components/loja/IdentidadeFields";
-import { CorDestaqueFields } from "@/components/loja/CorDestaqueFields";
 import { PagamentoEntregaFields } from "@/components/loja/PagamentoEntregaFields";
 import { signOut } from "@/app/actions/auth";
 import type { StoreSettings } from "@/lib/types";
@@ -111,16 +110,6 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
             />
           </div>
         </IdentidadeFields>
-      </Card>
-
-      <Card>
-        <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
-          Cor de destaque{" "}
-          <span className="text-graphite font-normal">
-            · aplicada nos botões primários e pills ativos
-          </span>
-        </h2>
-        <CorDestaqueFields accent={f.accent} onAccentChange={f.setAccent} />
       </Card>
 
       <Card>
