@@ -50,7 +50,6 @@ const storeSchema = z.object({
   monogram: z.string().max(3, 'Monograma deve ter no máximo 3 letras').nullable(),
   description: z.string().max(500, 'Descrição muito longa').nullable(),
   instagram: z.string().max(100, 'Instagram muito longo').nullable(),
-  accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Cor inválida'),
   paymentMethods: z.array(z.enum(PAYMENT_METHOD_VALUES)),
   deliveryMethods: z.array(z.enum(DELIVERY_METHOD_VALUES)),
 })
@@ -150,7 +149,6 @@ export async function createStore(
     monogram: (formData.get('monogram') as string) || null,
     description: (formData.get('description') as string) || null,
     instagram: (formData.get('instagram') as string)?.replace(/^@+/, '').trim() || null,
-    accentColor: formData.get('accentColor'),
     paymentMethods: JSON.parse((formData.get('paymentMethods') as string) || '[]'),
     deliveryMethods: JSON.parse((formData.get('deliveryMethods') as string) || '[]'),
   })
@@ -192,7 +190,7 @@ export async function createStore(
       monogram: result.data.monogram,
       description: result.data.description,
       instagram: result.data.instagram,
-      accent_color: result.data.accentColor,
+      accent_color: '#C9A96E', // padrão Gold Dust; o lojista ajusta na aba Personalização
       payment_methods: result.data.paymentMethods,
       delivery_methods: result.data.deliveryMethods,
     })
