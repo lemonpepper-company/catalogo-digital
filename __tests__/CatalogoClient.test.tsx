@@ -27,6 +27,14 @@ class FakeIntersectionObserver {
 beforeEach(() => {
   FakeIntersectionObserver.instances = [];
   vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+  );
 });
 
 afterEach(() => {
@@ -88,5 +96,22 @@ describe("CatalogoClient — carregamento incremental", () => {
 
     fireEvent.click(screen.getByText("Blusas"));
     expect(countCards(container)).toBe(5);
+  });
+});
+
+describe("CatalogoClient — capa da loja", () => {
+  it("renderiza a capa quando a loja tem coverUrl", () => {
+    render(
+      <CatalogoClient
+        store={{ ...store, coverUrl: "https://example.com/capa.jpg" }}
+        products={makeProducts(2, "Vestidos")}
+      />
+    );
+    expect(screen.getByAltText("Capa da loja Ateliê Mira")).toBeTruthy();
+  });
+
+  it("não renderiza a capa quando não há coverUrl", () => {
+    render(<CatalogoClient store={store} products={makeProducts(2, "Vestidos")} />);
+    expect(screen.queryByAltText(/Capa da loja/)).toBeNull();
   });
 });
