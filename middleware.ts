@@ -4,10 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  const needsAuth =
-    pathname === '/login' ||
-    pathname.startsWith('/painel') ||
-    pathname === '/escolha-de-plano'
+  const needsAuth = pathname === '/login' || pathname.startsWith('/painel')
 
   if (!needsAuth) {
     return NextResponse.next({ request })
@@ -45,21 +42,18 @@ export async function middleware(request: NextRequest) {
     if (user) {
       const { data: store } = await supabase
         .from('stores')
-        .select('plan')
+        .select('id')
         .eq('owner_id', user.id)
         .maybeSingle()
 
       if (!store) {
         return NextResponse.redirect(new URL('/cadastro?step=loja', request.url))
       }
-      if (!store.plan) {
-        return NextResponse.redirect(new URL('/escolha-de-plano', request.url))
-      }
       return NextResponse.redirect(new URL('/painel', request.url))
     }
   }
 
-  // Painel: exige sessão, loja criada e plano definido
+  // Painel: exige sessão e loja criada
   if (pathname.startsWith('/painel')) {
     if (!user) {
       const url = request.nextUrl.clone()
@@ -70,35 +64,12 @@ export async function middleware(request: NextRequest) {
 
     const { data: store } = await supabase
       .from('stores')
-      .select('plan')
+      .select('id')
       .eq('owner_id', user.id)
       .maybeSingle()
 
     if (!store) {
       return NextResponse.redirect(new URL('/cadastro?step=loja', request.url))
-    }
-    if (!store.plan) {
-      return NextResponse.redirect(new URL('/escolha-de-plano', request.url))
-    }
-  }
-
-  // Escolha de plano: exige sessão e loja criada; redireciona se já tem plano
-  if (pathname === '/escolha-de-plano') {
-    if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-
-    const { data: store } = await supabase
-      .from('stores')
-      .select('plan')
-      .eq('owner_id', user.id)
-      .maybeSingle()
-
-    if (!store) {
-      return NextResponse.redirect(new URL('/cadastro?step=loja', request.url))
-    }
-    if (store.plan) {
-      return NextResponse.redirect(new URL('/painel', request.url))
     }
   }
 

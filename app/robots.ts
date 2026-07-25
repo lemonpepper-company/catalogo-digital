@@ -15,7 +15,6 @@ export default function robots(): MetadataRoute.Robots {
           "/recuperar-senha",
           "/redefinir-senha",
           "/verificar-email",
-          "/escolha-de-plano",
         ],
       },
     ],

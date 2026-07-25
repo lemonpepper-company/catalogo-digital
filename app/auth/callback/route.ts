@@ -65,14 +65,12 @@ export async function GET(request: NextRequest) {
   // Verifica se loja já existe (usuário existente, ex.: login Google)
   const { data: store } = await supabase
     .from('stores')
-    .select('plan')
+    .select('id')
     .eq('owner_id', user.id)
     .maybeSingle()
 
   if (store) {
-    return NextResponse.redirect(
-      `${origin}${store.plan ? '/painel' : '/escolha-de-plano'}`
-    )
+    return NextResponse.redirect(`${origin}/painel`)
   }
 
   // Usuário novo — cria o profile e segue para a etapa de dados da loja
