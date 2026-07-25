@@ -1,3 +1,7 @@
+import type { Plan } from "./plan-limits";
+
+export type { Plan };
+
 export interface ProductColor {
   label: string;
   hex: string;
@@ -86,7 +90,7 @@ export interface StoreSettings {
   id: string;
   name: string;
   slug: string;
-  plan: "starter" | "pro" | null;
+  plan: Plan;
   trialEndsAt: string | null;
   whatsapp: string | null;
   accentColor: string;

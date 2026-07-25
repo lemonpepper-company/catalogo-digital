@@ -7,13 +7,14 @@ import type {
   StoreProduct,
   StoreCategory,
   ProductColor,
+  Plan,
 } from "@/lib/types";
 
 type StoreRow = {
   id: string;
   name: string;
   slug: string;
-  plan: "starter" | "pro" | null;
+  plan: Plan;
   trial_ends_at: string | null;
   whatsapp: string | null;
   accent_color: string | null;
