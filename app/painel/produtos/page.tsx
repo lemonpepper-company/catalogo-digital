@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore, mapProduct } from "@/lib/server/store";
-import { getPlanLimits, isTrialActive } from "@/lib/plan-limits";
+import { getPlanLimits } from "@/lib/plan-limits";
 import { PRODUCTS_PAGE_SIZE, getTotalPages, clampPage } from "@/lib/pagination";
 import {
   NO_CATEGORY_VALUE,
@@ -113,7 +113,7 @@ export default async function ProdutosPage({
     .range(from, to);
 
   const products = (data ?? []).map(mapProduct);
-  const limits = getPlanLimits(store.plan, isTrialActive(store.trialEndsAt));
+  const limits = getPlanLimits(store.plan, store.trialEndsAt);
 
   return (
     <ProdutosClient

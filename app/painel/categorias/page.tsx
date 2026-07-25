@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
-import { getPlanLimits, isTrialActive } from "@/lib/plan-limits";
+import { getPlanLimits } from "@/lib/plan-limits";
 import type { StoreCategory } from "@/lib/types";
 import { CategoriasClient } from "./CategoriasClient";
 
@@ -34,7 +34,7 @@ export default async function CategoriasPage() {
     productCount: counts.get(c.id) ?? 0,
   }));
 
-  const limits = getPlanLimits(store.plan, isTrialActive(store.trialEndsAt));
+  const limits = getPlanLimits(store.plan, store.trialEndsAt);
 
   return (
     <CategoriasClient

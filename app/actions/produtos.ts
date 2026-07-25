@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
-import { getPlanLimits, isTrialActive } from "@/lib/plan-limits";
+import { getPlanLimits } from "@/lib/plan-limits";
 import { productSchema } from "@/lib/validation/painel";
 import { parseReaisToCents } from "@/lib/utils";
 import { uploadPhotos, publicUrlToPath } from "@/lib/server/upload";
@@ -60,7 +60,7 @@ export async function createProduct(
   const parsed = parseFormProduct(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const limits = getPlanLimits(store.plan, isTrialActive(store.trialEndsAt));
+  const limits = getPlanLimits(store.plan, store.trialEndsAt);
 
   const { count } = await supabase
     .from("products")
@@ -68,7 +68,7 @@ export async function createProduct(
     .eq("store_id", store.id);
   if ((count ?? 0) >= limits.maxProducts) {
     return {
-      error: "Limite de produtos do plano Starter atingido. Faça upgrade para Pro.",
+      error: "Limite de produtos do seu plano atingido. Fale conosco para aumentar o limite.",
     };
   }
 
@@ -127,7 +127,7 @@ export async function updateProduct(
   const parsed = parseFormProduct(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const limits = getPlanLimits(store.plan, isTrialActive(store.trialEndsAt));
+  const limits = getPlanLimits(store.plan, store.trialEndsAt);
 
   const { data: current } = await supabase
     .from("products")

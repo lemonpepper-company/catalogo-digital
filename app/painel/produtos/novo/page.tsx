@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
-import { getPlanLimits, isTrialActive } from "@/lib/plan-limits";
+import { getPlanLimits } from "@/lib/plan-limits";
 import type { StoreCategory } from "@/lib/types";
 import { ProdutoFormClient } from "../ProdutoFormClient";
 
@@ -27,7 +27,7 @@ export default async function NovoProdutoPage() {
     productCount: 0,
   }));
 
-  const limits = getPlanLimits(store.plan, isTrialActive(store.trialEndsAt));
+  const limits = getPlanLimits(store.plan, store.trialEndsAt);
 
   return <ProdutoFormClient categories={categories} maxPhotos={limits.maxPhotos} />;
 }
