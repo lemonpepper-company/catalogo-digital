@@ -1,10 +1,10 @@
 import { MessageCircle } from "lucide-react";
+import { VTRINE_WHATSAPP_NUMBER } from "@/lib/contact";
 
-const WHATSAPP_NUMBER = "5535999931678";
 const WHATSAPP_MESSAGE = "Olá! Tenho uma dúvida sobre o Vtrine Digital.";
 
 export function WhatsAppFloatingButton() {
-  const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
+  const href = `https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
 
   return (
     <a
