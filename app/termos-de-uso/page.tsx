@@ -89,11 +89,10 @@ export default function TermosDeUsoPage() {
         <Section title="4. Planos e pagamento">
           <ul className="flex flex-col gap-2">
             {[
-              "Trial: 14 dias gratuitos a partir da data de criação da conta, sem necessidade de cartão de crédito.",
-              "Plano Starter: R$ 49/mês — limites de produtos e categorias conforme descrito na página de planos.",
-              "Plano Pro: R$ 99/mês — limites ampliados, conforme descrito na página de planos.",
-              "A cobrança é recorrente mensal e pode ser cancelada a qualquer momento.",
-              "Não há reembolso de períodos parciais já cobrados.",
+              "A Vtrine Digital oferece um plano gratuito (Free), disponível automaticamente na criação da conta, com limites de produtos, categorias e fotos.",
+              "Os planos Starter e Pro, com limites ampliados, são disponibilizados mediante contato direto com a Vtrine Digital para avaliação e liberação de acesso.",
+              "A ativação dos planos pagos é feita manualmente, sem cobrança automática. As condições de pagamento são combinadas diretamente com o lojista no momento da liberação.",
+              "A Vtrine Digital pode revisar os limites e as condições de cada plano a qualquer momento, mediante aviso prévio.",
             ].map((item) => (
               <li
                 key={item}
@@ -115,7 +114,6 @@ export default function TermosDeUsoPage() {
           </p>
           <ul className="mt-3 flex flex-col gap-2">
             {[
-              "Inadimplência superior a 30 dias após o vencimento da fatura.",
               "Publicação de conteúdo ilegal ou que viole estes Termos de Uso.",
               "Uso abusivo da plataforma, incluindo spam e automação não autorizada.",
             ].map((item) => (
