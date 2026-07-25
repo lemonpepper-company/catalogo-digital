@@ -58,7 +58,7 @@ export default function VerificarEmailPage() {
 
           <p className="font-body text-[14px] text-graphite leading-relaxed mb-6">
             Enviamos um link de confirmação para o seu e-mail. Clique nele para
-            ativar sua conta e escolher seu plano.
+            ativar sua conta.
           </p>
 
           <Suspense>
