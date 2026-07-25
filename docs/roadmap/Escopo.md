@@ -1,9 +1,9 @@
 # Escopo do Produto — Catálogo Digital V1
 
-**Versão:** 2.3  
-**Data:** 2 de julho de 2026
+**Versão:** 2.4  
+**Data:** 24 de julho de 2026
 
-> **Modo demo:** a partir desta versão, o produto roda em modo demo para validação com lojistas. Preços, os CTAs "Começar" e a seção de depoimentos (fictícios) ficam ocultos na landing, o cadastro pula a escolha de plano e toda loja nova nasce direto no plano Starter com expiração indeterminada (sem cobrança). Ver §4.3 e §6 para o detalhe do que muda e o que volta quando a cobrança for reativada.
+> **Modelo de planos:** Free (automático no cadastro), Starter e Pro (liberados manualmente após contato via WhatsApp — "Fale conosco" na landing —, sem gateway de pagamento integrado ainda). A seção de depoimentos (fictícios) segue oculta na landing. Ver §4.3 e §6.
 
 ---
 
@@ -30,9 +30,8 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 
 | Tela | Elementos principais | Status |
 |---|---|---|
-| Landing page | Hero, dor, como funciona, features, planos (sem preço, "Em breve", sem CTA), FAQ, CTA final. Seção de depoimentos oculta (fictícios, sem clientes reais ainda) | ✅ Implementado |
-| Cadastro | Seção "Sua conta" + Seção "Sua loja" com preview do slug em tempo real | ✅ Implementado |
-| Escolha de plano | Cards Starter R$49 e Pro R$99 (UI original, inalterada). Pulada no cadastro em modo demo — loja já nasce Starter e nunca chega nessa tela. | ⏸️ Fora do fluxo (modo demo) |
+| Landing page | Hero, dor, como funciona, features, planos (Free, Starter, Pro — CTA "Fale conosco" para os pagos), FAQ, CTA final. Seção de depoimentos oculta (fictícios, sem clientes reais ainda) | ✅ Implementado |
+| Cadastro | Seção "Sua conta" + Seção "Sua loja" com preview do slug em tempo real. Loja nasce direto no plano Free, sem etapa de escolha de plano | ✅ Implementado |
 | Login | E-mail + senha + Google OAuth + link esqueci senha + link cadastro em Gold Dust | ✅ Implementado |
 | Verificar e-mail | Aguarda confirmação; botão de reenvio com email via query param | ✅ Implementado |
 | Recuperar senha | Solicita email para reset | ✅ Implementado |
@@ -42,7 +41,7 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 
 | Tela | Elementos principais | Status |
 |---|---|---|
-| Dashboard | Resumo (ativos, esgotados, link do catálogo). Banner de trial durante 14 dias. Dados reais do banco. | ✅ Implementado |
+| Dashboard | Resumo (ativos, esgotados, link do catálogo). Aviso de upgrade no topo do painel para lojas no plano Free. Dados reais do banco. | ✅ Implementado |
 | Listagem de produtos | Grid com status, toggle ativo/inativo, editar, excluir. Estado vazio. Dados reais. | ✅ Implementado |
 | Cadastro / edição de produto | Upload fotos (Storage), nome, preço, categoria (dropdown), cores (swatches + custom), tamanhos, estoque, visibilidade. | ✅ Implementado |
 | Categorias | Lista com editar/excluir + formulário inline "Nova categoria". Dados reais. Limites de plano. | ✅ Implementado |
@@ -88,18 +87,19 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 | Variáveis disponíveis | Chips clicáveis para inserir variáveis no template | ✅ Implementado |
 | Normalização do WhatsApp | Número normalizado com código do país (+55) no momento do checkout | ✅ Implementado |
 
-### 4.3 Trial e assinatura
+### 4.3 Planos e liberação de acesso
 
-> **Modo demo:** toda loja cadastrada nasce com `plan = 'starter'` e `trial_ends_at = null` (indeterminado). Não há trial de 14 dias nem cobrança — é acesso ao plano Starter (com os limites normais de 30 produtos/5 categorias/3 fotos), por tempo indeterminado, enquanto durar a validação com lojistas.
+> Toda loja nasce automaticamente no plano Free (`plan = 'free'`), sem cobrança e sem prazo de expiração. Starter e Pro são liberados manualmente: o lojista entra em contato pelo WhatsApp ("Fale conosco" na landing), você avalia e atualiza `plan` e `trial_ends_at` direto na tabela `stores` do Supabase. Não há gateway de pagamento integrado nesta fase.
 
 | Funcionalidade | Detalhe | Status |
 |---|---|---|
-| Cadastro já com plano Starter | `plan='starter'`, `trial_ends_at=null` definidos na criação da loja (`/auth/callback` e `createStore`) | ✅ Implementado (modo demo) |
-| Trial de 14 dias | Substituído pelo modo demo — lógica de `trial_ends_at` continua no banco (agora nullable) e é tratada como "sem expiração" quando nula | ⏸️ Suspenso (modo demo) |
-| Tela de escolha de plano | Pulada no cadastro. Rota, Server Action `selectPlan` e UI (`PlanosContent.tsx`) seguem inalteradas no código — ficam apenas inacessíveis no fluxo até a cobrança voltar. | ⏸️ Fora do fluxo (modo demo) |
-| Banner de trial | Não aparece para lojas em modo demo (`showTrialBanner = !store.plan`, e `plan` nunca é nulo) | ⏸️ Suspenso (modo demo) |
+| Cadastro já com plano Free | `plan='free'`, `trial_ends_at=null` definidos na criação da loja (`/auth/callback` e `createStore`) | ✅ Implementado |
+| Liberação manual de Starter/Pro | Edição direta de `plan` e `trial_ends_at` na tabela `stores` pelo Supabase, após contato via WhatsApp | ✅ Implementado |
+| Rebaixamento automático ao expirar | Quando `trial_ends_at` de um Starter/Pro liberado manualmente passa, os limites efetivos caem para o Free — calculado a cada checagem (`getEffectivePlan()`), sem gravar nada no banco nem job agendado | ✅ Implementado |
+| Aviso de upgrade no painel | Lojas no plano efetivo Free veem um aviso no topo do painel com link para o WhatsApp | ✅ Implementado |
+| Tela de escolha de plano | Removida — Starter/Pro só existem na landing, com CTA "Fale conosco" | ❌ Removido |
 | Loja oculta após expiração | Depende de `is_active`, não de `trial_ends_at` — segue funcionando para desativação manual | ✅ Implementado |
-| Integração de pagamento | Stripe ou Pagar.me — cobrança recorrente | ⏳ Pendente — retomado após a validação em modo demo |
+| Integração de pagamento | Stripe ou Pagar.me — cobrança recorrente automática | ⏳ Pendente — retomado após a validação |
 | Webhook de pagamento | Processar upgrades, cancelamentos e expiração via webhook | ⏳ Pendente |
 | Cancelamento | Sem fidelidade. Catálogo oculto até reativação. Dados preservados. | ⏳ Pendente (depende do pagamento) |
 
@@ -123,18 +123,19 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 
 ## 6. Modelo de monetização
 
-> **Em modo demo, preços não são exibidos e não há cobrança.** A tabela abaixo é o modelo planejado para quando a cobrança for reativada (pós-validação).
+> O Free não tem preço — é a porta de entrada padrão do cadastro. Starter e Pro ainda não têm preço fixo publicado: a landing mostra "Sob consulta" e a liberação é negociada manualmente pelo WhatsApp enquanto não há gateway de pagamento integrado.
 
-| | Starter | Pro |
-|---|---|---|
-| **Preço** | A definir | A definir |
-| Produtos | Até 30 | Ilimitados |
-| Categorias | Até 5 | Ilimitadas |
-| Fotos por produto | Até 3 | Até 5 |
-| GA + Pixel | Incluso | Incluso |
-| Template de mensagem | Incluso | Incluso |
+| | Free | Starter | Pro |
+|---|---|---|---|
+| **Preço** | Grátis | Sob consulta | Sob consulta |
+| Produtos | Até 8 | Até 30 | Ilimitados |
+| Categorias | 1 | Até 5 | Ilimitadas |
+| Fotos por produto | 1 | Até 3 | Até 5 |
+| Personalização (cor + capa) | Incluso | Incluso | Incluso |
+| Mensagem de pedido customizada | Incluso | Incluso | Incluso |
+| Formas de pagamento/entrega | Incluso | Incluso | Incluso |
 
-**Enquanto o modo demo estiver ativo:** todo cadastro recebe o plano Starter automaticamente, com expiração indeterminada (`trial_ends_at = null`) e sem cobrança no dia 15. Não há upgrade automático para Pro — quem quiser os limites Pro precisa aguardar a reativação da cobrança.
+**Liberação de Starter/Pro:** feita manualmente direto no Supabase (`plan` + `trial_ends_at`), depois de contato via WhatsApp pela landing. Quando `trial_ends_at` vence, a loja passa a valer os limites do Free automaticamente nas checagens — sem nenhum valor sendo regravado no banco.
 
 ---
 
@@ -184,9 +185,9 @@ Olá! Gostaria de fazer um pedido:
 | Sacola | Persiste durante a navegação no catálogo. Badge atualiza em tempo real. |
 | Mensagem WhatsApp | Construída com todos os itens da sacola no template configurado. Sempre nova aba. |
 | Produto esgotado | Oculto no catálogo público se `stock=0` OU `is_active=false` (RLS). No painel aparece com badge. |
-| Catálogo em modo demo | Público e ativo por tempo indeterminado (`trial_ends_at=null`, `plan='starter'`). Sem banner de trial no painel. |
-| Catálogo após expiração | Exibe `CatalogExpired` (página de expiração) quando `is_active=false`. Dados preservados. Não ocorre automaticamente em modo demo — depende de desativação manual. |
-| Limite do Starter | Ao atingir 30 produtos, botão desabilitado + mensagem de upgrade. Se aplica normalmente em modo demo, já que toda loja nasce Starter. |
+| Catálogo em uso | Público e ativo enquanto `is_active=true`, independente do plano. Loja no plano efetivo Free tem os limites de criação mais restritos, mas o catálogo já publicado continua no ar normalmente. |
+| Catálogo após expiração | Exibe `CatalogExpired` (página de expiração) quando `is_active=false`. Dados preservados. Não ocorre automaticamente — depende de desativação manual. |
+| Limite de plano atingido | Ao atingir o limite de produtos/categorias do plano efetivo, botão desabilitado + mensagem indicando para falar com a Vtrine. |
 | Listagem de produtos | Tela padrão ao clicar em "Produtos" no menu — não o formulário de criação. |
 | WhatsApp sem código | Número normalizado com `+55` ao montar o link de checkout. |
 
@@ -196,8 +197,8 @@ Olá! Gostaria de fazer um pedido:
 
 | Risco | Descrição | Mitigação |
 |---|---|---|
-| Churn no mês 2 | Lojista cadastra e depois abandona | Notificação semanal com dados de acesso via GA. (Banner de trial/urgência volta quando a cobrança for reativada — suspenso em modo demo.) |
-| Não conversão no trial | Experimenta mas não assina | Não se aplica em modo demo (sem trial nem cobrança). Retomar e-mail de recuperação no dia 12 quando o modelo pago voltar. |
+| Churn no mês 2 | Lojista cadastra e depois abandona | Notificação semanal com dados de acesso via GA. Aviso de upgrade no painel para quem está no Free. |
+| Não conversão do Free para pago | Usa o Free e nunca fala com a gente | Aviso de upgrade no painel; acompanhamento manual dos lojistas mais ativos para oferecer Starter/Pro por WhatsApp. |
 | Concorrência com Instagram | Lojistas já usam Instagram Shopping de graça | Pitch: catálogo vai pro WhatsApp (90% abertura vs 5–10% feed). Sacola de pedidos é diferencial. |
 | Slug duplicado | Dois lojistas com nome de loja similar | Validação em tempo real + sugestão automática de variação. |
 
@@ -212,7 +213,7 @@ Olá! Gostaria de fazer um pedido:
 | 3 | Auth + Supabase (cadastro, login, OAuth, planos) | ✅ Concluído |
 | 4 | Painel do lojista com dados reais | ✅ Concluído — produtos, categorias, configurações, upload de fotos |
 | 5 | Catálogo público com dados reais | ✅ Concluído — rota `/[slug]`, sacola, checkout WhatsApp |
-| 6 | Modo demo — preços/CTAs ocultos, cadastro direto no plano Starter, expiração indeterminada | ✅ Concluído (jul/2026) |
-| 7 | Validação com lojistas | ⏳ Em andamento — beta em modo demo, sem cobrança |
-| 8 | Integração de pagamento | ⏳ Depois da validação — Stripe ou Pagar.me, cobrança recorrente, reintroduzir `/escolha-de-plano` e preços |
+| 6 | Plano Free + volta dos planos pagos na landing (CTA "Fale conosco", liberação manual) | ✅ Concluído (jul/2026) |
+| 7 | Validação com lojistas | ⏳ Em andamento — Free automático, Starter/Pro liberados manualmente |
+| 8 | Integração de pagamento | ⏳ Depois da validação — Stripe ou Pagar.me, cobrança recorrente automática para Starter/Pro |
 | 9 | Launch | ⏳ Após validação e pagamento funcionando |
