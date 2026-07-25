@@ -103,19 +103,22 @@ export const testimonials = [
   },
 ];
 
+export const freeFeatures = [
+  "Até 8 produtos",
+  "1 categoria",
+  "1 foto por produto",
+];
+
 export const starterFeatures = [
   "Até 30 produtos",
-  "Link único da loja",
-  "Checkout no WhatsApp",
-  "Painel do lojista",
+  "5 categorias",
+  "3 fotos por produto",
 ];
 
 export const proFeatures = [
   "Produtos ilimitados",
-  "Controle de estoque",
-  "Categorias e destaques",
-  "Personalização da marca",
-  "Suporte prioritário",
+  "Categorias ilimitadas",
+  "5 fotos por produto",
 ];
 
 export const faqs = [
