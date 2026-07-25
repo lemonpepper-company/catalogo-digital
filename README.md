@@ -47,7 +47,6 @@ app/
     verificar-email/    # Aguarda confirmação de email
     recuperar-senha/    # Reset de senha
     redefinir-senha/    # Nova senha via token
-    escolha-de-plano/   # Seleção de plano (Starter/Pro)
   [slug]/               # Catálogo público da loja (mobile-first)
   painel/
     page.tsx            # Dashboard
@@ -122,7 +121,6 @@ Acesse em [http://localhost:3000](http://localhost:3000). O root redireciona par
 | `/landing` | Landing page de marketing |
 | `/cadastro` | Criação de conta (2 etapas) |
 | `/login` | Login do lojista |
-| `/escolha-de-plano` | Seleção de plano (Starter/Pro) |
 | `/painel` | Dashboard do lojista |
 | `/painel/produtos` | Listagem de produtos |
 | `/painel/produtos/novo` | Cadastro de produto |

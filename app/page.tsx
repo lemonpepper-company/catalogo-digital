@@ -51,14 +51,12 @@ export default function LandingPage() {
             >
               Recursos
             </NextLink>
-            {/* MODO DEMO: link "Preços" oculto junto com a seção. Original:
             <NextLink
               href="#precos"
               className="hidden md:block font-body font-medium text-[14px] text-graphite hover:text-obsidian transition-colors"
             >
               Preços
             </NextLink>
-            */}
             {/* MODO DEMO: link "Depoimentos" oculto junto com a seção. Original:
             <NextLink
               href="#depoimentos"
@@ -511,7 +509,7 @@ export default function LandingPage() {
               <div className="flex flex-col gap-[11px]">
                 {[
                   { label: "Recursos", href: "#recursos" },
-                  // MODO DEMO: link "Preços" oculto junto com a seção.
+                  { label: "Preços", href: "#precos" },
                   { label: "Ver um catálogo", href: "/atelie-mira" },
                   { label: "Painel do lojista", href: "/painel" },
                 ].map((l) => (
