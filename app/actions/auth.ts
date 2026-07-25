@@ -171,13 +171,9 @@ export async function createStore(
     full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? '',
   })
 
-  // MODO DEMO (a partir de jul/2026): toda loja nasce Starter, sem expiração.
-  // Para voltar ao modelo com trial + escolha de plano, restaurar o bloco abaixo:
-  //
-  // const trialEndsAt = new Date()
-  // trialEndsAt.setDate(trialEndsAt.getDate() + 14)
-  //
-  // ... e trocar o redirect final para '/escolha-de-plano'
+  // Toda loja nasce no plano Free, sem expiração. Starter/Pro são liberados
+  // manualmente depois, direto na tabela stores do Supabase (ver AGENTS.md /
+  // docs/roadmap/Escopo.md §4.3).
 
   const { data: store, error } = await supabase
     .from('stores')
@@ -185,7 +181,7 @@ export async function createStore(
       owner_id: user.id,
       name: result.data.store_name,
       slug: result.data.slug,
-      plan: 'starter',
+      plan: 'free',
       trial_ends_at: null,
       whatsapp: result.data.whatsapp,
       monogram: result.data.monogram,
@@ -218,35 +214,6 @@ export async function createStore(
     } catch {
       // Ignorado de propósito — loja já foi criada com sucesso.
     }
-  }
-
-  redirect('/painel')
-}
-
-export async function selectPlan(plan: 'starter' | 'pro'): Promise<never> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) redirect('/login')
-
-  const { data: store } = await supabase
-    .from('stores')
-    .select('id')
-    .eq('owner_id', user.id)
-    .maybeSingle()
-
-  if (!store) redirect('/cadastro?step=loja')
-
-  const { error } = await supabase
-    .from('stores')
-    .update({ plan })
-    .eq('owner_id', user.id)
-    .is('plan', null)
-
-  if (error) {
-    redirect('/escolha-de-plano?error=plan')
   }
 
   redirect('/painel')
