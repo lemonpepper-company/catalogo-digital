@@ -3,7 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
-import { getPlanLimits, isTrialActive } from "@/lib/plan-limits";
+import { getPlanLimits } from "@/lib/plan-limits";
 import { categoryNameSchema, canDeleteCategory } from "@/lib/validation/painel";
 
 export type CategoryActionState =
@@ -32,10 +32,10 @@ export async function createCategory(
     .select("id", { count: "exact", head: true })
     .eq("store_id", store.id);
 
-  const limits = getPlanLimits(store.plan, isTrialActive(store.trialEndsAt));
+  const limits = getPlanLimits(store.plan, store.trialEndsAt);
   if ((count ?? 0) >= limits.maxCategories) {
     return {
-      error: "Limite de categorias do plano Starter atingido. Faça upgrade para Pro.",
+      error: "Limite de categorias do seu plano atingido. Fale conosco para aumentar o limite.",
     };
   }
 
