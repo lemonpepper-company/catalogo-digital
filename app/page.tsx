@@ -8,10 +8,12 @@ import {
   ChevronDown,
   Image as ImageIcon,
 } from "lucide-react";
+import { VTRINE_WHATSAPP_NUMBER } from "@/lib/contact";
 import {
   painCards,
   steps,
   features,
+  freeFeatures,
   starterFeatures,
   proFeatures,
   faqs,
@@ -297,8 +299,6 @@ export default function LandingPage() {
       */}
 
       {/* ─── Pricing ─── */}
-      {/* MODO DEMO: seção de preços oculta — não vamos exibir os planos neste
-          momento. Bloco original:
       <section id="precos" className="bg-linen py-28">
         <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-[660px] mx-auto text-center mb-16">
@@ -309,22 +309,58 @@ export default function LandingPage() {
               Planos sob medida para sua loja.
             </h2>
             <p className="font-body text-[17px] text-graphite text-pretty">
-              Comece agora com acesso completo. Preços em breve.
+              Todo plano inclui vitrine personalizável, link público e pedidos
+              direto no WhatsApp.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 justify-center gap-6 sm:max-w-[712px] mx-auto">
-            [Starter]
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:max-w-[960px] mx-auto">
+            {/* Free */}
+            <div className="bg-white border border-sand/50 rounded-card p-9 flex flex-col">
+              <div className="font-display font-medium text-[18px] text-obsidian">
+                Free
+              </div>
+              <div className="mt-4 mb-1.5">
+                <span className="font-display font-semibold text-[28px] text-obsidian tracking-tight">
+                  Grátis
+                </span>
+              </div>
+              <p className="font-body text-[14px] text-graphite mb-6">
+                Para testar a vitrine sem compromisso.
+              </p>
+              <ul className="flex flex-col gap-3 mb-7 flex-1">
+                {freeFeatures.map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-start gap-2.5 font-body text-[14px] text-graphite"
+                  >
+                    <Check
+                      size={17}
+                      className="text-success flex-shrink-0 mt-px"
+                    />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <NextLink
+                href="/cadastro"
+                className="inline-flex items-center justify-center h-11 rounded-btn bg-gold text-white font-display font-medium text-[15px] hover:bg-gold-hover transition-colors"
+              >
+                Começar grátis
+              </NextLink>
+            </div>
+
+            {/* Starter */}
             <div className="bg-white border border-sand/50 rounded-card p-9 flex flex-col">
               <div className="font-display font-medium text-[18px] text-obsidian">
                 Starter
               </div>
               <div className="mt-4 mb-1.5">
                 <span className="font-display font-semibold text-[28px] text-obsidian tracking-tight">
-                  Em breve
+                  Sob consulta
                 </span>
               </div>
               <p className="font-body text-[14px] text-graphite mb-6">
-                Para quem está começando a organizar a vitrine.
+                Para quem já vende e quer crescer o catálogo.
               </p>
               <ul className="flex flex-col gap-3 mb-7 flex-1">
                 {starterFeatures.map((f) => (
@@ -340,9 +376,19 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
+              <a
+                href={`https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+                  "Olá! Quero saber mais sobre o plano Starter da Vtrine."
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center h-11 rounded-btn border-2 border-obsidian text-obsidian font-display font-medium text-[15px] hover:bg-obsidian hover:text-white transition-colors"
+              >
+                Fale conosco
+              </a>
             </div>
 
-            [Pro]
+            {/* Pro */}
             <div className="relative bg-white border border-gold rounded-card p-9 flex flex-col">
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gold text-white font-body font-medium text-[10px] tracking-[0.08em] uppercase px-3.5 py-1.5 rounded-pill whitespace-nowrap">
                 Mais popular
@@ -352,11 +398,11 @@ export default function LandingPage() {
               </div>
               <div className="mt-4 mb-1.5">
                 <span className="font-display font-semibold text-[28px] text-obsidian tracking-tight">
-                  Em breve
+                  Sob consulta
                 </span>
               </div>
               <p className="font-body text-[14px] text-graphite mb-6">
-                Para a loja que vende todo dia e quer crescer.
+                Para a loja que vende todo dia e quer crescer sem limites.
               </p>
               <ul className="flex flex-col gap-3 mb-7 flex-1">
                 {proFeatures.map((f) => (
@@ -372,11 +418,20 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
+              <a
+                href={`https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+                  "Olá! Quero saber mais sobre o plano Pro da Vtrine."
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center h-11 rounded-btn bg-obsidian text-white font-display font-medium text-[15px] hover:bg-[#1f1f1f] transition-colors"
+              >
+                Fale conosco
+              </a>
             </div>
           </div>
         </div>
       </section>
-      */}
 
       {/* ─── FAQ ─── */}
       <section className="bg-ivory py-28">
