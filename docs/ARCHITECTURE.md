@@ -19,17 +19,17 @@ Implementada com **Supabase Auth** + **`@supabase/ssr`** (cookies httpOnly). Sem
   → /verificar-email?email=X (aguarda confirmação)
   → [clique no email] → /auth/callback (cria só o profile no banco)
   → /cadastro?step=loja (etapa 2: nome/slug da loja, WhatsApp, logo, monograma, Instagram, descrição, cor de destaque e formas de pagamento/entrega)
-  → createStore (cria a loja, já com plan='starter' e o perfil completo)
+  → createStore (cria a loja, já com plan='free' e o perfil completo)
   → /painel
 ```
 
-> **Modo demo (jul/2026):** a etapa `/escolha-de-plano` foi retirada do fluxo. Toda loja nasce direto com `plan = 'starter'` e `trial_ends_at = null` (indeterminado — nunca expira). A rota `/escolha-de-plano` e a Server Action `selectPlan` continuam existindo no código, mas ficam inacessíveis na prática porque nenhuma loja nova tem `plan IS NULL`. Ver `docs/roadmap/Escopo.md` §6 para o plano de reativar cobrança.
+> Toda loja nasce direto com `plan = 'free'` — sem etapa de escolha de plano no cadastro, sem cobrança. Starter e Pro são liberados manualmente (edição direta na tabela `stores` do Supabase) após contato via WhatsApp pela landing ("Fale conosco"). As rotas e ações de seleção de plano foram removidas. Ver `docs/roadmap/Escopo.md` §4.3 e §6.
 
 ### Fluxo de login
 
 ```
 /login → [email/senha]
-  → /painel (se tem plano) | /escolha-de-plano (sem plano — não ocorre para lojas criadas em modo demo) | /cadastro?step=loja (sem loja)
+  → /painel (tem loja) | /cadastro?step=loja (sem loja)
 ```
 
 ### Proteção de rotas (middleware)
@@ -40,8 +40,7 @@ Implementada com **Supabase Auth** + **`@supabase/ssr`** (cookies httpOnly). Sem
 |---|---|
 | Não autenticado → `/painel` | `/login?next=/painel` |
 | Autenticado sem loja → qualquer rota protegida | `/cadastro?step=loja` |
-| Autenticado com loja, sem plano → `/painel` | `/escolha-de-plano` (não ocorre em modo demo) |
-| Autenticado com plano → `/login` ou `/cadastro` | `/painel` |
+| Autenticado com loja → `/login` ou `/cadastro` | `/painel` |
 
 ---
 
@@ -99,7 +98,7 @@ Emails de confirmação ficam em **Mailpit**: `http://localhost:54324`
 | `lib/types.ts` | Tipos TypeScript do domínio |
 | `lib/utils.ts` | `parsePrice`, `formatMoney`, `buildWhatsAppMessage`, `renderWhatsAppMessage`, `formatPaymentLine`, `formatDeliveryLine`, `formatCents` |
 | `lib/auth/slugify.ts` | `slugify()` e `isValidSlug()` com testes |
-| `lib/plan-limits.ts` | `getPlanLimits()`, `isTrialActive()` — limites por plano (Starter/Pro) |
+| `lib/plan-limits.ts` | `getPlanLimits()`, `getEffectivePlan()` — limites por plano (Free/Starter/Pro) e rebaixamento automático quando o acesso pago liberado manualmente expira |
 | `lib/supabase/client.ts` | `createBrowserClient` para componentes client-side |
 | `lib/supabase/server.ts` | `createServerClient` para Server Components e Actions |
 | `lib/server/store.ts` | `getCurrentStore()`, `mapProduct()` — busca a loja do usuário autenticado |
@@ -108,7 +107,7 @@ Emails de confirmação ficam em **Mailpit**: `http://localhost:54324`
 | `lib/image-compress.ts` | Compressão de imagens no cliente antes do upload |
 | `lib/validation/painel.ts` | Schemas Zod para produtos, categorias, configurações da loja |
 | `middleware.ts` | Proteção de rotas e redirecionamentos por estado de auth |
-| `app/actions/auth.ts` | Server Actions: `signUp`, `signIn`, `signInWithGoogle`, `createStore`, `selectPlan`, `requestPasswordReset`, `resetPassword`, `resendConfirmation`, `signOut`. `createStore` agora coleta o perfil completo (WhatsApp obrigatório, logo, monograma, Instagram, descrição, cor de destaque, formas de pagamento/entrega) durante a etapa 2 do cadastro |
+| `app/actions/auth.ts` | Server Actions: `signUp`, `signIn`, `signInWithGoogle`, `createStore`, `requestPasswordReset`, `resetPassword`, `resendConfirmation`, `signOut`. `createStore` agora coleta o perfil completo (WhatsApp obrigatório, logo, monograma, Instagram, descrição, cor de destaque, formas de pagamento/entrega) durante a etapa 2 do cadastro |
 | `app/actions/produtos.ts` | Server Actions: `createProduct`, `updateProduct`, `deleteProduct`, `toggleProductActive` |
 | `app/actions/categorias.ts` | Server Actions: `createCategory`, `updateCategory`, `deleteCategory` |
 | `app/actions/store.ts` | Server Actions: `updateStoreSettings` |
@@ -136,7 +135,6 @@ Route group sem layout próprio. URLs sem o prefixo `(auth)`.
 | `/verificar-email` | Aguarda confirmação; botão de reenvio com email via query param |
 | `/recuperar-senha` | Solicita email para reset |
 | `/redefinir-senha` | Nova senha (requer token do email) |
-| `/escolha-de-plano` | Starter (R$49/mês) ou Pro (R$99/mês) — UI original, inalterada. Inacessível no fluxo normal em modo demo — toda loja nova já nasce com plano Starter |
 
 ## Catálogo público (`app/[slug]/`)
 
@@ -155,16 +153,16 @@ A função `getPublicCatalog(slug)` em `lib/server/catalog.ts` encapsula toda a 
 ## Estado atual (jul/2026)
 
 - **Autenticação**: completa — cadastro 2 etapas, login email/senha, recuperação/redefinição de senha, confirmação de email
-- **Modo demo**: cadastro pula a escolha de plano; toda loja nova nasce com `plan = 'starter'` e `trial_ends_at = null` (indeterminado). Na landing: preços ocultos (texto "Em breve"), botões "Começar" removidos dos cards de plano, e a seção de depoimentos (fictícios) oculta. A página `/escolha-de-plano` mantém a UI original com preços — não é revisada porque fica inacessível no fluxo
+- **Planos**: Free (automático no cadastro), Starter e Pro (liberados manualmente após contato via "Fale conosco" na landing). A landing exibe os 3 planos — preço "Grátis" no Free, "Sob consulta" em Starter/Pro. A seção de depoimentos (fictícios) segue oculta
 - **Painel do lojista** (`/painel`): totalmente conectado ao Supabase — dashboard, produtos (CRUD + upload de fotos), categorias (CRUD + limites de plano), configurações da loja
 - **Catálogo público** (`/[slug]`): dados reais do Supabase via RLS anon — grid de produtos, detalhe, sacola (drawer), checkout WhatsApp com template customizável, header com descrição e links de WhatsApp/Instagram, página de loja expirada. A cor de destaque (`accentColor`) configurada pela loja é injetada como `--color-primary` na raiz da página e reflete no monograma, na busca ativa e nos botões de CTA (adicionar à sacola, comprar, enviar pedido)
 - **Checkout**: pagamento e forma de entrega configuráveis por loja (`stores.payment_methods`/`delivery_methods`); o cliente escolhe entre as opções habilitadas antes de enviar o pedido — grupos sem nenhuma opção configurada não aparecem na sacola
-- **Limites de plano**: `getPlanLimits()` aplicado em Server Actions de produtos e categorias — como toda loja demo nasce Starter, os limites de Starter (30 produtos, 5 categorias, 3 fotos) se aplicam normalmente
+- **Limites de plano**: `getPlanLimits()` aplicado em Server Actions de produtos e categorias — Free (8 produtos/1 categoria/1 foto), Starter (30/5/3) e Pro (ilimitado/ilimitado/5). Um Starter/Pro liberado manualmente cai para os limites do Free automaticamente quando `trial_ends_at` vence (`getEffectivePlan()`, calculado a cada checagem, sem job)
 - **Storage**: bucket `product-images` com upload, compressão no cliente e remoção de imagens antigas ao editar
 
 ## Próximo passo
 
-Validação com lojistas em modo demo (sem cobrança). Depois: reintroduzir a página de escolha de plano no cadastro, exibir preços e integrar pagamento (Stripe ou Pagar.me) com cobrança recorrente e webhooks para ativação/cancelamento de plano. Ver `docs/roadmap/Escopo.md` §6 e §11.
+Validação com lojistas no plano Free, com Starter/Pro liberados manualmente enquanto não há gateway de pagamento. Depois: integrar pagamento (Stripe ou Pagar.me) com cobrança recorrente automática e webhooks para ativação/cancelamento de plano. Ver `docs/roadmap/Escopo.md` §6.
 
 ---
 
