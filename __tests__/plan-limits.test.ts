@@ -1,21 +1,40 @@
 import { describe, it, expect } from "vitest";
-import { getPlanLimits, isTrialActive } from "@/lib/plan-limits";
+import { getPlanLimits, getEffectivePlan } from "@/lib/plan-limits";
 
-describe("isTrialActive", () => {
-  it("é true quando trial_ends_at está no futuro", () => {
-    const future = new Date(Date.now() + 86400000).toISOString();
-    expect(isTrialActive(future)).toBe(true);
+describe("getEffectivePlan", () => {
+  it("mantém free como free", () => {
+    expect(getEffectivePlan("free", null)).toBe("free");
   });
 
-  it("é false quando trial_ends_at já passou", () => {
+  it("mantém starter/pro quando trial_ends_at é nulo (indeterminado)", () => {
+    expect(getEffectivePlan("starter", null)).toBe("starter");
+    expect(getEffectivePlan("pro", null)).toBe("pro");
+  });
+
+  it("mantém starter/pro quando trial_ends_at está no futuro", () => {
+    const future = new Date(Date.now() + 86400000).toISOString();
+    expect(getEffectivePlan("starter", future)).toBe("starter");
+    expect(getEffectivePlan("pro", future)).toBe("pro");
+  });
+
+  it("rebaixa starter/pro para free quando trial_ends_at já passou", () => {
     const past = new Date(Date.now() - 86400000).toISOString();
-    expect(isTrialActive(past)).toBe(false);
+    expect(getEffectivePlan("starter", past)).toBe("free");
+    expect(getEffectivePlan("pro", past)).toBe("free");
   });
 });
 
 describe("getPlanLimits", () => {
-  it("starter tem limites finitos", () => {
-    expect(getPlanLimits("starter", false)).toEqual({
+  it("free tem limites reduzidos", () => {
+    expect(getPlanLimits("free", null)).toEqual({
+      maxProducts: 8,
+      maxCategories: 1,
+      maxPhotos: 1,
+    });
+  });
+
+  it("starter tem limites intermediários", () => {
+    expect(getPlanLimits("starter", null)).toEqual({
       maxProducts: 30,
       maxCategories: 5,
       maxPhotos: 3,
@@ -23,26 +42,28 @@ describe("getPlanLimits", () => {
   });
 
   it("pro tem produtos/categorias ilimitados e 5 fotos", () => {
-    expect(getPlanLimits("pro", false)).toEqual({
+    expect(getPlanLimits("pro", null)).toEqual({
       maxProducts: Infinity,
       maxCategories: Infinity,
       maxPhotos: 5,
     });
   });
 
-  it("trial ativo (plan null + trial futuro) usa limites Pro", () => {
-    expect(getPlanLimits(null, true)).toEqual({
-      maxProducts: Infinity,
-      maxCategories: Infinity,
-      maxPhotos: 5,
+  it("starter com trial_ends_at expirado cai para os limites do Free", () => {
+    const past = new Date(Date.now() - 86400000).toISOString();
+    expect(getPlanLimits("starter", past)).toEqual({
+      maxProducts: 8,
+      maxCategories: 1,
+      maxPhotos: 1,
     });
   });
 
-  it("plan null com trial expirado cai para Starter", () => {
-    expect(getPlanLimits(null, false)).toEqual({
-      maxProducts: 30,
-      maxCategories: 5,
-      maxPhotos: 3,
+  it("pro com trial_ends_at expirado cai para os limites do Free", () => {
+    const past = new Date(Date.now() - 86400000).toISOString();
+    expect(getPlanLimits("pro", past)).toEqual({
+      maxProducts: 8,
+      maxCategories: 1,
+      maxPhotos: 1,
     });
   });
 });
