@@ -71,6 +71,17 @@ Renovar ou trocar de plano continua sendo uma edição manual direto na tabela `
 
 A faixa "Trial Pro" no topo do painel (`app/painel/layout.tsx`) está morta hoje (`showTrialBanner = !store.plan`, e `plan` nunca é nulo em modo demo). Ela é reaproveitada: lojas com plano efetivo Free (seja porque nasceram assim, seja porque um Starter/Pro expirou) veem um aviso discreto — *"Você está no plano Free · Fale conosco para liberar mais produtos"* — com link pro mesmo WhatsApp usado na landing. Lojas Starter/Pro com acesso válido não veem nada ali.
 
+## Termos de Uso
+
+A seção "4. Planos e pagamento" de `app/termos-de-uso/page.tsx` está desatualizada — ainda cita trial de 14 dias, preços fixos (R$ 49/R$ 99) e cobrança recorrente mensal com política de reembolso, nada disso reflete o modelo atual nem o novo. É reescrita para:
+
+- A Vtrine Digital oferece um plano gratuito (Free), disponível automaticamente na criação da conta, com limites de produtos, categorias e fotos.
+- Os planos Starter e Pro, com limites ampliados, são disponibilizados mediante contato direto com a Vtrine Digital para avaliação e liberação de acesso.
+- A ativação dos planos pagos é feita manualmente, sem cobrança automática. As condições de pagamento são combinadas diretamente com o lojista no momento da liberação.
+- A Vtrine Digital pode revisar os limites e as condições de cada plano a qualquer momento, mediante aviso prévio.
+
+Também é ajustada a seção "5. Suspensão e cancelamento", que hoje cita "Inadimplência superior a 30 dias após o vencimento da fatura" como motivo de suspensão — outra referência a cobrança automática que não existe neste modelo. Passa a citar violação destes Termos e uso abusivo da plataforma como motivos de suspensão, sem menção a fatura/inadimplência.
+
 ## Enforcement técnico
 
 - `lib/plan-limits.ts`: `Plan` passa a ser `"free" | "starter" | "pro"` (sem usar `null` como sentinela de "em trial" — todo store sempre tem um plano explícito agora). Adiciona `FREE_LIMITS` (8/1/1). A função de limites recebe `plan` + `trialEndsAt` e aplica a lógica de rebaixamento descrita acima.
