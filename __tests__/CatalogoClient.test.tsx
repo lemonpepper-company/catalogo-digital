@@ -3,6 +3,8 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { act } from "@testing-library/react";
 import { CatalogoClient } from "@/app/[slug]/CatalogoClient";
 import type { Product, Store } from "@/lib/types";
+import { resolveTheme } from "@/lib/theme-options";
+import { getPlanLimits } from "@/lib/plan-limits";
 
 class FakeIntersectionObserver {
   static instances: FakeIntersectionObserver[] = [];
@@ -49,6 +51,8 @@ const store: Store = {
   description: "Vitrine digital",
   accentColor: "#C9A96E",
   catalogUrl: "vtrinedigital.com.br/ateliemira",
+  theme: resolveTheme("padrao", "padrao", "padrao", null, getPlanLimits("free", null)),
+  gridDensity: "padrao",
 };
 
 function makeProducts(count: number, category: string): Product[] {
@@ -62,6 +66,7 @@ function makeProducts(count: number, category: string): Product[] {
     sizes: [],
     soldSizes: [],
     colors: [],
+    isFeatured: false,
   }));
 }
 
