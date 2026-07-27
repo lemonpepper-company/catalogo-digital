@@ -1,0 +1,134 @@
+"use client";
+
+import { Lock } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { FONT_PAIRINGS, BACKGROUND_PALETTES, CORNER_STYLES } from "@/lib/theme-options";
+import { VTRINE_WHATSAPP_NUMBER } from "@/lib/contact";
+
+interface Option {
+  key: string;
+  label: string;
+}
+
+function OptionRow({
+  label,
+  options,
+  value,
+  onChange,
+  unlocked,
+  renderPreview,
+}: {
+  label: string;
+  options: Option[];
+  value: string;
+  onChange: (key: string) => void;
+  unlocked: boolean;
+  renderPreview?: (key: string) => React.ReactNode;
+}) {
+  return (
+    <div className="mb-5 last:mb-0">
+      <div className="font-body font-medium text-[13px] text-obsidian mb-2">{label}</div>
+      <div className="flex flex-wrap gap-3">
+        {options.map((opt) => {
+          const isDefault = opt.key === "padrao";
+          const locked = !unlocked && !isDefault;
+          const selected = value === opt.key;
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              disabled={locked}
+              onClick={() => !locked && onChange(opt.key)}
+              className={cn(
+                "flex items-center gap-2 h-11 px-4 rounded-btn border text-[13px]",
+                selected
+                  ? "border-obsidian bg-obsidian text-white"
+                  : "border-sand bg-white text-obsidian hover:bg-surface-hover",
+                locked && "opacity-50 cursor-not-allowed hover:bg-white"
+              )}
+            >
+              {locked && <Lock size={14} />}
+              {renderPreview?.(opt.key)}
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+interface ThemeOptionsFieldsProps {
+  fontPairing: string;
+  onFontPairingChange: (key: string) => void;
+  backgroundPalette: string;
+  onBackgroundPaletteChange: (key: string) => void;
+  cornerStyle: string;
+  onCornerStyleChange: (key: string) => void;
+  unlocked: boolean;
+}
+
+export function ThemeOptionsFields({
+  fontPairing,
+  onFontPairingChange,
+  backgroundPalette,
+  onBackgroundPaletteChange,
+  cornerStyle,
+  onCornerStyleChange,
+  unlocked,
+}: ThemeOptionsFieldsProps) {
+  const upgradeHref = `https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+    "Olá! Quero saber mais sobre desbloquear as opções de tema."
+  )}`;
+
+  return (
+    <>
+      <OptionRow
+        label="Pareamento de fonte"
+        options={FONT_PAIRINGS}
+        value={fontPairing}
+        onChange={onFontPairingChange}
+        unlocked={unlocked}
+        renderPreview={(key) => {
+          const p = FONT_PAIRINGS.find((f) => f.key === key);
+          return p ? (
+            <span style={{ fontFamily: `var(${p.fontDisplayVar})` }}>Aa</span>
+          ) : null;
+        }}
+      />
+      <OptionRow
+        label="Paleta de fundo"
+        options={BACKGROUND_PALETTES}
+        value={backgroundPalette}
+        onChange={onBackgroundPaletteChange}
+        unlocked={unlocked}
+        renderPreview={(key) => {
+          const p = BACKGROUND_PALETTES.find((b) => b.key === key);
+          return p ? (
+            <span
+              className="w-4 h-4 rounded-full border border-sand inline-block"
+              style={{ background: p.background }}
+            />
+          ) : null;
+        }}
+      />
+      <OptionRow
+        label="Formato dos cantos"
+        options={CORNER_STYLES}
+        value={cornerStyle}
+        onChange={onCornerStyleChange}
+        unlocked={unlocked}
+      />
+      {!unlocked && (
+        <a
+          href={upgradeHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-body text-[13px] text-graphite underline"
+        >
+          Disponível no Starter — fale conosco
+        </a>
+      )}
+    </>
+  );
+}

@@ -224,7 +224,14 @@ describe("storeSettingsSchema — limites de tamanho em campos livres (novo)", (
 
 describe("personalizacaoSchema", () => {
   it("aceita cor hex de 6 dígitos", () => {
-    const r = personalizacaoSchema.safeParse({ accentColor: "#C9A96E" });
+    const r = personalizacaoSchema.safeParse({
+      accentColor: "#C9A96E",
+      fontPairing: "padrao",
+      backgroundPalette: "padrao",
+      cornerStyle: "padrao",
+      secondaryColor: null,
+      gridDensity: "padrao",
+    });
     expect(r.success).toBe(true);
   });
   it("rejeita hex de 3 dígitos", () => {
