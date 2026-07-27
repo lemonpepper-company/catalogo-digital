@@ -30,6 +30,10 @@ describe("getPlanLimits", () => {
       maxProducts: 8,
       maxCategories: 1,
       maxPhotos: 1,
+      maxFeaturedProducts: 0,
+      themeOptions: false,
+      advancedTheme: false,
+      gridDensity: false,
     });
   });
 
@@ -38,6 +42,10 @@ describe("getPlanLimits", () => {
       maxProducts: 30,
       maxCategories: 5,
       maxPhotos: 3,
+      maxFeaturedProducts: 3,
+      themeOptions: true,
+      advancedTheme: false,
+      gridDensity: true,
     });
   });
 
@@ -46,6 +54,10 @@ describe("getPlanLimits", () => {
       maxProducts: Infinity,
       maxCategories: Infinity,
       maxPhotos: 5,
+      maxFeaturedProducts: Infinity,
+      themeOptions: true,
+      advancedTheme: true,
+      gridDensity: true,
     });
   });
 
@@ -55,6 +67,10 @@ describe("getPlanLimits", () => {
       maxProducts: 8,
       maxCategories: 1,
       maxPhotos: 1,
+      maxFeaturedProducts: 0,
+      themeOptions: false,
+      advancedTheme: false,
+      gridDensity: false,
     });
   });
 
@@ -64,6 +80,43 @@ describe("getPlanLimits", () => {
       maxProducts: 8,
       maxCategories: 1,
       maxPhotos: 1,
+      maxFeaturedProducts: 0,
+      themeOptions: false,
+      advancedTheme: false,
+      gridDensity: false,
     });
+  });
+});
+
+describe("getPlanLimits — feature flags de personalização", () => {
+  it("free não tem nenhuma flag de personalização", () => {
+    const limits = getPlanLimits("free", null);
+    expect(limits.maxFeaturedProducts).toBe(0);
+    expect(limits.themeOptions).toBe(false);
+    expect(limits.advancedTheme).toBe(false);
+    expect(limits.gridDensity).toBe(false);
+  });
+
+  it("starter libera fonte/fundo/cantos, densidade e até 3 destaques, mas não cor secundária", () => {
+    const limits = getPlanLimits("starter", null);
+    expect(limits.maxFeaturedProducts).toBe(3);
+    expect(limits.themeOptions).toBe(true);
+    expect(limits.gridDensity).toBe(true);
+    expect(limits.advancedTheme).toBe(false);
+  });
+
+  it("pro libera tudo, incluindo cor secundária e destaques ilimitados", () => {
+    const limits = getPlanLimits("pro", null);
+    expect(limits.maxFeaturedProducts).toBe(Infinity);
+    expect(limits.themeOptions).toBe(true);
+    expect(limits.advancedTheme).toBe(true);
+    expect(limits.gridDensity).toBe(true);
+  });
+
+  it("starter/pro com trial_ends_at expirado perdem as flags (caem para Free)", () => {
+    const past = new Date(Date.now() - 86400000).toISOString();
+    const limits = getPlanLimits("pro", past);
+    expect(limits.themeOptions).toBe(false);
+    expect(limits.maxFeaturedProducts).toBe(0);
   });
 });

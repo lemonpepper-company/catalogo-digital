@@ -4,24 +4,40 @@ export interface PlanLimits {
   maxProducts: number;
   maxCategories: number;
   maxPhotos: number;
+  maxFeaturedProducts: number;
+  themeOptions: boolean;
+  advancedTheme: boolean;
+  gridDensity: boolean;
 }
 
 const FREE_LIMITS: PlanLimits = {
   maxProducts: 8,
   maxCategories: 1,
   maxPhotos: 1,
+  maxFeaturedProducts: 0,
+  themeOptions: false,
+  advancedTheme: false,
+  gridDensity: false,
 };
 
 const STARTER_LIMITS: PlanLimits = {
   maxProducts: 30,
   maxCategories: 5,
   maxPhotos: 3,
+  maxFeaturedProducts: 3,
+  themeOptions: true,
+  advancedTheme: false,
+  gridDensity: true,
 };
 
 const PRO_LIMITS: PlanLimits = {
   maxProducts: Infinity,
   maxCategories: Infinity,
   maxPhotos: 5,
+  maxFeaturedProducts: Infinity,
+  themeOptions: true,
+  advancedTheme: true,
+  gridDensity: true,
 };
 
 function isPaidAccessExpired(trialEndsAt: string | null): boolean {
