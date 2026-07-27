@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useCatalogo } from "@/app/[slug]/use-catalogo";
 import type { Product, Store } from "@/lib/types";
+import { resolveTheme } from "@/lib/theme-options";
+import { getPlanLimits } from "@/lib/plan-limits";
 
 const baseStore: Store = {
   name: "Ateliê Mira",
@@ -11,6 +13,8 @@ const baseStore: Store = {
   description: "",
   accentColor: "#C9A96E",
   catalogUrl: "vtrinedigital.com.br/ateliemira",
+  theme: resolveTheme("padrao", "padrao", "padrao", null, getPlanLimits("free", null)),
+  gridDensity: "padrao",
 };
 
 const products: Product[] = [];
@@ -101,6 +105,7 @@ describe("useCatalogo — handleCheckout com pagamento e entrega (novo)", () => 
     sizes: [],
     soldSizes: [],
     colors: [],
+    isFeatured: false,
   };
 
   beforeEach(() => {

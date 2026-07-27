@@ -1,5 +1,7 @@
 import type { Product, Store } from "./types";
 import { DEFAULT_ACCENT_COLOR } from "./theme";
+import { getPlanLimits } from "./plan-limits";
+import { resolveTheme } from "./theme-options";
 
 export const STORE: Store = {
   name: "Ateliê Mira",
@@ -9,6 +11,8 @@ export const STORE: Store = {
   description: "Vitrine digital premium · moda feminina autoral",
   accentColor: DEFAULT_ACCENT_COLOR,
   catalogUrl: "vtrinedigital.com.br/ateliemira",
+  theme: resolveTheme("padrao", "padrao", "padrao", null, getPlanLimits("free", null)),
+  gridDensity: "padrao",
 };
 
 export const PRODUCTS: Product[] = [
@@ -30,6 +34,7 @@ export const PRODUCTS: Product[] = [
     ],
     stock: 12,
     active: true,
+    isFeatured: false,
   },
   {
     id: "p2",
@@ -47,6 +52,7 @@ export const PRODUCTS: Product[] = [
     ],
     stock: 7,
     active: true,
+    isFeatured: false,
   },
   {
     id: "p3",
@@ -65,6 +71,7 @@ export const PRODUCTS: Product[] = [
     ],
     stock: 24,
     active: true,
+    isFeatured: false,
   },
   {
     id: "p4",
@@ -80,6 +87,7 @@ export const PRODUCTS: Product[] = [
     colors: [{ label: "Vinho", hex: "#5B2433" }],
     stock: 0,
     active: true,
+    isFeatured: false,
   },
   {
     id: "p5",
@@ -97,6 +105,7 @@ export const PRODUCTS: Product[] = [
     ],
     stock: 31,
     active: true,
+    isFeatured: false,
   },
   {
     id: "p6",
@@ -115,6 +124,7 @@ export const PRODUCTS: Product[] = [
     ],
     stock: 5,
     active: false,
+    isFeatured: false,
   },
   {
     id: "p7",
@@ -129,6 +139,7 @@ export const PRODUCTS: Product[] = [
     colors: [{ label: "Xadrez areia", hex: "#C8B79A" }],
     stock: 18,
     active: true,
+    isFeatured: false,
   },
   {
     id: "p8",
@@ -144,6 +155,7 @@ export const PRODUCTS: Product[] = [
     colors: [{ label: "Jeans claro", hex: "#A7B4C4" }],
     stock: 0,
     active: true,
+    isFeatured: false,
   },
 ];
 

@@ -31,6 +31,11 @@ const storeRow: PublicStoreRow = {
   instagram: null,
   payment_methods: null,
   delivery_methods: null,
+  font_pairing: "padrao",
+  background_palette: "padrao",
+  corner_style: "padrao",
+  secondary_color: null,
+  grid_density: "padrao",
 };
 
 function product(overrides: Partial<PublicProductRow>): PublicProductRow {
@@ -47,6 +52,7 @@ function product(overrides: Partial<PublicProductRow>): PublicProductRow {
     stock: 5,
     is_active: true,
     is_new: true,
+    is_featured: false,
     ...overrides,
   };
 }
@@ -65,27 +71,27 @@ describe("initialsFromName", () => {
 
 describe("mapPublicProduct (CAT-06)", () => {
   it("formata price_cents como string em reais", () => {
-    expect(mapPublicProduct(product({ price_cents: 28990 }), "Vestidos").price).toBe(
+    expect(mapPublicProduct(product({ price_cents: 28990 }), "Vestidos", true).price).toBe(
       "R$ 289,90"
     );
   });
   it("usa a primeira imagem de images[]", () => {
     expect(
-      mapPublicProduct(product({ images: ["a.jpg", "b.jpg"] }), "Vestidos").image
+      mapPublicProduct(product({ images: ["a.jpg", "b.jpg"] }), "Vestidos", true).image
     ).toBe("a.jpg");
   });
   it("usa placeholder quando images está vazio", () => {
-    expect(mapPublicProduct(product({ images: [] }), "Vestidos").image).toBe(
+    expect(mapPublicProduct(product({ images: [] }), "Vestidos", true).image).toBe(
       PLACEHOLDER_IMAGE
     );
   });
   it("usa placeholder quando images é null", () => {
-    expect(mapPublicProduct(product({ images: null }), "Vestidos").image).toBe(
+    expect(mapPublicProduct(product({ images: null }), "Vestidos", true).image).toBe(
       PLACEHOLDER_IMAGE
     );
   });
   it("cai em 'Todos' quando não há categoria", () => {
-    expect(mapPublicProduct(product({ category_id: null }), null).category).toBe(
+    expect(mapPublicProduct(product({ category_id: null }), null, true).category).toBe(
       "Todos"
     );
   });
@@ -93,23 +99,23 @@ describe("mapPublicProduct (CAT-06)", () => {
 
 describe("mapPublicStore", () => {
   it("deriva monograma das iniciais quando ausente", () => {
-    expect(mapPublicStore({ ...storeRow, monogram: null }, []).monogram).toBe("AM");
+    expect(mapPublicStore({ ...storeRow, monogram: null }, [], "pro").monogram).toBe("AM");
   });
   it("mapeia whatsapp nulo para string vazia", () => {
-    expect(mapPublicStore({ ...storeRow, whatsapp: null }, []).whatsapp).toBe("");
+    expect(mapPublicStore({ ...storeRow, whatsapp: null }, [], "pro").whatsapp).toBe("");
   });
   it("propaga o message_template para messageTemplate", () => {
     expect(
-      mapPublicStore({ ...storeRow, message_template: "Oi {itens}" }, []).messageTemplate
+      mapPublicStore({ ...storeRow, message_template: "Oi {itens}" }, [], "pro").messageTemplate
     ).toBe("Oi {itens}");
   });
   it("propaga cover_url para coverUrl", () => {
     expect(
-      mapPublicStore({ ...storeRow, cover_url: "https://img/capa.jpg" }, []).coverUrl
+      mapPublicStore({ ...storeRow, cover_url: "https://img/capa.jpg" }, [], "pro").coverUrl
     ).toBe("https://img/capa.jpg");
   });
   it("mapeia cover_url nulo para null", () => {
-    expect(mapPublicStore({ ...storeRow, cover_url: null }, []).coverUrl).toBeNull();
+    expect(mapPublicStore({ ...storeRow, cover_url: null }, [], "pro").coverUrl).toBeNull();
   });
 });
 
@@ -141,6 +147,7 @@ function vm(overrides: Partial<Product>): Product {
     sizes: [],
     soldSizes: [],
     colors: [],
+    isFeatured: false,
     ...overrides,
   };
 }
@@ -190,33 +197,33 @@ describe("filterCatalog (CAT-B02..B05)", () => {
 
 describe("resolveCatalog — visibilidade (CAT-10, CAT-03)", () => {
   it("slug inexistente → not_found", () => {
-    expect(resolveCatalog(null, [], []).status).toBe("not_found");
+    expect(resolveCatalog(null, [], [], "pro").status).toBe("not_found");
   });
   it("loja inativa → hidden", () => {
-    const r = resolveCatalog({ ...storeRow, is_active: false }, [product({})], [catVestidos]);
+    const r = resolveCatalog({ ...storeRow, is_active: false }, [product({})], [catVestidos], "pro");
     expect(r.status).toBe("hidden");
   });
   it("loja ativa → ok", () => {
-    const r = resolveCatalog(storeRow, [product({})], [catVestidos]);
+    const r = resolveCatalog(storeRow, [product({})], [catVestidos], "pro");
     expect(r.status).toBe("ok");
   });
 });
 
 describe("resolveCatalog — montagem (CAT-01, CAT-06)", () => {
   it("mapeia produtos com nome da categoria resolvido", () => {
-    const r = resolveCatalog(storeRow, [product({ category_id: "c1" })], [catVestidos]);
+    const r = resolveCatalog(storeRow, [product({ category_id: "c1" })], [catVestidos], "pro");
     if (r.status !== "ok") throw new Error("esperado ok");
     expect(r.products).toHaveLength(1);
     expect(r.products[0].category).toBe("Vestidos");
     expect(r.products[0].price).toBe("R$ 289,90");
   });
   it("expõe as pills na store", () => {
-    const r = resolveCatalog(storeRow, [product({ category_id: "c1" })], [catVestidos, catBlusas]);
+    const r = resolveCatalog(storeRow, [product({ category_id: "c1" })], [catVestidos, catBlusas], "pro");
     if (r.status !== "ok") throw new Error("esperado ok");
     expect(r.store.categories).toEqual(["Todos", "Vestidos"]);
   });
   it("loja vazia → ok com zero produtos e só 'Todos'", () => {
-    const r = resolveCatalog(storeRow, [], [catVestidos]);
+    const r = resolveCatalog(storeRow, [], [catVestidos], "pro");
     if (r.status !== "ok") throw new Error("esperado ok");
     expect(r.products).toHaveLength(0);
     expect(r.store.categories).toEqual(["Todos"]);
@@ -232,7 +239,8 @@ describe("mapPublicStore — perfil social e checkout (novo)", () => {
         payment_methods: ["pix"],
         delivery_methods: ["retirada", "entrega"],
       },
-      []
+      [],
+      "pro"
     );
     expect(store.instagram).toBe("atelieming");
     expect(store.paymentMethods).toEqual(["pix"]);
@@ -240,9 +248,110 @@ describe("mapPublicStore — perfil social e checkout (novo)", () => {
   });
 
   it("usa arrays vazios quando payment_methods/delivery_methods são null", () => {
-    const store = mapPublicStore(storeRow, []);
+    const store = mapPublicStore(storeRow, [], "pro");
     expect(store.paymentMethods).toEqual([]);
     expect(store.deliveryMethods).toEqual([]);
     expect(store.instagram).toBeUndefined();
+  });
+});
+
+function baseStoreRow(overrides: Partial<PublicStoreRow> = {}): PublicStoreRow {
+  return {
+    id: "store-1",
+    name: "Loja Teste",
+    slug: "loja-teste",
+    is_active: true,
+    whatsapp: "5511999990000",
+    accent_color: "#C9A96E",
+    logo_url: null,
+    cover_url: null,
+    description: null,
+    monogram: null,
+    analytics_id: null,
+    pixel_id: null,
+    message_template: null,
+    instagram: null,
+    payment_methods: [],
+    delivery_methods: [],
+    font_pairing: "padrao",
+    background_palette: "padrao",
+    corner_style: "padrao",
+    secondary_color: null,
+    grid_density: "padrao",
+    ...overrides,
+  };
+}
+
+describe("resolveCatalog — gating de tema/densidade/destaques por plano", () => {
+  // effectivePlan chega separado do storeRow — resolvido antes, via RPC
+  // get_effective_plan (Task 1), nunca lido de plan/trial_ends_at cru.
+  it("loja free: ignora fonte/fundo/cantos e densidade não-padrão mesmo se salvos no banco", () => {
+    const store = baseStoreRow({
+      font_pairing: "editorial",
+      background_palette: "areia",
+      corner_style: "arredondado",
+      grid_density: "compacto",
+    });
+    const result = resolveCatalog(store, [], [], "free");
+    if (result.status !== "ok" && result.status !== "hidden") throw new Error("esperado ok/hidden");
+    expect(result.store.theme.fontDisplayVar).toBe("--font-sora");
+    expect(result.store.theme.backgroundColor).toBe("#F9F9F7");
+    expect(result.store.theme.cardRadius).toBe("16px");
+    expect(result.store.gridDensity).toBe("padrao");
+  });
+
+  it("loja starter: aplica fonte/fundo/cantos e densidade salvos, de forma independente", () => {
+    const store = baseStoreRow({
+      font_pairing: "classico",
+      background_palette: "cinza",
+      corner_style: "reto",
+      grid_density: "compacto",
+    });
+    const result = resolveCatalog(store, [], [], "starter");
+    if (result.status !== "ok" && result.status !== "hidden") throw new Error("esperado ok/hidden");
+    expect(result.store.theme.fontDisplayVar).toBe("--font-playfair");
+    expect(result.store.theme.backgroundColor).toBe("#EEEEEC");
+    expect(result.store.theme.cardRadius).toBe("4px");
+    expect(result.store.gridDensity).toBe("compacto");
+  });
+
+  it("loja starter: cor secundária é ignorada (só Pro)", () => {
+    const store = baseStoreRow({ secondary_color: "#112233" });
+    const result = resolveCatalog(store, [], [], "starter");
+    if (result.status !== "ok" && result.status !== "hidden") throw new Error("esperado ok/hidden");
+    expect(result.store.theme.secondaryColor).toBeNull();
+  });
+
+  it("loja pro: aplica cor secundária salva", () => {
+    const store = baseStoreRow({ secondary_color: "#112233" });
+    const result = resolveCatalog(store, [], [], "pro");
+    if (result.status !== "ok" && result.status !== "hidden") throw new Error("esperado ok/hidden");
+    expect(result.store.theme.secondaryColor).toBe("#112233");
+  });
+
+  it("produtos em destaque só aparecem marcados quando o plano permite", () => {
+    const productRow: PublicProductRow = {
+      id: "p1",
+      name: "Produto 1",
+      price_cents: 1000,
+      description: null,
+      category_id: null,
+      sizes: [],
+      sold_sizes: [],
+      colors: [],
+      images: [],
+      stock: 5,
+      is_active: true,
+      is_new: false,
+      is_featured: true,
+    };
+
+    const freeResult = resolveCatalog(baseStoreRow(), [productRow], [], "free");
+    const proResult = resolveCatalog(baseStoreRow(), [productRow], [], "pro");
+
+    if (freeResult.status !== "ok") throw new Error("esperado ok");
+    if (proResult.status !== "ok") throw new Error("esperado ok");
+    expect(freeResult.products[0].isFeatured).toBe(false);
+    expect(proResult.products[0].isFeatured).toBe(true);
   });
 });

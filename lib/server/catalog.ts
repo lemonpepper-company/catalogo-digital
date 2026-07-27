@@ -8,11 +8,12 @@ import {
   type PublicProductRow,
   type PublicCategoryRow,
 } from "@/lib/catalog";
+import type { Plan } from "@/lib/plan-limits";
 
 const STORE_COLS =
-  "id, name, slug, is_active, whatsapp, accent_color, cover_url, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods";
+  "id, name, slug, is_active, whatsapp, accent_color, cover_url, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods, font_pairing, background_palette, corner_style, secondary_color, grid_density";
 const PRODUCT_COLS =
-  "id, name, price_cents, description, category_id, sizes, sold_sizes, colors, images, stock, is_active, is_new";
+  "id, name, price_cents, description, category_id, sizes, sold_sizes, colors, images, stock, is_active, is_new, is_featured";
 
 async function fetchPublicCatalog(slug: string): Promise<PublicCatalog> {
   const supabase = createAnonClient();
@@ -31,9 +32,19 @@ async function fetchPublicCatalog(slug: string): Promise<PublicCatalog> {
     throw new Error(`Falha ao buscar catálogo público: ${error.message}`);
   }
 
-  if (!storeRow) return resolveCatalog(null, [], []);
+  if (!storeRow) return resolveCatalog(null, [], [], "free");
+
+  const { data: effectivePlan, error: planError } = await supabase.rpc("get_effective_plan", {
+    p_store_id: (storeRow as PublicStoreRow).id,
+  });
+  if (planError) {
+    console.error(`fetchPublicCatalog(${slug}) — erro ao resolver plano efetivo:`, planError);
+    throw new Error(`Falha ao buscar catálogo público: ${planError.message}`);
+  }
+  const plan = (effectivePlan ?? "free") as Plan;
+
   if (!(storeRow as PublicStoreRow).is_active) {
-    return resolveCatalog(storeRow as PublicStoreRow, [], []);
+    return resolveCatalog(storeRow as PublicStoreRow, [], [], plan);
   }
 
   const [{ data: productRows }, { data: categoryRows }] = await Promise.all([
@@ -53,7 +64,8 @@ async function fetchPublicCatalog(slug: string): Promise<PublicCatalog> {
   return resolveCatalog(
     storeRow as PublicStoreRow,
     (productRows ?? []) as PublicProductRow[],
-    (categoryRows ?? []) as PublicCategoryRow[]
+    (categoryRows ?? []) as PublicCategoryRow[],
+    plan
   );
 }
 
