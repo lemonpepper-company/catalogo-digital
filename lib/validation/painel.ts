@@ -34,6 +34,14 @@ export const storeSettingsSchema = z.object({
 
 export const personalizacaoSchema = z.object({
   accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida"),
+  fontPairing: z.string().min(1),
+  backgroundPalette: z.string().min(1),
+  cornerStyle: z.string().min(1),
+  secondaryColor: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida")
+    .nullable(),
+  gridDensity: z.enum(["padrao", "compacto"]),
 });
 
 export function canDeleteCategory(productCount: number): boolean {
