@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Sora, DM_Sans } from "next/font/google";
+import { Sora, DM_Sans, Fraunces, Inter, Playfair_Display, Lora, Space_Grotesk } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@/components/analytics/Analytics";
 import "./globals.css";
@@ -17,6 +17,12 @@ const dmSans = DM_Sans({
   variable: "--font-dm-sans",
   display: "swap",
 });
+
+const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-fraunces" });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-inter" });
+const playfairDisplay = Playfair_Display({ subsets: ["latin"], weight: ["600"], variable: "--font-playfair" });
+const lora = Lora({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-lora" });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-space-grotesk" });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vtrinedigital.com.br";
 const gaId = process.env.NEXT_PUBLIC_GA_ID;
@@ -83,7 +89,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${sora.variable} ${dmSans.variable}`}>
+    <html
+      lang="pt-BR"
+      className={`${sora.variable} ${dmSans.variable} ${fraunces.variable} ${inter.variable} ${playfairDisplay.variable} ${lora.variable} ${spaceGrotesk.variable}`}
+    >
       <body suppressHydrationWarning>
         {children}
         <SpeedInsights />
