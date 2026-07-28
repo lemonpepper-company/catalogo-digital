@@ -57,7 +57,10 @@ export function PersonalizacaoClient({
           {f.limits.advancedTheme && (
             <div className="mt-5">
               <label className="font-body font-medium text-[13px] text-obsidian block mb-2">
-                Cor secundária (opcional)
+                Cor secundária (opcional){" "}
+                <span className="text-graphite font-normal">
+                  · aplicada na categoria selecionada
+                </span>
               </label>
               <input
                 type="color"

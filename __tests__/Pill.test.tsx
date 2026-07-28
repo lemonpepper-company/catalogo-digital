@@ -18,8 +18,8 @@ describe("Pill", () => {
   it("applies active styles when active=true", () => {
     render(<Pill active>VESTIDOS</Pill>);
     const btn = screen.getByRole("button");
-    expect(btn.className).toContain("bg-obsidian");
     expect(btn.className).toContain("text-white");
+    expect(btn.style.background).toBe("var(--color-secondary)");
   });
 
   it("applies inactive styles when active=false", () => {
