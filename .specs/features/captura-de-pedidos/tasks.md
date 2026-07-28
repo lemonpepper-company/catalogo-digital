@@ -412,7 +412,7 @@ Além da lista de arquivos da task, por exigência do done-when de `tsc --noEmit
 
 ---
 
-### T11: Tela `/painel/pedidos` (lista + detalhe + gate de plano)
+### T11: Tela `/painel/pedidos` (lista + detalhe + gate de plano) ✅
 
 **What**: rota do histórico com lista paginada, `Modal` de detalhe, estado vazio e estado bloqueado para o plano Free.
 **Where**: `app/painel/pedidos/page.tsx`, `app/painel/pedidos/PedidosClient.tsx`, `app/painel/pedidos/use-pedidos.ts`, `app/painel/pedidos/loading.tsx`, `components/painel/RecursoBloqueado.tsx` (novos), `__tests__/PedidosClient.test.tsx`, `__tests__/RecursoBloqueado.test.tsx` (novos)
@@ -425,22 +425,30 @@ Além da lista de arquivos da task, por exigência do done-when de `tsc --noEmit
 - Skill: NONE
 
 **Done when**:
-- [ ] `page.tsx` sem lógica: `getCurrentStore()` (redirect `/login` se ausente), lê `searchParams.page`, chama `getStoreOrders` e passa props (`docs/CONVENTIONS.md`)
-- [ ] Lista exibe data/hora, nome do cliente ou "Sem nome", quantidade de itens, total via `formatCents` e badge de status (ORD-12)
-- [ ] `Pagination` renderizada com `basePath="/painel/pedidos"` e escondida com 1 página só (ORD-13)
-- [ ] Detalhe (Modal) mostra cada item com nome, tamanho, cor, qtd, unitário e subtotal, mais pagamento, entrega + endereço quando `entrega`, total e status (ORD-14)
-- [ ] Zero pedidos → estado vazio explicando que os pedidos aparecem quando um cliente envia a sacola (ORD-15)
-- [ ] Item com `productName` de produto já excluído continua sendo exibido (snapshot — ORD-14/AC7)
-- [ ] `hasOrderHistory === false` → a `page.tsx` renderiza `RecursoBloqueado` e **não chama** `getStoreOrders` (ORD-28)
-- [ ] `RecursoBloqueado` não recebe nenhum pedido/contagem/total como prop e não exibe número real (ORD-28)
-- [ ] `hasOrderHistory === true` → lista e detalhe funcionam integralmente (ORD-30)
-- [ ] Gate passa: `npx vitest run && npm run lint`
-- [ ] Test count: ≥ 11 testes novos passando; nenhum teste existente removido
+- [x] `page.tsx` sem lógica: `getCurrentStore()` (redirect `/login` se ausente), lê `searchParams.page`, chama `getStoreOrders` e passa props (`docs/CONVENTIONS.md`)
+- [x] Lista exibe data/hora, nome do cliente ou "Sem nome", quantidade de itens, total via `formatCents` e badge de status (ORD-12)
+- [x] `Pagination` renderizada com `basePath="/painel/pedidos"` e escondida com 1 página só (ORD-13)
+- [x] Detalhe (Modal) mostra cada item com nome, tamanho, cor, qtd, unitário e subtotal, mais pagamento, entrega + endereço quando `entrega`, total e status (ORD-14)
+- [x] Zero pedidos → estado vazio explicando que os pedidos aparecem quando um cliente envia a sacola (ORD-15)
+- [x] Item com `productName` de produto já excluído continua sendo exibido (snapshot — ORD-14/AC7)
+- [x] `hasOrderHistory === false` → a `page.tsx` renderiza `RecursoBloqueado` e **não chama** `getStoreOrders` (ORD-28)
+- [x] `RecursoBloqueado` não recebe nenhum pedido/contagem/total como prop e não exibe número real (ORD-28)
+- [x] `hasOrderHistory === true` → lista e detalhe funcionam integralmente (ORD-30)
+- [x] Gate passa: `npx vitest run && npm run lint`
+- [x] Test count: ≥ 11 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: full
 
 **Commit**: `feat(painel): adiciona tela de historico de pedidos`
+
+**Status**: ✅ Complete — `035bbb4`. 21 testes novos (`__tests__/PedidosClient.test.tsx` 11, `__tests__/PedidosPage.test.tsx` 7, `__tests__/RecursoBloqueado.test.tsx` 3). Suíte 431 → 452; lint em 17 erros (baseline, nenhum em arquivo novo). Discriminadores do gate de plano: `PedidosPage.test.tsx:100` (`expect(getStoreOrders).not.toHaveBeenCalled()` no Free), `:112-114` (HTML sem "Ana" e sem "R$"), `:145` (Starter com `trial_ends_at` vencido cai no bloqueio — ORD-30/AC6), `RecursoBloqueado.test.tsx:44` (`textContent` sem nenhum dígito). Subtotal e total foram separados na fixture (R$ 398,00 vs R$ 478,00) para a assertion de subtotal não passar por acidente.
+
+**Desvios de escopo de arquivos (2, ambos aditivos):**
+1. `components/ui/Badge.tsx` — a task manda reusar `Badge`, mas os tones existentes eram só `new`/`soldout`; `confirmado`/`cancelado` precisam de verde/vermelho. Adicionados os tones `success` e `error` (2 linhas, nenhuma mudança nos usos existentes).
+2. `__tests__/PedidosPage.test.tsx` — a Test Coverage Matrix dispensa teste de `page.tsx` (build gate), mas ORD-28/AC3 ("não executa a query") e ORD-30/AC6 (rebaixamento por trial vencido) não são observáveis em nenhuma outra camada. Sem esse arquivo, as duas ACs mais críticas da fase ficariam sem evidência.
+
+**Check C:** um teste escrito nesta task ("mostra o total de pedidos da loja no cabeçalho") foi removido antes do commit — o subtítulo com a contagem é discricionariedade de design, não tem AC. Nenhum teste pré-existente foi tocado.
 
 ---
 
