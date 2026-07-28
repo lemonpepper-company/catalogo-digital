@@ -85,4 +85,14 @@ describe("parseProductCsv", () => {
       reason: "Linha 3: nome é obrigatório.",
     });
   });
+
+  it("linha totalmente vazia (sem vírgulas) antes de erro: número da linha continua correto", () => {
+    const csv = `${HEADER}\n\n,"99,90",,,,`;
+    const { rows } = parseProductCsv(csv);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual({
+      ok: false,
+      reason: "Linha 3: nome é obrigatório.",
+    });
+  });
 });

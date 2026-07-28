@@ -33,4 +33,13 @@ describe("parseCsv", () => {
       ["1", "2"],
     ]);
   });
+
+  it("preserva uma linha totalmente vazia no meio do arquivo (não é a última)", () => {
+    expect(parseCsv("a,b\n1,2\n\n3,4")).toEqual([
+      ["a", "b"],
+      ["1", "2"],
+      [""],
+      ["3", "4"],
+    ]);
+  });
 });

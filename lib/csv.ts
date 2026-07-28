@@ -48,5 +48,14 @@ export function parseCsv(text: string): string[][] {
   }
   if (field !== "" || row.length > 0) pushRow();
 
-  return rows.filter((r) => !(r.length === 1 && r[0] === ""));
+  while (rows.length > 0) {
+    const last = rows[rows.length - 1];
+    if (last.length === 1 && last[0] === "") {
+      rows.pop();
+    } else {
+      break;
+    }
+  }
+
+  return rows;
 }
