@@ -45,8 +45,14 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 | Gate Level | When to Use | Command |
 |---|---|---|
 | Quick | Depois de tasks com testes unitários | `npx vitest run` |
-| Full | Igual ao Quick (não há suíte e2e/integração no projeto) + `npm run lint` | `npx vitest run && npm run lint` |
-| Build | Fim de fase, tasks de migration/config/docs | `npm run build && npm run lint && npx vitest run` |
+| Full | Igual ao Quick (não há suíte e2e/integração no projeto) + lint sem regressão | `npx vitest run && npm run lint` — ver **baseline de lint** abaixo |
+| Build | Fim de fase, tasks de migration/config/docs | `npm run build && npm run lint && npx vitest run` — mesmo baseline de lint |
+
+**Baseline de lint (medido em 27/07/2026, confirmado como pré-existente na `main`):** `npm run lint` termina com **17 erros** em 3 arquivos — `app/[slug]/use-catalogo.ts` (1), `app/painel/configuracoes/ConfiguracoesClient.tsx` (15), `components/ui/SlugInput.tsx` (1). São violações das regras novas `react-hooks/set-state-in-effect` e `react-hooks/refs` do `eslint-config-next` 16, sem relação com esta feature. Consertá-las aqui seria scope creep (mexe em comportamento de render de telas fora do escopo) — ficam como dívida separada.
+
+**Critério do gate, portanto:** `npm run lint` **não pode passar de 17 erros** e **nenhum erro pode estar em arquivo criado ou modificado por esta feature** (exceto o erro pré-existente da linha 46 de `use-catalogo.ts`, que a T9 não deve piorar nem é obrigada a corrigir). Erro novo = gate falhou.
+
+**Ambiente:** `npm install` foi executado em 27/07/2026 — `@vercel/speed-insights` estava declarado em `package.json` mas ausente de `node_modules`, o que fazia `npm run build` falhar. `package-lock.json` não mudou. `npm run build` passa desde então.
 | Migration | Task da migration SQL | `npx supabase migration up && npx supabase db lint --level warning` (não destrutivo — aplica só as migrations pendentes). `supabase db reset` **apaga os dados locais**: só com autorização explícita do usuário. Se o Docker/stack estiver parado, `npx supabase start` primeiro. |
 
 **Baseline medido em 27/07/2026 (antes da T1):** `npx vitest run` → **32 arquivos, 323 testes, todos verdes**. A suíte precisa continuar verde e nunca ficar abaixo de 323 testes.
