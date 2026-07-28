@@ -18,11 +18,14 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
-const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-fraunces" });
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-inter" });
-const playfairDisplay = Playfair_Display({ subsets: ["latin"], weight: ["600"], variable: "--font-playfair" });
-const lora = Lora({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-lora" });
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-space-grotesk" });
+// preload: false — essas fontes só são usadas pela vitrine pública (/{slug}) via
+// personalização de tema; sem isso, todas as rotas (landing, auth, painel) pagam o
+// custo de preload de ~11 arquivos de fonte que nunca usam, prejudicando o LCP.
+const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-fraunces", preload: false });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-inter", preload: false });
+const playfairDisplay = Playfair_Display({ subsets: ["latin"], weight: ["600"], variable: "--font-playfair", preload: false });
+const lora = Lora({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-lora", preload: false });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-space-grotesk", preload: false });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vtrinedigital.com.br";
 const gaId = process.env.NEXT_PUBLIC_GA_ID;

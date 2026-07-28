@@ -12,10 +12,20 @@ const config: Config = {
         obsidian: "#0D0D0D",
         gold: "#C9A96E",
         "gold-hover": "#BD9A5C",
-        ivory: "var(--color-bg)",
-        linen: "var(--color-surface)",
+        // NOTE: these read the "-rgb" CSS vars (raw "R G B" channels), not the hex
+        // "--color-bg"/"--color-surface"/"--color-border" vars. Tailwind v3's alpha-
+        // modifier syntax (e.g. `bg-sand/70`, `border-sand/50`) needs to inject an
+        // alpha channel into the color value at class-generation time, which only
+        // works with rgb()/hsl() + the special `<alpha-value>` placeholder — it
+        // can't parse channels out of an opaque `var(--color-bg)` reference, so a
+        // plain `var(...)` here would silently DROP every alpha-modified utility
+        // (no CSS rule emitted at all, no build error). See app/globals.css for the
+        // "-rgb" vars themselves and app/[slug]/CatalogoClient.tsx for how per-store
+        // theme overrides also set the "-rgb" vars via hexToRgbChannels().
+        ivory: "rgb(var(--color-bg-rgb) / <alpha-value>)",
+        linen: "rgb(var(--color-surface-rgb) / <alpha-value>)",
         graphite: "#3D3D3D",
-        sand: "var(--color-border)",
+        sand: "rgb(var(--color-border-rgb) / <alpha-value>)",
         "surface-hover": "#E7E2DB",
         success: "#1A9C6E",
         soldout: "#C47E00",

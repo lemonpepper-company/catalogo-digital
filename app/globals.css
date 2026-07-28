@@ -16,6 +16,16 @@
   --color-border:        #E2DFDA;
   --color-surface-hover: #E7E2DB;
 
+  /* RGB-channel mirrors of --color-bg/--color-surface/--color-border, used by
+     tailwind.config.ts's ivory/linen/sand tokens via the rgb(var(...) / <alpha-value>)
+     pattern. Tailwind v3 can't apply opacity modifiers (e.g. bg-sand/70) to a color
+     value that's an opaque var() reference — it needs raw, space-separated RGB
+     channels to inject the alpha channel itself. Keep these in sync with the hex
+     values above (and with any per-store override in CatalogoClient.tsx). */
+  --color-bg-rgb:      249 249 247;   /* #F9F9F7 */
+  --color-surface-rgb: 240 237 232;   /* #F0EDE8 */
+  --color-border-rgb:  226 223 218;   /* #E2DFDA */
+
   /* Status */
   --color-success:       #1A9C6E;
   --color-soldout:       #C47E00;
