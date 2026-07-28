@@ -61,8 +61,12 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
     "--color-border": store.theme.borderColor,
     "--radius-card": store.theme.cardRadius,
     "--radius-btn": store.theme.btnRadius,
-    "--font-sora": `var(${store.theme.fontDisplayVar})`,
-    "--font-dm-sans": `var(${store.theme.fontBodyVar})`,
+    ...(store.theme.fontDisplayVar !== "--font-sora"
+      ? { "--font-sora": `var(${store.theme.fontDisplayVar})` }
+      : {}),
+    ...(store.theme.fontBodyVar !== "--font-dm-sans"
+      ? { "--font-dm-sans": `var(${store.theme.fontBodyVar})` }
+      : {}),
     ...(store.theme.secondaryColor ? { "--color-secondary": store.theme.secondaryColor } : {}),
   } as React.CSSProperties;
 
