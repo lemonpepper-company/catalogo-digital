@@ -1,11 +1,19 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore, mapProduct } from "@/lib/server/store";
+import { getPlanLimits } from "@/lib/plan-limits";
+import { getOrderMetrics } from "@/lib/server/pedidos";
 import { DashboardClient } from "./DashboardClient";
 
 export default async function DashboardPage() {
   const store = await getCurrentStore();
   if (!store) redirect("/login");
+
+  // Gate antes do I/O: no plano Free nenhum número de pedido/faturamento é
+  // buscado, então nada real pode chegar ao HTML (ORD-29).
+  const metrics = getPlanLimits(store.plan, store.trialEndsAt).hasOrderHistory
+    ? await getOrderMetrics(store.id)
+    : null;
 
   const supabase = await createClient();
   const { data } = await supabase
@@ -24,6 +32,7 @@ export default async function DashboardPage() {
       products={products}
       storeName={store.name}
       catalogUrl={catalogUrl}
+      metrics={metrics}
     />
   );
 }
