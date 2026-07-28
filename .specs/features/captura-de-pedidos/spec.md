@@ -228,10 +228,10 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-14 | P1: Histórico (detalhe do pedido com itens snapshot) | Design | Implementing |
 | ORD-15 | P1: Histórico (estado vazio) | Design | Pending |
 | ORD-16 | P1: Histórico (rota protegida + navegação Sidebar/MobileTabBar) | Design | Pending |
-| ORD-17 | P1: ROI (card Pedidos no mês) | Design | Pending |
-| ORD-18 | P1: ROI (card Vendas confirmadas no mês) | Design | Pending |
-| ORD-19 | P1: ROI (card Aguardando confirmação) | Design | Pending |
-| ORD-20 | P1: ROI (zeros seguros, sem NaN) | Design | Pending |
+| ORD-17 | P1: ROI (card Pedidos no mês) | Design | Implementing |
+| ORD-18 | P1: ROI (card Vendas confirmadas no mês) | Design | Implementing |
+| ORD-19 | P1: ROI (card Aguardando confirmação) | Design | Implementing |
+| ORD-20 | P1: ROI (zeros seguros, sem NaN) | Design | Implementing |
 | ORD-21 | P2: Status (persistir e refletir) | Design | Pending |
 | ORD-22 | P2: Status (qualquer transição entre os 3; valor inválido rejeitado) | Design | Implementing |
 | ORD-23 | P2: Status (isolamento por loja) | Design | Pending |

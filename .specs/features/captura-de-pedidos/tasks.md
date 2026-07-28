@@ -153,7 +153,7 @@ T16 [P]
 
 ---
 
-### T3: Módulo puro `lib/order-metrics.ts` [P]
+### T3: Módulo puro `lib/order-metrics.ts` [P] ✅
 
 **What**: corte do mês no fuso `America/Sao_Paulo` e cálculo das três métricas de ROI.
 **Where**: `lib/order-metrics.ts` (novo), `__tests__/order-metrics.test.ts` (novo)
@@ -166,17 +166,19 @@ T16 [P]
 - Skill: NONE
 
 **Done when**:
-- [ ] `monthStartInSaoPaulo(now)` retorna o instante do dia 1 às 00:00 de São Paulo (verificado em janeiro e em julho, cobrindo o offset -03:00)
-- [ ] `computeOrderMetrics` — `ordersThisMonth` conta status ≠ `cancelado`; `confirmedCentsThisMonth` soma `total_cents` só de `confirmado`; `pendingCount` vem do total de pendentes recebido (ORD-17, ORD-18, ORD-19)
-- [ ] Lista vazia → `{ ordersThisMonth: 0, confirmedCentsThisMonth: 0, pendingCount: 0 }`, sem `NaN` (ORD-20)
-- [ ] Pedido cancelado não conta em nenhuma das duas métricas do mês (ORD-20/AC5 de ROI)
-- [ ] Gate passa: `npx vitest run`
-- [ ] Test count: ≥ 8 testes novos passando; nenhum teste existente removido
+- [x] `monthStartInSaoPaulo(now)` retorna o instante do dia 1 às 00:00 de São Paulo (verificado em janeiro e em julho, cobrindo o offset -03:00)
+- [x] `computeOrderMetrics` — `ordersThisMonth` conta status ≠ `cancelado`; `confirmedCentsThisMonth` soma `total_cents` só de `confirmado`; `pendingCount` vem do total de pendentes recebido (ORD-17, ORD-18, ORD-19)
+- [x] Lista vazia → `{ ordersThisMonth: 0, confirmedCentsThisMonth: 0, pendingCount: 0 }`, sem `NaN` (ORD-20)
+- [x] Pedido cancelado não conta em nenhuma das duas métricas do mês (ORD-20/AC5 de ROI)
+- [x] Gate passa: `npx vitest run`
+- [x] Test count: ≥ 8 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: quick
 
 **Commit**: `feat(orders): adiciona calculo puro das metricas de ROI do painel`
+
+**Status**: ✅ Complete — 13 testes novos (`__tests__/order-metrics.test.ts`). Suíte 352 → 365. Discriminadores do fuso: `:26` (01/08 01:00 UTC ainda é julho em SP) e `:32` (virada de ano).
 
 ---
 
