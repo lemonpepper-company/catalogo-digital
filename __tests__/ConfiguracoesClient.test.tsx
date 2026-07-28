@@ -29,6 +29,8 @@ const baseSettings: StoreSettings = {
   instagram: null,
   paymentMethods: [],
   deliveryMethods: [],
+  customDomain: null,
+  customDomainVerified: false,
   fontPairing: "padrao",
   backgroundPalette: "padrao",
   cornerStyle: "padrao",
