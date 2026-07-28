@@ -1,8 +1,29 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { createAnonClient } from '@/lib/supabase/server'
+import { isOwnHost } from '@/lib/domain-routing'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const hostname = request.headers.get('host')?.split(':')[0] ?? ''
+
+  if (pathname === '/' && !isOwnHost(hostname, process.env.NEXT_PUBLIC_SITE_URL)) {
+    const anon = createAnonClient()
+    const { data: store } = await anon
+      .from('stores')
+      .select('slug')
+      .eq('custom_domain', hostname)
+      .eq('custom_domain_verified', true)
+      .maybeSingle()
+
+    if (store) {
+      const url = request.nextUrl.clone()
+      url.pathname = `/${store.slug}`
+      return NextResponse.rewrite(url)
+    }
+    // Domínio desconhecido ou ainda não verificado: segue o fluxo normal
+    // (a rota "/" sem loja correspondente cai no 404 padrão do Next).
+  }
 
   const needsAuth = pathname === '/login' || pathname.startsWith('/painel')
 
