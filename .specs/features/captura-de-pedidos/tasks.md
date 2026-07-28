@@ -725,22 +725,28 @@ Discriminadores: `:99`/`:108` (`eq` conferido nas duas queries de `getStoreOrder
 
 ---
 
-### F3: Teste do redirect do middleware (ORD-16.5) ⏳
+### F3: Teste do redirect do middleware (ORD-16.5) ✅
 
 **What**: `/painel/pedidos` sem sessão → `/login?next=/painel/pedidos`.
 **Where**: `__tests__/middleware.test.ts` (novo)
 **Requirement**: ORD-16
 
 **Done when**:
-- [ ] Sem sessão em `/painel/pedidos` → `NextResponse.redirect` para `/login?next=/painel/pedidos` (status 307, querystring exata)
-- [ ] Gate passa: `npx vitest run`
+- [x] Sem sessão em `/painel/pedidos` → `NextResponse.redirect` para `/login?next=/painel/pedidos` (status 307, querystring exata)
+- [x] Gate passa: `npx vitest run`
 
 **Tests**: unit
 **Gate**: quick
 
 **Commit**: `test(middleware): cobre redirect de /painel/pedidos sem sessao`
 
-**Status**: ⏳ Pendente.
+**Status**: ✅ Complete — 2 testes novos (`__tests__/middleware.test.ts`). Suíte 519 → 521.
+
+Asserções: `:48-49` — `location.pathname` = `"/login"` e `location.searchParams.get("next")` = `"/painel/pedidos"` (o valor decodificado, que é o que a AC nomeia; na URL sai `next=%2Fpainel%2Fpedidos`, como observado em runtime na validação), com `status` 307 em `:46`. `:59-60` — com sessão e loja, `/painel/pedidos` passa sem `location`, status 200.
+
+Mutação (estado descartável, restaurado): remover `url.searchParams.set('next', pathname)` → **Killed**; trocar `if (!user)` por `if (false)` → **Killed**.
+
+`@supabase/ssr` é mockado no estilo do `@/lib/supabase/server` de `__tests__/slug-check-route.test.ts` (o middleware usa `createServerClient` direto, não o wrapper do projeto). O único ajuste de ambiente está documentado no próprio arquivo: sob jsdom, `NextRequest.headers` é o `Headers` do undici e `NextResponse.next({ request })` exige o `Headers` global.
 
 ---
 
