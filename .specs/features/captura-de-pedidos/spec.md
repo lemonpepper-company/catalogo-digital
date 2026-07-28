@@ -212,14 +212,14 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| ORD-01 | P1: Pedido registrado (gravação + redirect sempre) | Design | Implementing |
-| ORD-02 | P1: Pedido registrado (preço do banco) | Design | Implementing |
+| ORD-01 | P1: Pedido registrado (gravação + redirect sempre) | Design | Implementing (F1 aplicado — aguarda re-verificação) |
+| ORD-02 | P1: Pedido registrado (preço do banco) | Design | Implementing (F1 aplicado — aguarda re-verificação) |
 | ORD-03 | P1: Pedido registrado (timeout/falha silenciosa) | Design | Implementing |
-| ORD-04 | P1: Pedido registrado (idempotência) | Design | Implementing |
+| ORD-04 | P1: Pedido registrado (idempotência) | Design | Implementing (F1 aplicado — aguarda re-verificação) |
 | ORD-05 | P1: Pedido registrado (nova chave ao mudar sacola) | Design | Implementing |
-| ORD-06 | P1: Pedido registrado (itens não resolvidos) | Design | Implementing |
+| ORD-06 | P1: Pedido registrado (itens não resolvidos) | Design | Implementing (F1 aplicado — aguarda re-verificação) |
 | ORD-07 | P1: Pedido registrado (validação e limites do payload) | Design | Implementing |
-| ORD-08 | P1: Pedido registrado (teto anti-abuso) | Design | Implementing |
+| ORD-08 | P1: Pedido registrado (teto anti-abuso) | Design | Implementing (F1 aplicado — aguarda re-verificação) |
 | ORD-09 | P1: Nome opcional (campo na sacola) | Design | Implementing |
 | ORD-10 | P1: Nome opcional (trim + 60 chars / null) | Design | Implementing |
 | ORD-11 | P1: Nome opcional (nunca bloqueia checkout, template intacto) | Design | Implementing |
@@ -235,10 +235,10 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-21 | P2: Status (persistir e refletir) | Design | Implementing |
 | ORD-22 | P2: Status (qualquer transição entre os 3; valor inválido rejeitado) | Design | Implementing |
 | ORD-23 | P2: Status (isolamento por loja) | Design | Implementing |
-| ORD-24 | P1: Segurança (sem GRANT/policy para `anon`; RLS por dono; service role server-only) | Design | Implementing |
+| ORD-24 | P1: Segurança (sem GRANT/policy para `anon`; RLS por dono; service role server-only) | Design | Implementing (F1 aplicado — aguarda re-verificação) |
 | ORD-25 | P2: Landing (card de recurso + FAQ + planos) | T15 | Implementing |
-| ORD-26 | P2: Docs (ARCHITECTURE, Escopo) + política de privacidade | T16 | Implementing |
-| ORD-27 | P1: Planos pagos (captura grava em qualquer plano) | Design | Implementing |
+| ORD-26 | P2: Docs (ARCHITECTURE, Escopo) + política de privacidade | T16 | Implementing (F1 aplicado — aguarda re-verificação) |
+| ORD-27 | P1: Planos pagos (captura grava em qualquer plano) | Design | Implementing (F1 aplicado — aguarda re-verificação) |
 | ORD-28 | P1: Planos pagos (histórico bloqueado no Free, sem dado real e sem query) | Design | Implementing |
 | ORD-29 | P1: Planos pagos (cards de ROI bloqueados no Free) | Design | Implementing |
 | ORD-30 | P1: Planos pagos (Starter/Pro liberam tudo; expiração rebaixa via `getEffectivePlan`) | Design | Implementing |

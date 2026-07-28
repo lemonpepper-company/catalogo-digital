@@ -1,8 +1,9 @@
 -- Captura de pedidos: orders + order_items
 --
 -- O pedido é gravado por uma Server Action pública usando a service role
--- (que ignora RLS). Nenhum papel do PostgREST recebe insert: o lojista só lê
--- e só altera a coluna status; o anon não enxerga nada.
+-- (que ignora RLS). Nem `anon` nem `authenticated` recebem insert: o lojista só lê
+-- e só altera a coluna status; o anon não enxerga nada. Os grants de DML do
+-- `service_role` vivem em 20260728000000_orders_service_role_grants.sql.
 
 create table public.orders (
   id               uuid primary key default gen_random_uuid(),
@@ -65,11 +66,19 @@ create policy "order_items: own store read" on public.order_items for select to 
 
 -- SPEC_DEVIATION: design.md lista apenas "revoke all ... from anon"; aqui também
 -- revogamos de authenticated antes dos grants.
--- Reason: as default privileges do schema public concedem TUDO a anon e a
--- authenticated em tabelas novas. Sem o revoke de authenticated, o lojista
--- manteria insert/delete/update irrestrito via PostgREST — o oposto do que o
--- próprio design exige ("nenhum insert é concedido a authenticated ou anon" e
--- "lojista não consegue alterar total/itens nem via PostgREST direto").
+-- Reason: defesa em profundidade — o revoke garante o estado final
+-- independentemente do que as default privileges tenham concedido.
+--
+-- CORREÇÃO (2026-07-28): o texto original desta nota afirmava que "as default
+-- privileges do schema public concedem TUDO a anon e a authenticated em tabelas
+-- novas". Isso é **falso** neste projeto. O default ACL de `public` criado pelo
+-- role `postgres` (quem roda as migrations) concede apenas `Dxtm`
+-- (TRUNCATE/REFERENCES/TRIGGER/MAINTAIN) a anon/authenticated/service_role, logo
+-- tabela nova **não** herda DML para ninguém. Estes dois `revoke ... from
+-- authenticated` eram, portanto, inócuos — e a premissa errada esconde o que
+-- realmente faltava: nenhum grant para `service_role`, o papel que grava o
+-- pedido. Corrigido em 20260728000000_orders_service_role_grants.sql. O SQL desta
+-- migration não muda (ela já foi aplicada).
 revoke all on public.orders      from anon;
 revoke all on public.order_items from anon;
 revoke all on public.orders      from authenticated;

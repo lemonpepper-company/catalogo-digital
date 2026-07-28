@@ -656,6 +656,101 @@ Observação de layout (não corrigida — sem AC e fora do escopo da task): `fe
 
 ---
 
+## Fix Tasks — iteração 1 (Verifier FAIL de 28/07/2026)
+
+> Origem: `.specs/features/captura-de-pedidos/validation.md` §8 (Fix Plans 1–4). Cada fix é um commit atômico. Nenhum requisito é marcado `Verified` aqui — isso é do Verifier.
+
+### F1: GRANTs do `service_role` para a captura (BLOCKER) ✅
+
+**What**: nova migration concedendo ao `service_role` exatamente o DML que `app/actions/pedidos.ts` usa; correção da premissa errada no comentário `SPEC_DEVIATION` da migration anterior e dos docs; guard de privilégios no CI.
+**Where**: `supabase/migrations/20260728000000_orders_service_role_grants.sql` (novo), `supabase/migrations/20260727000000_orders.sql` (só comentários), `docs/ARCHITECTURE.md`, `AGENTS.md`, `.github/workflows/supabase-migrations-check.yml`
+**Requirement**: ORD-01, ORD-02, ORD-04, ORD-06, ORD-08, ORD-24, ORD-26, ORD-27
+
+**Done when**:
+- [x] `grant select, insert, delete on orders to service_role`; `grant select, insert on order_items to service_role`; `grant select on stores/products to service_role` — e **nada além disso** (nenhum UPDATE em `orders` para o `service_role`; nenhum grant novo para `anon`)
+- [x] Comentário do arquivo antigo corrigido: o default ACL de `public` (role `postgres`) concede só `Dxtm` a `anon`/`authenticated`/`service_role` — tabela nova **não** herda DML para ninguém. SQL da migration já aplicada permanece intacto
+- [x] `docs/ARCHITECTURE.md:73,97` descreve os grants reais e diz que ignorar RLS não dispensa GRANT; `AGENTS.md` ganha o cuidado crítico simétrico (tabela escrita pela service role exige grant explícito)
+- [x] CI: passo `Check table privileges (orders/order_items)` roda depois do `supabase start` e falha se faltar privilégio ao `service_role` ou se `anon` tiver **qualquer** privilégio nas duas tabelas (`has_table_privilege` via `psql` no container do banco)
+- [x] Gate passa: `npm run build && npm run lint && npx vitest run` (500 testes, lint 17 = baseline)
+
+**Tests**: none no vitest (não há banco na suíte) — a guarda de regressão é o passo novo do CI, único lugar do projeto com banco de verdade
+**Gate**: build + migration
+
+**Commit**: `fix(db): concede ao service_role os grants que a captura de pedidos usa`
+
+**Status**: ✅ Complete.
+
+Evidência de runtime (banco local, 28/07/2026):
+1. **Guard discrimina**: rodado *antes* da migration, o passo novo do CI falhou com exit 3 listando os 7 privilégios ausentes (`public.orders:insert`, `public.stores:select`, …). Depois de `npx supabase migration up`: exit 0 + `NOTICE: grants ok`.
+2. **Introspecção**: `has_table_privilege('service_role', …)` = `t` para SELECT/INSERT/DELETE em `orders`, SELECT/INSERT em `order_items`, SELECT em `stores`/`products`; `f` para todo UPDATE. `anon` segue com **zero** privilégio em `orders`/`order_items` (8 privilégios × 2 tabelas, todos `f`).
+3. **Checkout real** em `/atelie-mira` (dev server, loja `pro` ativa), nome "Ana Fix1", 2× Vestido midi (M/Areia): **1 linha em `orders`** (`items_count=2`, `total_cents=57980` = 2 × `products.price_cents` 28990, `status='pendente'`, `customer_name='Ana Fix1'`) + **1 linha em `order_items`** (`unit_price_cents=28990`, `qty=2`, `size=M`, `color=Areia`). `console.error` do servidor: nenhum. Como o pop-up foi bloqueado no navegador automatizado, a navegação caiu no fallback da aba atual (`window.location.href`) — o edge case de `window.open → null` foi exercido de graça.
+4. **Idempotência (ORD-04)**: segundo checkout (Blusa de tricô P/Off-white, `total_cents=16990`) com `window.open` stubado para a página não navegar, seguido de **reenvio da mesma sacola**: a action foi chamada 3 vezes (log do servidor), o banco ficou com **2 pedidos / 2 itens** — o terceiro envio, com o mesmo `client_order_id`, não gravou nada.
+5. **Limpeza**: os 2 pedidos de teste foram deletados (`delete from orders where client_order_id in (…)`); banco em `0 orders / 0 items`, como estava antes. `npx supabase db lint --level warning` limpo. Nenhum `db reset`, `.env.local` intocado.
+
+---
+
+### F2: Testes de `lib/server/pedidos.ts` (M10–M14) ⏳
+
+**What**: cobrir a camada de query que decide qual loja, qual ordem, qual página e qual período.
+**Where**: `__tests__/server-pedidos.test.ts` (novo)
+**Requirement**: ORD-12, ORD-13, ORD-17, ORD-18, ORD-19
+
+**Done when**:
+- [ ] `getStoreOrders`: `.eq("store_id", storeId)`, `.order("created_at", { ascending: false })`, `.range(0, 19)` na página 1, `.range(20, 39)` na página 2, `clampPage` aplicado, e o caminho de erro **lançando** com `console.error` (nunca lista vazia)
+- [ ] `getOrderMetrics`: `.gte("created_at", monthStartInSaoPaulo(now).toISOString())` e `.eq("status", "pendente")` na segunda query
+- [ ] Linha de `lib/server/pedidos.ts` na Test Coverage Matrix corrigida para `unit`
+- [ ] M10–M14 morrem (verificado por mutação manual em estado descartável)
+- [ ] Gate passa: `npx vitest run && npm run lint`
+
+**Tests**: unit
+**Gate**: full
+
+**Commit**: `test(painel): cobre filtro, ordem, paginacao e periodo das queries de pedidos`
+
+**Status**: ⏳ Pendente.
+
+---
+
+### F3: Teste do redirect do middleware (ORD-16.5) ⏳
+
+**What**: `/painel/pedidos` sem sessão → `/login?next=/painel/pedidos`.
+**Where**: `__tests__/middleware.test.ts` (novo)
+**Requirement**: ORD-16
+
+**Done when**:
+- [ ] Sem sessão em `/painel/pedidos` → `NextResponse.redirect` para `/login?next=/painel/pedidos` (status 307, querystring exata)
+- [ ] Gate passa: `npx vitest run`
+
+**Tests**: unit
+**Gate**: quick
+
+**Commit**: `test(middleware): cobre redirect de /painel/pedidos sem sessao`
+
+**Status**: ⏳ Pendente.
+
+---
+
+### F4: Spec-precision gaps (ORD-27, ORD-30.7, ORD-18) ⏳
+
+**What**: asserção negativa de que a captura não consulta plano; teste do histórico do período Free aparecendo no Starter; formato de dinheiro registrado como decisão de produto.
+**Where**: `__tests__/registrar-pedido.test.ts`, `__tests__/PedidosPage.test.tsx`, `.specs/features/captura-de-pedidos/spec.md`, `.specs/features/captura-de-pedidos/context.md`
+**Requirement**: ORD-27, ORD-30, ORD-18
+
+**Done when**:
+- [ ] `registrarPedido` roda com `@/lib/plan-limits` mockado de forma que **qualquer** chamada a `getPlanLimits`/`getEffectivePlan` reprova o teste (ORD-27)
+- [ ] Pedido gravado no período Free aparece quando o plano efetivo vira `starter` — mesma query, sem migração de dados (ORD-30.7)
+- [ ] `formatCents` **não** foi alterado; formato registrado nas Assumptions da `spec.md` e "separador de milhar" anotado em Deferred Ideas do `context.md` (decisão de produto, fora desta feature)
+- [ ] Gate passa: `npx vitest run && npm run lint`
+
+**Tests**: unit
+**Gate**: full
+
+**Commit**: `test(orders): fecha lacunas de precisao de ORD-27 e ORD-30.7`
+
+**Status**: ⏳ Pendente.
+
+---
+
 ## Parallel Execution Map
 
 ```

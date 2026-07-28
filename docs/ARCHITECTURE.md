@@ -70,7 +70,7 @@ RLS habilitado em todas as tabelas. Políticas:
 - `stores` — usuário lê/escreve apenas a própria loja; leitura pública de `slug` (para verificação de disponibilidade e catálogo)
 - `categories` — authenticated: escrita apenas da própria loja; anon: leitura pública
 - `products` — authenticated: escrita apenas da própria loja; anon: leitura apenas de produtos ativos (`is_active=true AND stock>0`)
-- `orders` / `order_items` — authenticated: leitura apenas dos pedidos da própria loja (`stores.owner_id = auth.uid()`); update permitido só na coluna `status` de `orders`. **Nenhum privilégio para `anon`** e nenhum `insert` para `authenticated`: a escrita é exclusiva da service role, dentro da Server Action `registrarPedido` (`supabase/migrations/20260727000000_orders.sql`)
+- `orders` / `order_items` — authenticated: leitura apenas dos pedidos da própria loja (`stores.owner_id = auth.uid()`); update permitido só na coluna `status` de `orders`. **Nenhum privilégio para `anon`** e nenhum `insert` para `authenticated`: a escrita é exclusiva da service role, dentro da Server Action `registrarPedido` (`supabase/migrations/20260727000000_orders.sql`). O papel `service_role` tem `select, insert, delete` em `orders` (sem `update` — status é do lojista) e `select, insert` em `order_items`, concedidos em `supabase/migrations/20260728000000_orders_service_role_grants.sql`
 
 ### Storage
 
@@ -94,7 +94,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 SUPABASE_SERVICE_ROLE_KEY=<service_role key>
 ```
 
-> `SUPABASE_SERVICE_ROLE_KEY` é **server-only** — sem prefixo `NEXT_PUBLIC_`, lida apenas por `lib/supabase/admin.ts` (que tem `import "server-only"`). É a única chave capaz de gravar em `orders`/`order_items` e ignora RLS: nunca deve chegar ao bundle do cliente nem ser logada. Local: `supabase status -o env | grep SERVICE_ROLE_KEY`; produção: Supabase Dashboard → Project Settings → API keys → `service_role`, cadastrada nas env vars da Vercel. Sem ela o catálogo continua funcionando e apenas a captura do pedido é descartada (`{ ok: false }` + `console.error`).
+> `SUPABASE_SERVICE_ROLE_KEY` é **server-only** — sem prefixo `NEXT_PUBLIC_`, lida apenas por `lib/supabase/admin.ts` (que tem `import "server-only"`). É a única chave que grava em `orders`/`order_items` e ignora RLS: nunca deve chegar ao bundle do cliente nem ser logada. A chave só funciona porque o papel `service_role` recebeu grants explícitos em `20260728000000_orders_service_role_grants.sql` — `select, insert, delete` em `orders`, `select, insert` em `order_items` e `select` em `stores`/`products`. Ignorar RLS **não** dispensa GRANT: sem esses grants a captura falha com `permission denied`, porque o default ACL de `public` não concede DML a nenhum papel do PostgREST em tabela nova (ver o cuidado crítico no `AGENTS.md`). O `service_role` de propósito **não** tem UPDATE em `orders`: mudar status é do lojista autenticado. Local: `supabase status -o env | grep SERVICE_ROLE_KEY`; produção: Supabase Dashboard → Project Settings → API keys → `service_role`, cadastrada nas env vars da Vercel. Sem ela o catálogo continua funcionando e apenas a captura do pedido é descartada (`{ ok: false }` + `console.error`).
 
 Emails de confirmação ficam em **Mailpit**: `http://localhost:54324`
 
