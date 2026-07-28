@@ -591,7 +591,7 @@ Observação de layout (não corrigida — sem AC e fora do escopo da task): `fe
 
 ---
 
-### T16: Política de privacidade, documentação e env var [P]
+### T16: Política de privacidade, documentação e env var [P] ✅
 
 **What**: menção LGPD ao armazenamento do pedido + atualização de `ARCHITECTURE.md`, `Escopo.md` e `AGENTS.md` (cuidado crítico do `anon`) + registro da env var nova.
 **Where**: `app/politica-de-privacidade/page.tsx`, `docs/ARCHITECTURE.md`, `docs/roadmap/Escopo.md`, `AGENTS.md`
@@ -604,17 +604,26 @@ Observação de layout (não corrigida — sem AC e fora do escopo da task): `fe
 - Skill: NONE
 
 **Done when**:
-- [ ] Política de privacidade menciona que itens, total e nome informado no pedido são armazenados e ficam visíveis ao lojista
-- [ ] `docs/ARCHITECTURE.md`: schema com `orders`/`order_items`, rota `/painel/pedidos`, arquivos novos na tabela, bloco de env com `SUPABASE_SERVICE_ROLE_KEY` (server-only) e "Estado atual" atualizado
-- [ ] `docs/roadmap/Escopo.md`: §4.2 ganha as linhas de captura/histórico/status como implementadas; §5 deixa de listar "Histórico de pedidos"/"Status da venda" como V2 (impressão e CSV permanecem V2); §6 (tabela de monetização) ganha a linha "Histórico de pedidos" com Free `—` e Starter/Pro `Incluso`; §4.3 registra o gate por plano
-- [ ] `AGENTS.md`: cuidado crítico registrando que `orders`/`order_items` nunca recebem grant para `anon`
-- [ ] Gate passa: `npm run build && npm run lint && npx vitest run`
-- [ ] Test count: baseline mantido; nenhum teste existente removido
+- [x] Política de privacidade menciona que itens, total e nome informado no pedido são armazenados e ficam visíveis ao lojista
+- [x] `docs/ARCHITECTURE.md`: schema com `orders`/`order_items`, rota `/painel/pedidos`, arquivos novos na tabela, bloco de env com `SUPABASE_SERVICE_ROLE_KEY` (server-only) e "Estado atual" atualizado
+- [x] `docs/roadmap/Escopo.md`: §4.2 ganha as linhas de captura/histórico/status como implementadas; §5 deixa de listar "Histórico de pedidos"/"Status da venda" como V2 (impressão e CSV permanecem V2); §6 (tabela de monetização) ganha a linha "Histórico de pedidos" com Free `—` e Starter/Pro `Incluso`; §4.3 registra o gate por plano
+- [x] `AGENTS.md`: cuidado crítico registrando que `orders`/`order_items` nunca recebem grant para `anon`
+- [x] Gate passa: `npm run build && npm run lint && npx vitest run`
+- [x] Test count: baseline mantido; nenhum teste existente removido
 
 **Tests**: none (docs e conteúdo estático)
 **Gate**: build
 
 **Commit**: `docs: registra captura de pedidos na arquitetura, escopo e politica de privacidade`
+
+**Status**: ✅ Complete — `a151bcd`. Build ok; lint em 17 erros (baseline, mesmos 3 arquivos); suíte em 500 (mantida). Toda a documentação foi escrita a partir do código lido (migration `20260727000000_orders.sql`, `app/painel/pedidos/`, `lib/orders.ts`, `lib/order-metrics.ts`, `lib/server/pedidos.ts`, `app/actions/pedidos.ts`, `lib/supabase/admin.ts`), não do texto do `design.md`. A regra "a captura grava em qualquer plano, só a visualização é paga" está registrada em quatro lugares: `AGENTS.md`, "Estado atual" do `ARCHITECTURE.md`, §4.2/§4.3 e a nota de §6 do `Escopo.md`.
+
+**Adições além da lista literal do done-when (mesmos 4 arquivos, motivo de consistência):**
+1. `Escopo.md` §3.2 ganhou a linha da tela "Pedidos" e a linha do Dashboard passou a citar os cards de ROI — a tabela de telas do painel ficaria contradizendo §4.2 sem isso.
+2. `Escopo.md` §5 ganhou "Notificação de novo pedido" (estava em Out of Scope da spec e em nenhuma seção do Escopo) e §9 ganhou a linha "Captura do pedido" + correção da linha "Mensagem WhatsApp" (a aba agora é pré-aberta no clique, com fallback na aba atual).
+3. `app/politica-de-privacidade/page.tsx`: "Última atualização" foi de 1 para 28 de julho de 2026 — o conteúdo da política mudou, deixar a data antiga seria informação incorreta ao titular.
+
+**Observação de processo:** o `npm run build` do gate reescreve `next-env.d.ts` (`.next/dev/types` → `.next/types`, arquivo gerado pelo Next). Ele entrou no commit por um `git add -A` e foi retirado por `git checkout HEAD~1 -- next-env.d.ts` + `--amend`; o commit final tem só os 4 arquivos da task.
 
 ---
 
