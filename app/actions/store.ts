@@ -5,6 +5,15 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
 import { storeSettingsSchema, personalizacaoSchema } from "@/lib/validation/painel";
 import { uploadToBucket, deleteFromBucket } from "@/lib/server/upload";
+import { getPlanLimits } from "@/lib/plan-limits";
+import {
+  getFontPairing,
+  getBackgroundPalette,
+  getCornerStyle,
+  DEFAULT_FONT_PAIRING_KEY,
+  DEFAULT_BACKGROUND_PALETTE_KEY,
+  DEFAULT_CORNER_STYLE_KEY,
+} from "@/lib/theme-options";
 
 export type StoreActionState = { error: string } | { ok: true } | null;
 
@@ -91,10 +100,31 @@ export async function updatePersonalizacao(
   const store = await getCurrentStore();
   if (!store) return { error: "Loja não encontrada." };
 
+  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+
   const parsed = personalizacaoSchema.safeParse({
     accentColor: formData.get("accentColor"),
+    fontPairing: (formData.get("fontPairing") as string) || DEFAULT_FONT_PAIRING_KEY,
+    backgroundPalette: (formData.get("backgroundPalette") as string) || DEFAULT_BACKGROUND_PALETTE_KEY,
+    cornerStyle: (formData.get("cornerStyle") as string) || DEFAULT_CORNER_STYLE_KEY,
+    secondaryColor: (formData.get("secondaryColor") as string) || null,
+    gridDensity: (formData.get("gridDensity") as string) || "padrao",
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  // Revalida no servidor — a UI já bloqueia isso, mas a fonte de verdade é aqui.
+  // Cada eixo é validado de forma independente.
+  const fontPairing = limits.themeOptions
+    ? getFontPairing(parsed.data.fontPairing).key
+    : DEFAULT_FONT_PAIRING_KEY;
+  const backgroundPalette = limits.themeOptions
+    ? getBackgroundPalette(parsed.data.backgroundPalette).key
+    : DEFAULT_BACKGROUND_PALETTE_KEY;
+  const cornerStyle = limits.themeOptions
+    ? getCornerStyle(parsed.data.cornerStyle).key
+    : DEFAULT_CORNER_STYLE_KEY;
+  const secondaryColor = limits.advancedTheme ? parsed.data.secondaryColor : null;
+  const gridDensity = limits.gridDensity ? parsed.data.gridDensity : "padrao";
 
   let coverUrl = store.coverUrl;
   const removeCover = formData.get("removeCover") === "1";
@@ -116,6 +146,11 @@ export async function updatePersonalizacao(
     .update({
       accent_color: parsed.data.accentColor,
       cover_url: coverUrl,
+      font_pairing: fontPairing,
+      background_palette: backgroundPalette,
+      corner_style: cornerStyle,
+      secondary_color: secondaryColor,
+      grid_density: gridDensity,
     })
     .eq("id", store.id);
 

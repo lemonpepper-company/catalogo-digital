@@ -5,11 +5,21 @@ import { Card } from "@/components/ui/Card";
 import { Toast } from "@/components/ui/Toast";
 import { CorDestaqueFields } from "@/components/loja/CorDestaqueFields";
 import { CapaFields } from "@/components/loja/CapaFields";
+import { ThemeOptionsFields } from "@/components/painel/ThemeOptionsFields";
+import { cn } from "@/lib/utils";
+import { SECONDARY_COLOR_OPTIONS } from "@/lib/data";
 import type { StoreSettings } from "@/lib/types";
+import type { PlanLimits } from "@/lib/plan-limits";
 import { usePersonalizacao } from "./use-personalizacao";
 
-export function PersonalizacaoClient({ settings }: { settings: StoreSettings }) {
-  const f = usePersonalizacao(settings);
+export function PersonalizacaoClient({
+  settings,
+  limits,
+}: {
+  settings: StoreSettings;
+  limits: PlanLimits;
+}) {
+  const f = usePersonalizacao(settings, limits);
 
   return (
     <div className="w-full lg:max-w-form flex flex-col gap-5">
@@ -26,6 +36,81 @@ export function PersonalizacaoClient({ settings }: { settings: StoreSettings }) 
             </span>
           </h2>
           <CorDestaqueFields accent={f.accent} onAccentChange={f.setAccent} />
+        </Card>
+
+        <Card>
+          <h2 className="font-display font-medium text-[16px] text-obsidian mb-1">
+            Tema
+          </h2>
+          <p className="font-body text-[13px] text-graphite mb-4">
+            Fonte, fundo e formato dos cantos da vitrine — cada escolha é independente.
+          </p>
+          <ThemeOptionsFields
+            fontPairing={f.fontPairing}
+            onFontPairingChange={f.setFontPairing}
+            backgroundPalette={f.backgroundPalette}
+            onBackgroundPaletteChange={f.setBackgroundPalette}
+            cornerStyle={f.cornerStyle}
+            onCornerStyleChange={f.setCornerStyle}
+            unlocked={f.limits.themeOptions}
+          />
+
+          {f.limits.advancedTheme && (
+            <div className="mt-5">
+              <label className="font-body font-medium text-[13px] text-obsidian block mb-2">
+                Cor secundária (opcional){" "}
+                <span className="text-graphite font-normal">
+                  · aplicada na categoria selecionada
+                </span>
+              </label>
+              <div className="flex items-center gap-3 flex-wrap">
+                {SECONDARY_COLOR_OPTIONS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => f.setSecondaryColor(c)}
+                    aria-label={c}
+                    className="w-10 h-10 rounded-full transition-all duration-200"
+                    style={{
+                      background: c,
+                      border:
+                        f.secondaryColor === c
+                          ? "2px solid var(--color-primary)"
+                          : "1px solid var(--color-border)",
+                      outline: f.secondaryColor === c ? "2px solid var(--color-bg)" : "none",
+                      outlineOffset: f.secondaryColor === c ? "-4px" : "0",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-5">
+            <label className="font-body font-medium text-[13px] text-obsidian block mb-2">
+              Densidade do grid
+            </label>
+            <div className="flex gap-3">
+              {(["padrao", "compacto"] as const).map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  disabled={!f.limits.gridDensity && d !== "padrao"}
+                  onClick={() => f.setGridDensity(d)}
+                  className={cn(
+                    "h-11 px-4 rounded-btn border text-[13px]",
+                    f.gridDensity === d
+                      ? "border-obsidian bg-obsidian text-white"
+                      : "border-sand bg-white text-obsidian hover:bg-surface-hover",
+                    !f.limits.gridDensity && d !== "padrao" && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  {d === "padrao" ? "Padrão" : "Compacto"}
+                </button>
+              ))}
+            </div>
+          </div>
         </Card>
 
         <Card>

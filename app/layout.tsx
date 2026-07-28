@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Sora, DM_Sans } from "next/font/google";
+import { Sora, DM_Sans, Fraunces, Inter, Playfair_Display, Lora, Space_Grotesk } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@/components/analytics/Analytics";
 import "./globals.css";
@@ -17,6 +17,15 @@ const dmSans = DM_Sans({
   variable: "--font-dm-sans",
   display: "swap",
 });
+
+// preload: false — essas fontes só são usadas pela vitrine pública (/{slug}) via
+// personalização de tema; sem isso, todas as rotas (landing, auth, painel) pagam o
+// custo de preload de ~11 arquivos de fonte que nunca usam, prejudicando o LCP.
+const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-fraunces", preload: false });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-inter", preload: false });
+const playfairDisplay = Playfair_Display({ subsets: ["latin"], weight: ["600"], variable: "--font-playfair", preload: false });
+const lora = Lora({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-lora", preload: false });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-space-grotesk", preload: false });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vtrinedigital.com.br";
 const gaId = process.env.NEXT_PUBLIC_GA_ID;
@@ -83,7 +92,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${sora.variable} ${dmSans.variable}`}>
+    <html
+      lang="pt-BR"
+      className={`${sora.variable} ${dmSans.variable} ${fraunces.variable} ${inter.variable} ${playfairDisplay.variable} ${lora.variable} ${spaceGrotesk.variable}`}
+    >
       <body suppressHydrationWarning>
         {children}
         <SpeedInsights />

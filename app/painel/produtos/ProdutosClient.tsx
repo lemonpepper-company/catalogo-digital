@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Pencil, Trash2, Package, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Search, Star } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Switch } from "@/components/ui/Switch";
@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { cn, formatCents } from "@/lib/utils";
 import type { StoreProduct } from "@/lib/types";
 import { useProdutos } from "./use-produtos";
@@ -51,6 +52,7 @@ export function ProdutosClient({
     limitReached,
     isPending,
     toggleActive,
+    toggleFeatured,
     removeProduct,
   } = useProdutos(products, maxProducts, counts, page, {
     q: initialQ,
@@ -273,10 +275,16 @@ export function ProdutosClient({
                         </div>
                         <div className="flex items-center justify-between gap-3 pl-[68px]">
                           <StockLabel stock={p.stock} tone={stockTone} />
-                          <VisibilityToggle
-                            active={p.isActive}
-                            onToggle={() => toggleActive(p)}
-                          />
+                          <div className="flex items-center gap-2">
+                            <VisibilityToggle
+                              active={p.isActive}
+                              onToggle={() => toggleActive(p)}
+                            />
+                            <FeaturedToggle
+                              featured={p.isFeatured}
+                              onToggle={() => toggleFeatured(p)}
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -302,10 +310,14 @@ export function ProdutosClient({
                           <StockLabel stock={p.stock} tone={stockTone} />
                         </div>
 
-                        <div className="w-[140px] flex-shrink-0">
+                        <div className="w-[140px] flex-shrink-0 flex items-center gap-2">
                           <VisibilityToggle
                             active={p.isActive}
                             onToggle={() => toggleActive(p)}
+                          />
+                          <FeaturedToggle
+                            featured={p.isFeatured}
+                            onToggle={() => toggleFeatured(p)}
                           />
                         </div>
 
@@ -415,6 +427,33 @@ function VisibilityToggle({
   );
 }
 
+function FeaturedToggle({
+  featured,
+  onToggle,
+}: {
+  featured: boolean;
+  onToggle: () => void;
+}) {
+  const label = featured ? "Remover destaque" : "Destacar na vitrine";
+  return (
+    <Tooltip label={label}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={label}
+        className={cn(
+          "h-8 w-8 flex items-center justify-center rounded-btn border",
+          featured
+            ? "border-gold bg-gold/10 text-gold"
+            : "border-sand text-graphite hover:bg-surface-hover"
+        )}
+      >
+        <Star size={16} fill={featured ? "currentColor" : "none"} />
+      </button>
+    </Tooltip>
+  );
+}
+
 function ProductActions({
   editHref,
   onDelete,
@@ -424,20 +463,24 @@ function ProductActions({
 }) {
   return (
     <div className="flex gap-1 flex-shrink-0">
-      <Link
-        href={editHref}
-        aria-label="Editar"
-        className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-obsidian flex items-center justify-center hover:bg-surface-hover transition-colors"
-      >
-        <Pencil size={15} />
-      </Link>
-      <button
-        onClick={onDelete}
-        aria-label="Excluir"
-        className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-error flex items-center justify-center hover:bg-error-surface transition-colors"
-      >
-        <Trash2 size={15} />
-      </button>
+      <Tooltip label="Editar">
+        <Link
+          href={editHref}
+          aria-label="Editar"
+          className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-obsidian flex items-center justify-center hover:bg-surface-hover transition-colors"
+        >
+          <Pencil size={15} />
+        </Link>
+      </Tooltip>
+      <Tooltip label="Excluir">
+        <button
+          onClick={onDelete}
+          aria-label="Excluir"
+          className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-error flex items-center justify-center hover:bg-error-surface transition-colors"
+        >
+          <Trash2 size={15} />
+        </button>
+      </Tooltip>
     </div>
   );
 }

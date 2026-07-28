@@ -3,6 +3,8 @@ import { renderHook, act } from "@testing-library/react";
 import { useCatalogo } from "@/app/[slug]/use-catalogo";
 import { renderWhatsAppMessage, normalizeWhatsapp } from "@/lib/utils";
 import type { Product, Store } from "@/lib/types";
+import { resolveTheme } from "@/lib/theme-options";
+import { getPlanLimits } from "@/lib/plan-limits";
 
 const registrarPedido = vi.fn();
 
@@ -21,6 +23,8 @@ const baseStore: Store = {
   description: "",
   accentColor: "#C9A96E",
   catalogUrl: "vtrinedigital.com.br/ateliemira",
+  theme: resolveTheme("padrao", "padrao", "padrao", null, getPlanLimits("free", null)),
+  gridDensity: "padrao",
 };
 
 const products: Product[] = [];
@@ -110,6 +114,7 @@ const productA: Product = {
   sizes: [],
   soldSizes: [],
   colors: [],
+  isFeatured: false,
 };
 
 const productB: Product = {

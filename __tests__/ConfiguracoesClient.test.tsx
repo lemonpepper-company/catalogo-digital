@@ -29,6 +29,11 @@ const baseSettings: StoreSettings = {
   instagram: null,
   paymentMethods: [],
   deliveryMethods: [],
+  fontPairing: "padrao",
+  backgroundPalette: "padrao",
+  cornerStyle: "padrao",
+  secondaryColor: null,
+  gridDensity: "padrao",
 };
 
 describe("ConfiguracoesClient logo avatar", () => {

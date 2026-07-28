@@ -8,12 +8,38 @@ import { StoreBanner } from "@/components/catalogo/StoreBanner";
 import { ProductCard } from "@/components/catalogo/ProductCard";
 import { ProductDetail } from "@/components/catalogo/ProductDetail";
 import { BagDrawer } from "@/components/catalogo/BagDrawer";
+import { FeaturedRail } from "@/components/catalogo/FeaturedRail";
 import type { Product, Store } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { useCatalogo } from "./use-catalogo";
 
 interface CatalogoClientProps {
   store: Store;
   products: Product[];
+}
+
+/**
+ * Converte um hex ("#F9F9F7" ou "#FFF") para a string de canais RGB
+ * espaçados por espaço ("249 249 247") que o tailwind.config.ts espera para
+ * compor as cores ivory/linen/sand com o padrão rgb(var(...) / <alpha-value>).
+ * Sem isso, uma loja com paleta de fundo customizada teria bg-linen correto
+ * mas bg-linen/50 (e demais utilitários com opacidade) quebrados, pois
+ * ficariam presos ao valor padrão das variáveis "-rgb".
+ */
+function hexToRgbChannels(hex: string): string | null {
+  const normalized = hex.trim().replace(/^#/, "");
+  const full =
+    normalized.length === 3
+      ? normalized
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : normalized;
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) return null;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  return `${r} ${g} ${b}`;
 }
 
 export function CatalogoClient({ store, products }: CatalogoClientProps) {
@@ -54,7 +80,31 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
   } = useCatalogo({ store, products });
 
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const accentStyle = { "--color-primary": store.accentColor } as React.CSSProperties;
+  const bgRgb = hexToRgbChannels(store.theme.backgroundColor);
+  const surfaceRgb = hexToRgbChannels(store.theme.surfaceColor);
+  const borderRgb = hexToRgbChannels(store.theme.borderColor);
+  const themeStyle = {
+    "--color-primary": store.accentColor,
+    "--color-bg": store.theme.backgroundColor,
+    "--color-surface": store.theme.surfaceColor,
+    "--color-border": store.theme.borderColor,
+    // Mantém as variáveis "-rgb" (canais RGB, usadas pelos utilitários Tailwind
+    // ivory/linen/sand com modificador de opacidade, ex. bg-linen/50) em sincronia
+    // com a paleta de fundo customizada da loja. Ver hexToRgbChannels() acima e o
+    // comentário em tailwind.config.ts.
+    ...(bgRgb ? { "--color-bg-rgb": bgRgb } : {}),
+    ...(surfaceRgb ? { "--color-surface-rgb": surfaceRgb } : {}),
+    ...(borderRgb ? { "--color-border-rgb": borderRgb } : {}),
+    "--radius-card": store.theme.cardRadius,
+    "--radius-btn": store.theme.btnRadius,
+    ...(store.theme.fontDisplayVar !== "--font-sora"
+      ? { "--font-sora": `var(${store.theme.fontDisplayVar})` }
+      : {}),
+    ...(store.theme.fontBodyVar !== "--font-dm-sans"
+      ? { "--font-dm-sans": `var(${store.theme.fontBodyVar})` }
+      : {}),
+    ...(store.theme.secondaryColor ? { "--color-secondary": store.theme.secondaryColor } : {}),
+  } as React.CSSProperties;
 
   const headerRef = useRef<HTMLDivElement>(null);
   const [headerH, setHeaderH] = useState(0);
@@ -88,7 +138,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
     return (
       <div
         className="fixed inset-0 z-20 bg-ivory md:flex md:items-center md:justify-center md:bg-black/50 md:p-6"
-        style={accentStyle}
+        style={themeStyle}
         onClick={(e) => {
           if (e.target === e.currentTarget) setOpenProduct(null);
         }}
@@ -106,7 +156,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-ivory relative" style={accentStyle}>
+    <div className="min-h-screen bg-ivory relative" style={themeStyle}>
       <div ref={headerRef} className="sticky top-0 z-20 bg-ivory">
         <StoreHeader
           store={store}
@@ -137,6 +187,8 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
         ))}
       </div>
 
+      <FeaturedRail products={products} onOpen={setOpenProduct} />
+
       {visibleProducts.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 px-4 py-24 text-center">
           <p className="font-display font-medium text-[16px] text-obsidian">
@@ -152,7 +204,14 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 px-4 pb-8 pt-1 sm:grid-cols-3 lg:grid-cols-4">
+          <div
+            className={cn(
+              "grid gap-4 px-4 pb-8 pt-1",
+              store.gridDensity === "compacto"
+                ? "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5"
+                : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
+            )}
+          >
             {visibleProducts.map((product, index) => (
               <ProductCard
                 key={product.id}

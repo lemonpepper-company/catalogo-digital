@@ -66,6 +66,11 @@ function makeStore(plan: Plan, trialEndsAt: string | null = null): StoreSettings
     instagram: null,
     paymentMethods: [],
     deliveryMethods: [],
+    fontPairing: "padrao",
+    backgroundPalette: "padrao",
+    cornerStyle: "padrao",
+    secondaryColor: null,
+    gridDensity: "padrao",
   };
 }
 

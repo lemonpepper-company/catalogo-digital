@@ -3,6 +3,8 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { act } from "@testing-library/react";
 import { CatalogoClient } from "@/app/[slug]/CatalogoClient";
 import type { Product, Store } from "@/lib/types";
+import { resolveTheme } from "@/lib/theme-options";
+import { getPlanLimits } from "@/lib/plan-limits";
 
 class FakeIntersectionObserver {
   static instances: FakeIntersectionObserver[] = [];
@@ -50,6 +52,8 @@ const store: Store = {
   description: "Vitrine digital",
   accentColor: "#C9A96E",
   catalogUrl: "vtrinedigital.com.br/ateliemira",
+  theme: resolveTheme("padrao", "padrao", "padrao", null, getPlanLimits("free", null)),
+  gridDensity: "padrao",
 };
 
 function makeProducts(count: number, category: string): Product[] {
@@ -63,6 +67,7 @@ function makeProducts(count: number, category: string): Product[] {
     sizes: [],
     soldSizes: [],
     colors: [],
+    isFeatured: false,
   }));
 }
 
@@ -97,6 +102,79 @@ describe("CatalogoClient — carregamento incremental", () => {
 
     fireEvent.click(screen.getByText("Blusas"));
     expect(countCards(container)).toBe(5);
+  });
+});
+
+describe("CatalogoClient — densidade do grid", () => {
+  it("usa grid-cols-2 (padrão) quando gridDensity é 'padrao'", () => {
+    const { container } = render(
+      <CatalogoClient store={store} products={makeProducts(2, "Vestidos")} />
+    );
+    const grid = container.querySelector(".grid");
+    const classes = grid?.className.split(" ") ?? [];
+    expect(classes).toContain("grid-cols-2");
+    expect(classes).not.toContain("grid-cols-3");
+  });
+
+  it("usa grid-cols-3 quando gridDensity é 'compacto'", () => {
+    const { container } = render(
+      <CatalogoClient
+        store={{ ...store, gridDensity: "compacto" }}
+        products={makeProducts(2, "Vestidos")}
+      />
+    );
+    const grid = container.querySelector(".grid");
+    const classes = grid?.className.split(" ") ?? [];
+    expect(classes).toContain("grid-cols-3");
+    expect(classes).not.toContain("grid-cols-2");
+  });
+});
+
+describe("CatalogoClient — seção de destaques", () => {
+  it("mostra a seção Destaques quando há produtos em destaque ativos", () => {
+    const products = makeProducts(3, "Vestidos");
+    products[0].isFeatured = true;
+    products[0].active = true;
+    render(<CatalogoClient store={store} products={products} />);
+    expect(screen.getByText("Destaques")).toBeTruthy();
+  });
+
+  it("não mostra a seção Destaques quando nenhum produto está em destaque", () => {
+    render(<CatalogoClient store={store} products={makeProducts(3, "Vestidos")} />);
+    expect(screen.queryByText("Destaques")).toBeNull();
+  });
+
+  it("não mostra a seção Destaques quando o produto em destaque está inativo", () => {
+    const products = makeProducts(3, "Vestidos");
+    products[0].isFeatured = true;
+    products[0].active = false;
+    render(<CatalogoClient store={store} products={products} />);
+    expect(screen.queryByText("Destaques")).toBeNull();
+  });
+});
+
+describe("CatalogoClient — CSS vars de fonte", () => {
+  it("não gera referência circular (--font-sora: var(--font-sora)) no pareamento padrão", () => {
+    const { container } = render(
+      <CatalogoClient store={store} products={makeProducts(2, "Vestidos")} />
+    );
+    const themed = container.firstElementChild as HTMLElement;
+    expect(store.theme.fontDisplayVar).toBe("--font-sora");
+    expect(themed.style.getPropertyValue("--font-sora")).not.toBe("var(--font-sora)");
+    expect(themed.style.getPropertyValue("--font-dm-sans")).not.toBe("var(--font-dm-sans)");
+  });
+
+  it("sobrescreve --font-sora corretamente para pareamento não padrão", () => {
+    const editorialStore: Store = {
+      ...store,
+      theme: resolveTheme("editorial", "padrao", "padrao", null, getPlanLimits("pro", null)),
+    };
+    const { container } = render(
+      <CatalogoClient store={editorialStore} products={makeProducts(2, "Vestidos")} />
+    );
+    const themed = container.firstElementChild as HTMLElement;
+    expect(editorialStore.theme.fontDisplayVar).toBe("--font-fraunces");
+    expect(themed.style.getPropertyValue("--font-sora")).toBe("var(--font-fraunces)");
   });
 });
 

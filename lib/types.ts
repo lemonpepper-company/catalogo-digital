@@ -1,5 +1,6 @@
 import type { Plan } from "./plan-limits";
 import type { OrderStatus } from "./orders";
+import type { ResolvedTheme } from "@/lib/theme-options";
 
 export type { Plan };
 
@@ -20,6 +21,7 @@ export interface Product {
   soldSizes: string[];
   colors: ProductColor[];
   isNew?: boolean;
+  isFeatured: boolean;
   soldOut?: boolean;
   stock?: number;
   active?: boolean;
@@ -42,6 +44,8 @@ export interface Store {
   messageTemplate?: string | null;
   paymentMethods?: string[];
   deliveryMethods?: string[];
+  theme: ResolvedTheme;
+  gridDensity: "padrao" | "compacto";
 }
 
 export interface CartItem {
@@ -80,6 +84,7 @@ export interface StoreProduct {
   stock: number;
   isActive: boolean;
   isNew: boolean;
+  isFeatured: boolean;
 }
 
 export interface StoreOrderItem {
@@ -128,4 +133,9 @@ export interface StoreSettings {
   instagram: string | null;
   paymentMethods: string[];
   deliveryMethods: string[];
+  fontPairing: string;
+  backgroundPalette: string;
+  cornerStyle: string;
+  secondaryColor: string | null;
+  gridDensity: "padrao" | "compacto";
 }

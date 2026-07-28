@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { StoreHeader } from "@/components/catalogo/StoreHeader";
 import type { Store } from "@/lib/types";
+import { resolveTheme } from "@/lib/theme-options";
+import { getPlanLimits } from "@/lib/plan-limits";
 
 const baseStore: Store = {
   name: "Ateliê Mira",
@@ -12,6 +14,8 @@ const baseStore: Store = {
   description: "Vitrine premium",
   accentColor: "#C9A96E",
   catalogUrl: "vtrinedigital.com.br/ateliemira",
+  theme: resolveTheme("padrao", "padrao", "padrao", null, getPlanLimits("free", null)),
+  gridDensity: "padrao",
 };
 
 function renderHeader(

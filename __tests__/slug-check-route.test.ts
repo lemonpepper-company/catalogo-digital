@@ -49,4 +49,21 @@ describe("GET /api/slug/check", () => {
 
     expect(body).toEqual({ available: true });
   });
+
+  it("retorna available:false com sugestão quando o slug é reservado", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    from.mockReturnValue({
+      select: () => ({
+        eq: () => ({ maybeSingle: () => Promise.resolve({ data: null }) }),
+        in: () => Promise.resolve({ data: [] }),
+      }),
+    });
+    const { GET } = await import("../app/api/slug/check/route");
+
+    const res = await GET(makeRequest("vitrine-digital"));
+    const body = await res.json();
+
+    expect(body.available).toBe(false);
+    expect(body.suggestion).toBe("vitrine-digital-2");
+  });
 });

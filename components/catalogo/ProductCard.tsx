@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import type { Product } from "@/lib/types";
 
@@ -16,7 +15,7 @@ export function ProductCard({ product, onOpen, priority = false }: ProductCardPr
 
   return (
     <div
-      className="bg-ivory border border-sand/50 rounded-card overflow-hidden"
+      className="bg-ivory border border-sand/50 rounded-card overflow-hidden h-full flex flex-col"
       onClick={() => !isSoldOut && onOpen(product)}
     >
       <div className="relative aspect-square bg-linen">
@@ -26,7 +25,7 @@ export function ProductCard({ product, onOpen, priority = false }: ProductCardPr
           fill
           sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
           className="object-cover"
-          style={{ borderRadius: "16px 16px 0 0" }}
+          style={{ borderRadius: "var(--radius-card) var(--radius-card) 0 0" }}
           priority={priority}
         />
         {isSoldOut && (
@@ -44,7 +43,7 @@ export function ProductCard({ product, onOpen, priority = false }: ProductCardPr
         )}
       </div>
 
-      <div className="p-3 flex flex-col gap-2">
+      <div className="p-3 flex-1 flex flex-col gap-2">
         <div
           className="font-display font-medium text-[14px] text-obsidian leading-snug"
           style={{
@@ -65,21 +64,14 @@ export function ProductCard({ product, onOpen, priority = false }: ProductCardPr
           }}
           style={isSoldOut ? undefined : { background: "var(--color-primary)" }}
           className={[
-            "w-full h-[38px] rounded-btn flex items-center justify-center gap-1.5",
-            "font-display font-medium text-[12px] tracking-[0.02em] whitespace-nowrap transition-colors",
+            "w-full min-h-[38px] mt-auto rounded-btn flex items-center justify-center px-1.5 py-2",
+            "font-display font-medium text-[12px] tracking-[0.02em] text-center leading-tight transition-colors",
             isSoldOut
               ? "bg-linen text-inactive cursor-not-allowed"
               : "text-white hover:brightness-90",
           ].join(" ")}
         >
-          {isSoldOut ? (
-            "Indisponível"
-          ) : (
-            <>
-              <ShoppingBag size={13} />
-              Adicionar à sacola
-            </>
-          )}
+          {isSoldOut ? "Indisponível" : "Adicionar à sacola"}
         </button>
       </div>
     </div>

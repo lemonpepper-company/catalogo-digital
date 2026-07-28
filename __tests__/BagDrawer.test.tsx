@@ -13,6 +13,7 @@ const product: Product = {
   sizes: ["M"],
   soldSizes: [],
   colors: [{ label: "Areia", hex: "#D8C9B0" }],
+  isFeatured: false,
 };
 
 const items: CartItem[] = [

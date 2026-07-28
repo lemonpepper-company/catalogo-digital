@@ -262,7 +262,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── Features ─── */}
-      <section className="bg-linen py-28">
+      <section className="bg-linen pt-28 pb-14">
         <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-[660px] mx-auto text-center mb-16">
             <span className="font-body font-medium text-[11px] tracking-[0.14em] uppercase text-gold">
@@ -297,7 +297,7 @@ export default function LandingPage() {
       */}
 
       {/* ─── Pricing ─── */}
-      <section id="precos" className="bg-linen py-28">
+      <section id="precos" className="bg-linen pt-14 pb-28">
         <div className="max-w-page mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-[660px] mx-auto text-center mb-16">
             <span className="font-body font-medium text-[11px] tracking-[0.14em] uppercase text-gold">

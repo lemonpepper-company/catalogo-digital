@@ -3,11 +3,10 @@
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { PAYMENT_METHOD_VALUES, DELIVERY_METHOD_VALUES } from '@/lib/data'
 import { DEFAULT_ACCENT_COLOR } from '@/lib/theme'
 import { uploadToBucket } from '@/lib/server/upload'
 import { getSafeRedirect } from '@/lib/auth/safe-redirect'
-import { whatsappSchema } from '@/lib/validation/painel'
+import { storeSchema } from '@/lib/validation/auth'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -43,17 +42,6 @@ const resetPasswordSchema = z
     message: 'As senhas não coincidem',
     path: ['confirm_password'],
   })
-
-const storeSchema = z.object({
-  store_name: z.string().min(2, 'Nome da loja deve ter ao menos 2 caracteres'),
-  slug: z.string().regex(/^[a-z0-9-]{2,50}$/, 'Link inválido'),
-  whatsapp: whatsappSchema,
-  monogram: z.string().max(3, 'Monograma deve ter no máximo 3 letras').nullable(),
-  description: z.string().max(500, 'Descrição muito longa').nullable(),
-  instagram: z.string().max(100, 'Instagram muito longo').nullable(),
-  paymentMethods: z.array(z.enum(PAYMENT_METHOD_VALUES)),
-  deliveryMethods: z.array(z.enum(DELIVERY_METHOD_VALUES)),
-})
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 

@@ -1,6 +1,8 @@
 import { formatCents } from "@/lib/utils";
 import { DEFAULT_ACCENT_COLOR } from "@/lib/theme";
 import type { Product, ProductColor, Store } from "@/lib/types";
+import { getPlanLimits, type Plan } from "@/lib/plan-limits";
+import { resolveTheme } from "@/lib/theme-options";
 
 // Placeholder neutro (cor linen) para produtos sem imagem. next/image aceita data URIs.
 export const PLACEHOLDER_IMAGE =
@@ -23,6 +25,11 @@ export interface PublicStoreRow {
   instagram: string | null;
   payment_methods: string[] | null;
   delivery_methods: string[] | null;
+  font_pairing: string;
+  background_palette: string;
+  corner_style: string;
+  secondary_color: string | null;
+  grid_density: string;
 }
 
 export interface PublicProductRow {
@@ -38,6 +45,7 @@ export interface PublicProductRow {
   stock: number;
   is_active: boolean;
   is_new: boolean;
+  is_featured: boolean;
 }
 
 export interface PublicCategoryRow {
@@ -60,8 +68,10 @@ export function initialsFromName(name: string): string {
 
 export function mapPublicStore(
   row: PublicStoreRow,
-  categories: string[]
+  categories: string[],
+  effectivePlan: Plan
 ): Store {
+  const limits = getPlanLimits(effectivePlan, null);
   return {
     name: row.name,
     slug: row.slug,
@@ -79,12 +89,21 @@ export function mapPublicStore(
     instagram: row.instagram ?? undefined,
     paymentMethods: row.payment_methods ?? [],
     deliveryMethods: row.delivery_methods ?? [],
+    theme: resolveTheme(
+      row.font_pairing,
+      row.background_palette,
+      row.corner_style,
+      row.secondary_color,
+      limits
+    ),
+    gridDensity: limits.gridDensity && row.grid_density === "compacto" ? "compacto" : "padrao",
   };
 }
 
 export function mapPublicProduct(
   row: PublicProductRow,
-  categoryName: string | null
+  categoryName: string | null,
+  allowFeatured: boolean
 ): Product {
   return {
     id: row.id,
@@ -98,6 +117,7 @@ export function mapPublicProduct(
     soldSizes: row.sold_sizes ?? [],
     colors: row.colors ?? [],
     isNew: row.is_new,
+    isFeatured: allowFeatured && row.is_featured,
     stock: row.stock,
     active: row.is_active,
   };
@@ -147,16 +167,19 @@ export function filterCatalog(
 export function resolveCatalog(
   storeRow: PublicStoreRow | null,
   productRows: PublicProductRow[],
-  categoryRows: PublicCategoryRow[]
+  categoryRows: PublicCategoryRow[],
+  effectivePlan: Plan
 ): PublicCatalog {
   if (!storeRow) return { status: "not_found" };
   if (!storeRow.is_active) {
-    return { status: "hidden", store: mapPublicStore(storeRow, []) };
+    return { status: "hidden", store: mapPublicStore(storeRow, [], effectivePlan) };
   }
+  const limits = getPlanLimits(effectivePlan, null);
+  const allowFeatured = limits.maxFeaturedProducts > 0;
   const nameById = new Map(categoryRows.map((c) => [c.id, c.name]));
   const products = productRows.map((p) =>
-    mapPublicProduct(p, p.category_id ? nameById.get(p.category_id) ?? null : null)
+    mapPublicProduct(p, p.category_id ? nameById.get(p.category_id) ?? null : null, allowFeatured)
   );
   const pills = computePills(categoryRows, productRows);
-  return { status: "ok", store: mapPublicStore(storeRow, pills), products };
+  return { status: "ok", store: mapPublicStore(storeRow, pills, effectivePlan), products };
 }

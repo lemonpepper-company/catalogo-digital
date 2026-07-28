@@ -28,6 +28,11 @@ type StoreRow = {
   instagram: string | null;
   payment_methods: string[] | null;
   delivery_methods: string[] | null;
+  font_pairing: string;
+  background_palette: string;
+  corner_style: string;
+  secondary_color: string | null;
+  grid_density: string;
 };
 
 type ProductRow = {
@@ -43,6 +48,7 @@ type ProductRow = {
   stock: number;
   is_active: boolean;
   is_new: boolean;
+  is_featured: boolean;
 };
 
 export function mapStore(row: StoreRow): StoreSettings {
@@ -64,6 +70,11 @@ export function mapStore(row: StoreRow): StoreSettings {
     instagram: row.instagram,
     paymentMethods: row.payment_methods ?? [],
     deliveryMethods: row.delivery_methods ?? [],
+    fontPairing: row.font_pairing,
+    backgroundPalette: row.background_palette,
+    cornerStyle: row.corner_style,
+    secondaryColor: row.secondary_color,
+    gridDensity: row.grid_density === "compacto" ? "compacto" : "padrao",
   };
 }
 
@@ -81,6 +92,7 @@ export function mapProduct(row: ProductRow): StoreProduct {
     stock: row.stock,
     isActive: row.is_active,
     isNew: row.is_new,
+    isFeatured: row.is_featured,
   };
 }
 
@@ -95,7 +107,7 @@ export const getCurrentStore = cache(async (): Promise<StoreSettings | null> => 
   const { data } = await supabase
     .from("stores")
     .select(
-      "id, name, slug, plan, trial_ends_at, whatsapp, accent_color, cover_url, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods"
+      "id, name, slug, plan, trial_ends_at, whatsapp, accent_color, cover_url, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods, font_pairing, background_palette, corner_style, secondary_color, grid_density"
     )
     .eq("owner_id", user.id)
     .maybeSingle();

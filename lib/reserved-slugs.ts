@@ -1,0 +1,18 @@
+export const RESERVED_SLUGS = new Set([
+  'login',
+  'cadastro',
+  'painel',
+  'api',
+  'auth',
+  'landing',
+  'termos-de-uso',
+  'politica-de-privacidade',
+  'recuperar-senha',
+  'redefinir-senha',
+  'verificar-email',
+  'vitrine-digital',
+  'catalogo-digital-gratis',
+  'vender-pelo-whatsapp',
+  'vitrine-online-sem-carrinho',
+  'alternativa-linktree-para-vender',
+])

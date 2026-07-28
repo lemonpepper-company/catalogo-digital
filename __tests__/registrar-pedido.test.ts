@@ -8,17 +8,27 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 /**
- * ORD-27: a captura grava em qualquer plano e **nunca** consulta plano. Qualquer
- * chamada a `getPlanLimits`/`getEffectivePlan` durante `registrarPedido` lança —
- * o que reprova o teste em vez de passar silenciosamente.
+ * ORD-27: a captura grava em qualquer plano e **nunca** consulta plano. A garantia
+ * são as asserções `expect(getPlanLimits).not.toHaveBeenCalled()` de cada teste,
+ * combinadas com o `mockClear()` por teste no beforeEach.
+ *
+ * Os stubs devolvem valor benigno em vez de lançar: `lib/data.ts` chama
+ * `getPlanLimits` no escopo do módulo (tema da vitrine de demonstração) e esse
+ * import roda antes de qualquer teste — um mock que lança derrubaria o arquivo
+ * inteiro na inicialização, sem relação com o comportamento de registrarPedido.
  */
-const PLAN_LOOKUP_ERROR = "registrarPedido não pode consultar plano (ORD-27)";
-const getPlanLimits = vi.fn(() => {
-  throw new Error(PLAN_LOOKUP_ERROR);
-});
-const getEffectivePlan = vi.fn(() => {
-  throw new Error(PLAN_LOOKUP_ERROR);
-});
+const FREE_LIMITS_STUB = {
+  maxProducts: 8,
+  maxCategories: 1,
+  maxPhotos: 1,
+  hasOrderHistory: false,
+  maxFeaturedProducts: 0,
+  themeOptions: false,
+  advancedTheme: false,
+  gridDensity: false,
+};
+const getPlanLimits = vi.fn(() => FREE_LIMITS_STUB);
+const getEffectivePlan = vi.fn((): "free" => "free");
 
 vi.mock("@/lib/plan-limits", () => ({
   getPlanLimits: () => getPlanLimits(),
@@ -147,7 +157,8 @@ beforeEach(() => {
   from.mockReset();
   createAdminClient.mockReset();
   createAdminClient.mockImplementation(() => ({ from }));
-  // mockClear, não mockReset: a implementação que lança é o que guarda ORD-27.
+  // mockClear, não mockReset: preserva o stub e zera só o registro de chamadas,
+  // que é o que as asserções de ORD-27 inspecionam.
   getPlanLimits.mockClear();
   getEffectivePlan.mockClear();
   errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});

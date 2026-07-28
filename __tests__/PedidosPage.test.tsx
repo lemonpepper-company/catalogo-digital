@@ -4,7 +4,7 @@ import type { Plan, StoreOrder, StoreSettings } from "@/lib/types";
 
 const getCurrentStore = vi.fn();
 const getStoreOrders = vi.fn();
-const redirect = vi.fn(() => {
+const redirect = vi.fn((_path: string) => {
   throw new Error("NEXT_REDIRECT");
 });
 
@@ -39,6 +39,11 @@ function makeStore(plan: Plan, trialEndsAt: string | null = null): StoreSettings
     instagram: null,
     paymentMethods: [],
     deliveryMethods: [],
+    fontPairing: "padrao",
+    backgroundPalette: "padrao",
+    cornerStyle: "padrao",
+    secondaryColor: null,
+    gridDensity: "padrao",
   };
 }
 

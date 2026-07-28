@@ -18,6 +18,7 @@ function makeProduct(overrides: Partial<StoreProduct> = {}): StoreProduct {
     stock: 10,
     isActive: true,
     isNew: false,
+    isFeatured: false,
     ...overrides,
   };
 }

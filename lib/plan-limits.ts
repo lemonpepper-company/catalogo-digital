@@ -5,6 +5,10 @@ export interface PlanLimits {
   maxCategories: number;
   maxPhotos: number;
   hasOrderHistory: boolean;
+  maxFeaturedProducts: number;
+  themeOptions: boolean;
+  advancedTheme: boolean;
+  gridDensity: boolean;
 }
 
 const FREE_LIMITS: PlanLimits = {
@@ -12,6 +16,10 @@ const FREE_LIMITS: PlanLimits = {
   maxCategories: 1,
   maxPhotos: 1,
   hasOrderHistory: false,
+  maxFeaturedProducts: 0,
+  themeOptions: false,
+  advancedTheme: false,
+  gridDensity: false,
 };
 
 const STARTER_LIMITS: PlanLimits = {
@@ -19,6 +27,10 @@ const STARTER_LIMITS: PlanLimits = {
   maxCategories: 5,
   maxPhotos: 3,
   hasOrderHistory: true,
+  maxFeaturedProducts: 3,
+  themeOptions: true,
+  advancedTheme: false,
+  gridDensity: true,
 };
 
 const PRO_LIMITS: PlanLimits = {
@@ -26,6 +38,10 @@ const PRO_LIMITS: PlanLimits = {
   maxCategories: Infinity,
   maxPhotos: 5,
   hasOrderHistory: true,
+  maxFeaturedProducts: Infinity,
+  themeOptions: true,
+  advancedTheme: true,
+  gridDensity: true,
 };
 
 function isPaidAccessExpired(trialEndsAt: string | null): boolean {
