@@ -218,7 +218,7 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-04 | P1: Pedido registrado (idempotência) | Design | Pending |
 | ORD-05 | P1: Pedido registrado (nova chave ao mudar sacola) | Design | Pending |
 | ORD-06 | P1: Pedido registrado (itens não resolvidos) | Design | Implementing |
-| ORD-07 | P1: Pedido registrado (validação e limites do payload) | Design | Pending |
+| ORD-07 | P1: Pedido registrado (validação e limites do payload) | Design | Implementing |
 | ORD-08 | P1: Pedido registrado (teto anti-abuso) | Design | Pending |
 | ORD-09 | P1: Nome opcional (campo na sacola) | Design | Pending |
 | ORD-10 | P1: Nome opcional (trim + 60 chars / null) | Design | Implementing |

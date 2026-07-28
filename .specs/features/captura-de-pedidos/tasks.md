@@ -182,7 +182,7 @@ T16 [P]
 
 ---
 
-### T4: Schema zod do payload de captura [P]
+### T4: Schema zod do payload de captura [P] ✅
 
 **What**: `orderPayloadSchema` validando slug, uuid, nome, pagamento/entrega por enum e itens (1..20, qty 1..99).
 **Where**: `lib/validation/pedido.ts` (novo), `__tests__/pedido-validation.test.ts` (novo)
@@ -195,18 +195,20 @@ T16 [P]
 - Skill: NONE
 
 **Done when**:
-- [ ] Payload válido mínimo (1 item, sem nome/pagamento/entrega) é aceito
-- [ ] Rejeita: `clientOrderId` não-uuid, `productId` não-uuid, 0 itens, 21 itens, `qty` 0, `qty` 100, `qty` fracionário, slug vazio
-- [ ] Rejeita `payment`/`delivery` fora dos valores de `PAYMENT_METHODS`/`DELIVERY_METHODS`
-- [ ] Aceita `customerName` acima de 60 caracteres (o corte é do `sanitizeCustomerName`, não uma rejeição — AC de edge case)
-- [ ] Usa `.error.issues[0].message` (Zod v4) conforme `docs/CONVENTIONS.md`
-- [ ] Gate passa: `npx vitest run`
-- [ ] Test count: ≥ 10 testes novos passando; nenhum teste existente removido
+- [x] Payload válido mínimo (1 item, sem nome/pagamento/entrega) é aceito
+- [x] Rejeita: `clientOrderId` não-uuid, `productId` não-uuid, 0 itens, 21 itens, `qty` 0, `qty` 100, `qty` fracionário, slug vazio
+- [x] Rejeita `payment`/`delivery` fora dos valores de `PAYMENT_METHODS`/`DELIVERY_METHODS`
+- [x] Aceita `customerName` acima de 60 caracteres (o corte é do `sanitizeCustomerName`, não uma rejeição — AC de edge case)
+- [x] Usa `.error.issues[0].message` (Zod v4) conforme `docs/CONVENTIONS.md`
+- [x] Gate passa: `npx vitest run`
+- [x] Test count: ≥ 10 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: quick
 
 **Commit**: `feat(orders): adiciona schema zod do payload publico de pedido`
+
+**Status**: ✅ Complete — 17 testes novos (`__tests__/pedido-validation.test.ts`). Suíte 365 → 382. Limites testados nos dois lados (20/21 linhas, qty 99/100). ⚠️ Spec-precision gap: a spec não define o comportamento de `payment`/`delivery`/`customerName`/`address` recebidos como `null`; o schema usa `.nullish()` e aceita como "não informado" (`:65`), porque rejeitar o pedido inteiro por um campo em branco violaria ORD-01.
 
 ---
 
