@@ -26,7 +26,7 @@ export function ProductCard({ product, onOpen, priority = false }: ProductCardPr
           fill
           sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
           className="object-cover"
-          style={{ borderRadius: "16px 16px 0 0" }}
+          style={{ borderRadius: "var(--radius-card) var(--radius-card) 0 0" }}
           priority={priority}
         />
         {isSoldOut && (
@@ -65,8 +65,8 @@ export function ProductCard({ product, onOpen, priority = false }: ProductCardPr
           }}
           style={isSoldOut ? undefined : { background: "var(--color-primary)" }}
           className={[
-            "w-full h-[38px] rounded-btn flex items-center justify-center gap-1.5",
-            "font-display font-medium text-[12px] tracking-[0.02em] whitespace-nowrap transition-colors",
+            "w-full min-h-[38px] rounded-btn flex items-center justify-center gap-1.5 px-1.5 py-2",
+            "font-display font-medium text-[12px] tracking-[0.02em] text-center leading-tight transition-colors",
             isSoldOut
               ? "bg-linen text-inactive cursor-not-allowed"
               : "text-white hover:brightness-90",

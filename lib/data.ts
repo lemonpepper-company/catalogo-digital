@@ -168,6 +168,18 @@ export const ACCENT_COLOR_OPTIONS = [
   "#A9712F",
 ];
 
+// Tons escolhidos para combinar com qualquer uma das ACCENT_COLOR_OPTIONS acima —
+// jóia/terra saturados o suficiente para ler bem como pill ativo com texto branco,
+// mas distintos das cores de destaque para não parecerem a mesma escolha duas vezes.
+export const SECONDARY_COLOR_OPTIONS = [
+  "#1F2D5A", // Azul marinho
+  "#3B5249", // Verde floresta
+  "#7A4E9E", // Roxo
+  "#B4592A", // Terracota
+  "#2B2B2B", // Grafite
+  "#8A6C4B", // Marrom café
+];
+
 export const FASHION_COLORS = [
   { name: "Preto", hex: "#1A1A1A" },
   { name: "Branco", hex: "#FFFFFF" },
