@@ -490,7 +490,7 @@ Os três botões ficam sempre habilitados (só desabilitam enquanto `pending`), 
 
 ---
 
-### T13: Item "Pedidos" na navegação do painel [P]
+### T13: Item "Pedidos" na navegação do painel [P] ✅
 
 **What**: entrada no `Sidebar` e no `MobileTabBar` (6ª aba, com "Personalização" abreviada para "Estilo") + `PainelRoute`.
 **Where**: `components/painel/Sidebar.tsx`, `components/painel/MobileTabBar.tsx`, `lib/types.ts`, `__tests__/Sidebar.test.tsx`, `__tests__/MobileTabBar.test.tsx` (novo)
@@ -503,17 +503,23 @@ Os três botões ficam sempre habilitados (só desabilitam enquanto `pending`), 
 - Skill: NONE
 
 **Done when**:
-- [ ] Link "Pedidos" → `/painel/pedidos` presente nos dois componentes, depois de "Produtos"
-- [ ] Item fica ativo quando `pathname` é `/painel/pedidos` e inativo em `/painel` (mesma regra `isActive` já existente)
-- [ ] `PainelRoute` inclui `"pedidos"`
-- [ ] `MobileTabBar` com 6 abas sem overflow horizontal em 375 px (verificado na validação); label "Estilo" no lugar de "Personalização"
-- [ ] Gate passa: `npx vitest run`
-- [ ] Test count: ≥ 5 testes novos passando; nenhum teste existente removido
+- [x] Link "Pedidos" → `/painel/pedidos` presente nos dois componentes, depois de "Produtos"
+- [x] Item fica ativo quando `pathname` é `/painel/pedidos` e inativo em `/painel` (mesma regra `isActive` já existente)
+- [x] `PainelRoute` inclui `"pedidos"`
+- [x] `MobileTabBar` com 6 abas sem overflow horizontal em 375 px (verificado na validação); label "Estilo" no lugar de "Personalização"
+- [x] Gate passa: `npx vitest run`
+- [x] Test count: ≥ 5 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: quick
 
 **Commit**: `feat(painel): adiciona Pedidos na navegacao do painel`
+
+**Status**: ✅ Complete — `6e455a2`. 8 testes novos (`__tests__/MobileTabBar.test.tsx` 5, `__tests__/Sidebar.test.tsx` +3). Suíte 473 → 481. Discriminadores: a ordem completa dos labels é conferida com `toEqual` nos dois componentes (`MobileTabBar.test.tsx:22-29`, `Sidebar.test.tsx:66-73`) — item fora de posição ou label errado reprova; `MobileTabBar.test.tsx:52` exige `queryByText("Personalização")` nulo.
+
+Adição além do texto da task (nos próprios arquivos listados): `aria-current="page"` no item ativo de `NavItem`/`TabItem`. O done-when pede o estado ativo testável e o projeto já usa esse atributo em `components/ui/Pagination.tsx:54`; a alternativa seria assertar classes de Tailwind, bem mais frágil. Nenhuma mudança visual.
+
+O done-when de "sem overflow horizontal em 375 px" fica para a validação, como a própria task previu (`flex-1 min-w-0` + `truncate` já estavam no `TabItem`).
 
 ---
 
