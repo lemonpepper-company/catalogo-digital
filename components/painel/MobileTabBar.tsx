@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Tag, Layers, Palette, Settings } from "lucide-react";
+import {
+  LayoutDashboard,
+  Tag,
+  Receipt,
+  Layers,
+  Palette,
+  Settings,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TabItemProps {
@@ -14,7 +21,11 @@ interface TabItemProps {
 
 function TabItem({ href, icon, label, active }: TabItemProps) {
   return (
-    <Link href={href} className="flex flex-1 min-w-0 items-center justify-center py-2">
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className="flex flex-1 min-w-0 items-center justify-center py-2"
+    >
       <span
         className={cn(
           "flex flex-col items-center gap-1 w-full min-w-0 px-1 py-1.5 rounded-btn",
@@ -55,6 +66,12 @@ export function MobileTabBar() {
         active={isActive("/painel/produtos")}
       />
       <TabItem
+        href="/painel/pedidos"
+        icon={<Receipt size={20} />}
+        label="Pedidos"
+        active={isActive("/painel/pedidos")}
+      />
+      <TabItem
         href="/painel/categorias"
         icon={<Layers size={20} />}
         label="Categorias"
@@ -63,7 +80,7 @@ export function MobileTabBar() {
       <TabItem
         href="/painel/personalizacao"
         icon={<Palette size={20} />}
-        label="Personalização"
+        label="Estilo"
         active={isActive("/painel/personalizacao")}
       />
       <TabItem

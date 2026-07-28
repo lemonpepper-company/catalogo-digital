@@ -62,6 +62,7 @@ export interface ToastState {
 export type PainelRoute =
   | "dashboard"
   | "produtos"
+  | "pedidos"
   | "cadastro"
   | "categorias"
   | "configuracoes";
