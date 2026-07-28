@@ -216,7 +216,7 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-02 | P1: Pedido registrado (preço do banco) | Design | Implementing |
 | ORD-03 | P1: Pedido registrado (timeout/falha silenciosa) | Design | Implementing |
 | ORD-04 | P1: Pedido registrado (idempotência) | Design | Implementing |
-| ORD-05 | P1: Pedido registrado (nova chave ao mudar sacola) | Design | Pending |
+| ORD-05 | P1: Pedido registrado (nova chave ao mudar sacola) | Design | Implementing |
 | ORD-06 | P1: Pedido registrado (itens não resolvidos) | Design | Implementing |
 | ORD-07 | P1: Pedido registrado (validação e limites do payload) | Design | Implementing |
 | ORD-08 | P1: Pedido registrado (teto anti-abuso) | Design | Implementing |

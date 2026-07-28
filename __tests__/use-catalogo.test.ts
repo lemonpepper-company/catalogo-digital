@@ -1,7 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useCatalogo } from "@/app/[slug]/use-catalogo";
+import { renderWhatsAppMessage, normalizeWhatsapp } from "@/lib/utils";
 import type { Product, Store } from "@/lib/types";
+
+const registrarPedido = vi.fn();
+
+vi.mock("@/app/actions/pedidos", () => ({
+  registrarPedido: (payload: unknown) => registrarPedido(payload),
+}));
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const baseStore: Store = {
   name: "Ateliê Mira",
@@ -91,28 +100,57 @@ describe("useCatalogo — checkoutBlockedReason (novo)", () => {
   });
 });
 
+const productA: Product = {
+  id: "p1",
+  name: "Blusa",
+  price: "R$ 80,00",
+  category: "Blusas",
+  image: "https://example.com/p1.jpg",
+  desc: "",
+  sizes: [],
+  soldSizes: [],
+  colors: [],
+};
+
+const productB: Product = {
+  ...productA,
+  id: "p2",
+  name: "Saia",
+  price: "R$ 120,00",
+};
+
+interface FakeTab {
+  location: { href: string };
+}
+
+function newTab(): FakeTab {
+  return { location: { href: "" } };
+}
+
+function openMock() {
+  return window.open as unknown as ReturnType<typeof vi.fn>;
+}
+
+/** Payload enviado à Server Action na chamada `index`. */
+function capturePayload(index = 0): Record<string, unknown> {
+  return registrarPedido.mock.calls[index][0] as Record<string, unknown>;
+}
+
 describe("useCatalogo — handleCheckout com pagamento e entrega (novo)", () => {
-  const productA: Product = {
-    id: "p1",
-    name: "Blusa",
-    price: "R$ 80,00",
-    category: "Blusas",
-    image: "https://example.com/p1.jpg",
-    desc: "",
-    sizes: [],
-    soldSizes: [],
-    colors: [],
-  };
+  let tab: FakeTab;
 
   beforeEach(() => {
-    vi.stubGlobal("open", vi.fn());
+    registrarPedido.mockReset();
+    registrarPedido.mockResolvedValue({ ok: true });
+    tab = newTab();
+    vi.stubGlobal("open", vi.fn(() => tab));
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("inclui pagamento e entrega selecionados na mensagem enviada", () => {
+  it("inclui pagamento e entrega selecionados na mensagem enviada", async () => {
     const store: Store = {
       ...baseStore,
       paymentMethods: ["pix"],
@@ -122,12 +160,257 @@ describe("useCatalogo — handleCheckout com pagamento e entrega (novo)", () => 
     act(() => result.current.handleAdd(productA, null, null, 1));
     act(() => result.current.setSelectedPayment("pix"));
     act(() => result.current.setSelectedDelivery("retirada"));
-    act(() => result.current.handleCheckout());
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
 
-    const openMock = window.open as ReturnType<typeof vi.fn>;
-    const [url] = openMock.mock.calls[0];
-    const message = decodeURIComponent(url.split("?text=")[1]);
+    const message = decodeURIComponent(tab.location.href.split("?text=")[1]);
     expect(message).toContain("Forma de pagamento: Pix");
     expect(message).toContain("Entrega: Retirar no local");
+  });
+});
+
+describe("useCatalogo — captura do pedido no checkout (ORD-01, ORD-03, ORD-11)", () => {
+  let tab: FakeTab;
+
+  beforeEach(() => {
+    registrarPedido.mockReset();
+    registrarPedido.mockResolvedValue({ ok: true });
+    tab = newTab();
+    vi.stubGlobal("open", vi.fn(() => tab));
+  });
+
+  const originalLocation = Object.getOwnPropertyDescriptor(window, "location");
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    if (originalLocation) Object.defineProperty(window, "location", originalLocation);
+  });
+
+  function setupCheckout(store: Store = baseStore) {
+    const { result } = renderHook(() => useCatalogo({ store, products: [productA] }));
+    act(() => result.current.handleAdd(productA, "M", "Areia", 2));
+    return result;
+  }
+
+  it("abre a aba em branco sincronamente no clique, antes de qualquer await", () => {
+    const result = setupCheckout();
+
+    let pending: Promise<void> | undefined;
+    act(() => {
+      pending = result.current.handleCheckout();
+    });
+
+    expect(openMock()).toHaveBeenCalledWith("", "_blank");
+    expect(tab.location.href).toBe("");
+    return pending;
+  });
+
+  it("envia slug, clientOrderId, nome, pagamento, entrega e itens sem nenhum campo de preço", async () => {
+    const store: Store = {
+      ...baseStore,
+      paymentMethods: ["pix"],
+      deliveryMethods: ["entrega"],
+    };
+    const result = setupCheckout(store);
+    act(() => result.current.setSelectedPayment("pix"));
+    act(() => result.current.setSelectedDelivery("entrega"));
+    act(() => result.current.setAddress("  Rua X, 123  "));
+    act(() => result.current.setCustomerName("  Ana  "));
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(capturePayload()).toEqual({
+      slug: "ateliemira",
+      clientOrderId: expect.stringMatching(UUID_RE),
+      customerName: "Ana",
+      payment: "pix",
+      delivery: "entrega",
+      address: "Rua X, 123",
+      items: [{ productId: "p1", size: "M", color: "Areia", qty: 2 }],
+    });
+  });
+
+  it("envia null (nunca string vazia) em nome, pagamento, entrega e endereço não informados", async () => {
+    const result = setupCheckout();
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(capturePayload()).toMatchObject({
+      customerName: null,
+      payment: null,
+      delivery: null,
+      address: null,
+    });
+  });
+
+  it("aponta a aba pré-aberta para a URL do WhatsApp com a mensagem atual, sem o nome do cliente (ORD-11)", async () => {
+    const result = setupCheckout();
+    act(() => result.current.setCustomerName("Ana"));
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    const expectedMsg = renderWhatsAppMessage(baseStore.messageTemplate, result.current.cart, {
+      payment: null,
+      delivery: null,
+      address: "",
+    });
+    expect(tab.location.href).toBe(
+      `https://wa.me/${normalizeWhatsapp(baseStore.whatsapp)}?text=${encodeURIComponent(expectedMsg)}`
+    );
+    expect(decodeURIComponent(tab.location.href)).not.toContain("Ana");
+  });
+
+  it("abre o WhatsApp igual quando a gravação rejeita, sem toast de erro (ORD-03)", async () => {
+    registrarPedido.mockRejectedValue(new Error("500"));
+    const result = setupCheckout();
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(tab.location.href).toContain("https://wa.me/5511999990000?text=");
+    expect(result.current.toast).toBe("Abrindo o WhatsApp…");
+  });
+
+  it("abre o WhatsApp igual quando a gravação retorna ok:false (ORD-03)", async () => {
+    registrarPedido.mockResolvedValue({ ok: false });
+    const result = setupCheckout();
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(tab.location.href).toContain("https://wa.me/5511999990000?text=");
+    expect(result.current.toast).toBe("Abrindo o WhatsApp…");
+  });
+
+  it("abre o WhatsApp pelo timeout de 2500 ms quando a gravação não responde (ORD-03)", async () => {
+    registrarPedido.mockReturnValue(new Promise(() => {}));
+    const result = setupCheckout();
+    vi.useFakeTimers();
+
+    act(() => {
+      void result.current.handleCheckout();
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2499);
+    });
+    expect(tab.location.href).toBe("");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(tab.location.href).toContain("https://wa.me/5511999990000?text=");
+  });
+
+  it("navega na aba atual quando o pop-up é bloqueado (window.open → null)", async () => {
+    vi.stubGlobal("open", vi.fn(() => null));
+    const fakeLocation = { href: "" };
+    Object.defineProperty(window, "location", {
+      value: fakeLocation,
+      writable: true,
+      configurable: true,
+    });
+    const result = setupCheckout();
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(fakeLocation.href).toContain("https://wa.me/5511999990000?text=");
+  });
+
+  it("não grava nem abre nada quando a loja não tem WhatsApp", async () => {
+    const result = setupCheckout({ ...baseStore, whatsapp: "" });
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(registrarPedido).not.toHaveBeenCalled();
+    expect(openMock()).not.toHaveBeenCalled();
+    expect(result.current.toast).toBe("Esta loja ainda não configurou o WhatsApp.");
+  });
+});
+
+describe("useCatalogo — clientOrderId por conteúdo da sacola (ORD-05)", () => {
+  let tab: FakeTab;
+
+  beforeEach(() => {
+    registrarPedido.mockReset();
+    registrarPedido.mockResolvedValue({ ok: true });
+    tab = newTab();
+    vi.stubGlobal("open", vi.fn(() => tab));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  async function checkout(result: { current: ReturnType<typeof useCatalogo> }) {
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+  }
+
+  it("mantém o mesmo clientOrderId em dois envios da mesma sacola", async () => {
+    const { result } = renderHook(() =>
+      useCatalogo({ store: baseStore, products: [productA] })
+    );
+    act(() => result.current.handleAdd(productA, null, null, 1));
+
+    await checkout(result);
+    await checkout(result);
+
+    expect(capturePayload(0).clientOrderId).toBe(capturePayload(1).clientOrderId);
+  });
+
+  it("gera um novo clientOrderId depois de mudar a quantidade de um item", async () => {
+    const { result } = renderHook(() =>
+      useCatalogo({ store: baseStore, products: [productA] })
+    );
+    act(() => result.current.handleAdd(productA, null, null, 1));
+
+    await checkout(result);
+    act(() => result.current.handleQty(result.current.cart[0].key, 3));
+    await checkout(result);
+
+    expect(capturePayload(1).clientOrderId).not.toBe(capturePayload(0).clientOrderId);
+  });
+
+  it("gera um novo clientOrderId depois de adicionar outro item", async () => {
+    const { result } = renderHook(() =>
+      useCatalogo({ store: baseStore, products: [productA, productB] })
+    );
+    act(() => result.current.handleAdd(productA, null, null, 1));
+
+    await checkout(result);
+    act(() => result.current.handleAdd(productB, null, null, 1));
+    await checkout(result);
+
+    expect(capturePayload(1).clientOrderId).not.toBe(capturePayload(0).clientOrderId);
+  });
+
+  it("gera um novo clientOrderId depois de remover um item", async () => {
+    const { result } = renderHook(() =>
+      useCatalogo({ store: baseStore, products: [productA, productB] })
+    );
+    act(() => result.current.handleAdd(productA, null, null, 1));
+    act(() => result.current.handleAdd(productB, null, null, 1));
+
+    await checkout(result);
+    act(() => result.current.handleRemove(result.current.cart[1].key));
+    await checkout(result);
+
+    expect(capturePayload(1).clientOrderId).not.toBe(capturePayload(0).clientOrderId);
   });
 });

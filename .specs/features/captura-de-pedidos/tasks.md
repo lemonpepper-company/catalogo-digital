@@ -346,7 +346,7 @@ Além da lista de arquivos da task, por exigência do done-when de `tsc --noEmit
 
 ---
 
-### T9: `handleCheckout` grava o pedido antes de abrir o WhatsApp
+### T9: `handleCheckout` grava o pedido antes de abrir o WhatsApp ✅
 
 **What**: aba pré-aberta no clique, `Promise.race` com timeout de 2500 ms, `clientOrderId` regenerado a cada mudança da sacola, estado `customerName` e fallback de pop-up bloqueado.
 **Where**: `app/[slug]/use-catalogo.ts`, `app/[slug]/CatalogoClient.tsx` (passa as props novas), `__tests__/use-catalogo.test.ts`
@@ -359,21 +359,27 @@ Além da lista de arquivos da task, por exigência do done-when de `tsc --noEmit
 - Skill: NONE
 
 **Done when**:
-- [ ] `window.open("", "_blank")` é chamado sincronamente no clique, antes de qualquer `await` (ORD-01)
-- [ ] `registrarPedido` é chamado com slug, `clientOrderId`, `customerName`, pagamento/entrega/endereço e itens (`productId`, `size`, `color`, `qty`) — sem nenhum campo de preço
-- [ ] Sucesso da gravação → aba pré-aberta recebe a URL `wa.me` com a mensagem atual, byte a byte igual à de hoje (ORD-11)
-- [ ] Gravação rejeitada/erro → WhatsApp abre igual, sem toast de erro (ORD-03)
-- [ ] Gravação que passa de 2500 ms → WhatsApp abre pelo caminho do timeout (teste com timers fake) (ORD-03)
-- [ ] `window.open` retornando `null` → navega por `window.location.href` (edge case de pop-up bloqueado)
-- [ ] Loja sem WhatsApp → nada é gravado e nada é aberto (edge case)
-- [ ] `clientOrderId` muda após adicionar/remover item ou alterar quantidade, e se mantém entre dois envios da mesma sacola (ORD-05)
-- [ ] Gate passa: `npx vitest run && npm run lint`
-- [ ] Test count: ≥ 8 testes novos passando; nenhum teste existente removido
+- [x] `window.open("", "_blank")` é chamado sincronamente no clique, antes de qualquer `await` (ORD-01)
+- [x] `registrarPedido` é chamado com slug, `clientOrderId`, `customerName`, pagamento/entrega/endereço e itens (`productId`, `size`, `color`, `qty`) — sem nenhum campo de preço
+- [x] Sucesso da gravação → aba pré-aberta recebe a URL `wa.me` com a mensagem atual, byte a byte igual à de hoje (ORD-11)
+- [x] Gravação rejeitada/erro → WhatsApp abre igual, sem toast de erro (ORD-03)
+- [x] Gravação que passa de 2500 ms → WhatsApp abre pelo caminho do timeout (teste com timers fake) (ORD-03)
+- [x] `window.open` retornando `null` → navega por `window.location.href` (edge case de pop-up bloqueado)
+- [x] Loja sem WhatsApp → nada é gravado e nada é aberto (edge case)
+- [x] `clientOrderId` muda após adicionar/remover item ou alterar quantidade, e se mantém entre dois envios da mesma sacola (ORD-05)
+- [x] Gate passa: `npx vitest run && npm run lint`
+- [x] Test count: ≥ 8 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: full
 
 **Commit**: `feat(catalogo): captura o pedido antes de abrir o WhatsApp`
+
+**Status**: ✅ Complete — 13 testes novos (`__tests__/use-catalogo.test.ts:198-416`). Suíte 418 → 431; lint segue em 17 erros (o único de `use-catalogo.ts` continua sendo o `setVisibleCount` pré-existente, agora na linha 67 por deslocamento). Discriminadores: `:205-206` (aba aberta e `href` ainda vazio dentro do `act` síncrono — prova o open antes do await), `:226` (`toEqual` exaustivo no payload: qualquer campo de preço reprova), `:265`/`:268` (URL byte a byte reconstruída com `renderWhatsAppMessage`/`normalizeWhatsapp` + nome do cliente ausente da mensagem), `:305-311` (2499 ms → `href` vazio; +1 ms → navega, fixando o corte em 2500 ms).
+
+**Adaptação de teste existente (não é enfraquecimento)**: `__tests__/use-catalogo.test.ts:157` ("inclui pagamento e entrega selecionados na mensagem enviada") lia a URL do primeiro argumento de `window.open`. Com a aba pré-aberta em branco por design (`design.md`, ORD-01), a URL passou a chegar em `tab.location.href`; as duas assertions (`Forma de pagamento: Pix`, `Entrega: Retirar no local`) seguem idênticas — só mudou de onde a URL é lida. Nenhuma assertion removida ou relaxada.
+
+`clientOrderId` é resolvido num `useRef` dentro do handler (`clientOrderIdFor` + assinatura `key x qty` da sacola) em vez de `useState`/`useMemo`: gerar uuid durante o render seria valor aleatório em render e um `setState` em efeito reintroduziria a classe de erro de lint que já é dívida no arquivo.
 
 ---
 
