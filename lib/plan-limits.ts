@@ -9,6 +9,7 @@ export interface PlanLimits {
   themeOptions: boolean;
   advancedTheme: boolean;
   gridDensity: boolean;
+  customDomain: boolean;
 }
 
 const FREE_LIMITS: PlanLimits = {
@@ -20,6 +21,7 @@ const FREE_LIMITS: PlanLimits = {
   themeOptions: false,
   advancedTheme: false,
   gridDensity: false,
+  customDomain: false,
 };
 
 const STARTER_LIMITS: PlanLimits = {
@@ -31,6 +33,7 @@ const STARTER_LIMITS: PlanLimits = {
   themeOptions: true,
   advancedTheme: false,
   gridDensity: true,
+  customDomain: false,
 };
 
 const PRO_LIMITS: PlanLimits = {
@@ -42,6 +45,7 @@ const PRO_LIMITS: PlanLimits = {
   themeOptions: true,
   advancedTheme: true,
   gridDensity: true,
+  customDomain: true,
 };
 
 function isPaidAccessExpired(trialEndsAt: string | null): boolean {
