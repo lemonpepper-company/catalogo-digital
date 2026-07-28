@@ -223,8 +223,8 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-09 | P1: Nome opcional (campo na sacola) | Design | Implementing |
 | ORD-10 | P1: Nome opcional (trim + 60 chars / null) | Design | Implementing |
 | ORD-11 | P1: Nome opcional (nunca bloqueia checkout, template intacto) | Design | Implementing |
-| ORD-12 | P1: Histórico (lista da própria loja, ordenada) | Design | Pending |
-| ORD-13 | P1: Histórico (paginação 20) | Design | Pending |
+| ORD-12 | P1: Histórico (lista da própria loja, ordenada) | Design | Implementing |
+| ORD-13 | P1: Histórico (paginação 20) | Design | Implementing |
 | ORD-14 | P1: Histórico (detalhe do pedido com itens snapshot) | Design | Implementing |
 | ORD-15 | P1: Histórico (estado vazio) | Design | Pending |
 | ORD-16 | P1: Histórico (rota protegida + navegação Sidebar/MobileTabBar) | Design | Pending |
