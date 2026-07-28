@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { buildSlugCandidates, pickAvailableSlug } from '@/lib/server/slug-suggest'
+import { RESERVED_SLUGS } from '@/lib/reserved-slugs'
 import { NextRequest, NextResponse } from 'next/server'
 
 const SLUG_REGEX = /^[a-z0-9-]{2,50}$/
@@ -27,13 +28,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ available: false, error: 'Não autenticado.' }, { status: 401 })
   }
 
+  const isReserved = RESERVED_SLUGS.has(slug)
+
   const { data: existing } = await supabase
     .from('stores')
     .select('id')
     .eq('slug', slug)
     .maybeSingle()
 
-  if (!existing) {
+  if (!isReserved && !existing) {
     return NextResponse.json({ available: true })
   }
 
@@ -44,10 +47,12 @@ export async function GET(request: NextRequest) {
     .select('slug')
     .in('slug', candidates)
 
-  const suggestion = pickAvailableSlug(
-    candidates,
-    (taken ?? []).map((row) => row.slug)
-  )
+  const takenSlugs = [
+    ...(taken ?? []).map((row) => row.slug),
+    ...candidates.filter((candidate) => RESERVED_SLUGS.has(candidate)),
+  ]
+
+  const suggestion = pickAvailableSlug(candidates, takenSlugs)
 
   if (!suggestion) {
     return NextResponse.json({ available: false })

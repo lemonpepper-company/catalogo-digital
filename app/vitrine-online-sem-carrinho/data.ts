@@ -40,7 +40,7 @@ export const content: SeoLandingContent = {
       a: "Sim — não tem configuração de pagamento nem de frete.",
     },
   ],
-  ctaLabel: "Ver como funciona",
+  ctaLabel: "Criar minha vitrine grátis",
   relatedLinks: [
     { label: "Vender pelo WhatsApp", href: "/vender-pelo-whatsapp" },
     { label: "Alternativa ao Linktree", href: "/alternativa-linktree-para-vender" },

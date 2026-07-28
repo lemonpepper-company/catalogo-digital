@@ -12,6 +12,11 @@ export const metadata: Metadata = {
       "Aprenda a vender pelo WhatsApp sem perder pedido, sem cliente perguntando 'ainda tem?'. Catálogo online organizado, venda continua no seu WhatsApp.",
     url: "/vender-pelo-whatsapp",
   },
+  twitter: {
+    title: "Como Vender Pelo WhatsApp de Forma Organizada",
+    description:
+      "Aprenda a vender pelo WhatsApp sem perder pedido, sem cliente perguntando 'ainda tem?'. Catálogo online organizado, venda continua no seu WhatsApp.",
+  },
 };
 
 export default function VenderPeloWhatsappPage() {

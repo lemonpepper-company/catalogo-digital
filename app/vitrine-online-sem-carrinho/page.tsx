@@ -12,6 +12,11 @@ export const metadata: Metadata = {
       "Loja virtual sem carrinho, sem checkout, sem taxa por venda. O cliente escolhe o produto e finaliza a compra direto com você, pelo WhatsApp.",
     url: "/vitrine-online-sem-carrinho",
   },
+  twitter: {
+    title: "Vitrine Online Sem Carrinho de Compras",
+    description:
+      "Loja virtual sem carrinho, sem checkout, sem taxa por venda. O cliente escolhe o produto e finaliza a compra direto com você, pelo WhatsApp.",
+  },
 };
 
 export default function VitrineOnlineSemCarrinhoPage() {
