@@ -93,7 +93,7 @@ T16 [P]
 
 ## Task Breakdown
 
-### T1: Migration de `orders` e `order_items` com RLS e grants
+### T1: Migration de `orders` e `order_items` com RLS e grants ✅
 
 **What**: criar as duas tabelas, índices, RLS escopada a `authenticated` por dono da loja, `grant select` + `grant update (status)` para `authenticated` e `revoke all` para `anon`.
 **Where**: `supabase/migrations/20260727000000_orders.sql`
@@ -106,18 +106,20 @@ T16 [P]
 - Skill: NONE
 
 **Done when**:
-- [ ] `orders` criada conforme `design.md` (incluindo `unique (store_id, client_order_id)` e `check` de status)
-- [ ] `order_items` criada com `product_id … on delete set null` e `check (qty between 1 and 99)`
-- [ ] Índices `orders_store_created_idx`, `orders_store_status_idx`, `order_items_order_id_idx` criados
-- [ ] RLS habilitada nas duas tabelas; todas as policies criadas com `to authenticated`
-- [ ] `grant select on orders`, `grant update (status) on orders`, `grant select on order_items` para `authenticated`; nenhum `insert` concedido a `authenticated`/`anon`
-- [ ] `revoke all on orders from anon` e `revoke all on order_items from anon` presentes
-- [ ] Gate passa: `npx supabase migration up && npx supabase db lint --level warning` (sem `db reset` — dados locais preservados)
+- [x] `orders` criada conforme `design.md` (incluindo `unique (store_id, client_order_id)` e `check` de status)
+- [x] `order_items` criada com `product_id … on delete set null` e `check (qty between 1 and 99)`
+- [x] Índices `orders_store_created_idx`, `orders_store_status_idx`, `order_items_order_id_idx` criados
+- [x] RLS habilitada nas duas tabelas; todas as policies criadas com `to authenticated`
+- [x] `grant select on orders`, `grant update (status) on orders`, `grant select on order_items` para `authenticated`; nenhum `insert` concedido a `authenticated`/`anon`
+- [x] `revoke all on orders from anon` e `revoke all on order_items from anon` presentes
+- [x] Gate passa: `npx supabase migration up && npx supabase db lint --level warning` (sem `db reset` — dados locais preservados)
 
 **Tests**: none (gate de migration)
 **Gate**: migration
 
 **Commit**: `feat(db): adiciona tabelas orders e order_items com RLS por dono da loja`
+
+**Status**: ✅ Complete — `8b5da6a`. Introspeção pós-gate confirmou: grants de `authenticated` = apenas `SELECT` (+ `UPDATE` na coluna `status`), zero privilégio para `anon`, 3 policies `{authenticated}`, RLS ligada, 3 índices e os `check`/FK esperados. Adição além do SQL de `design.md`: `revoke all … from authenticated` (marcado como `SPEC_DEVIATION` no arquivo) — necessário porque as default privileges do schema `public` concedem tudo em tabelas novas.
 
 ---
 
