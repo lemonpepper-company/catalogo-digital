@@ -236,7 +236,7 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-22 | P2: Status (qualquer transição entre os 3; valor inválido rejeitado) | Design | Implementing |
 | ORD-23 | P2: Status (isolamento por loja) | Design | Implementing |
 | ORD-24 | P1: Segurança (sem GRANT/policy para `anon`; RLS por dono; service role server-only) | Design | Implementing |
-| ORD-25 | P2: Landing (card de recurso + FAQ + planos) | Design | Pending |
+| ORD-25 | P2: Landing (card de recurso + FAQ + planos) | T15 | Implementing |
 | ORD-26 | P2: Docs (ARCHITECTURE, Escopo) + política de privacidade | Design | Pending |
 | ORD-27 | P1: Planos pagos (captura grava em qualquer plano) | Design | Implementing |
 | ORD-28 | P1: Planos pagos (histórico bloqueado no Free, sem dado real e sem query) | Design | Implementing |

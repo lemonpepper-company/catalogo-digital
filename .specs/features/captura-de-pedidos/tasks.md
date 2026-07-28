@@ -560,7 +560,7 @@ Derivação dos três cards ficou em `use-dashboard.ts` (`orderStats`), mantendo
 
 ---
 
-### T15: Landing comunicando o histórico de pedidos [P]
+### T15: Landing comunicando o histórico de pedidos [P] ✅
 
 **What**: card de recurso, FAQ e bullet nos três planos.
 **Where**: `app/landing/data.tsx`, `__tests__/landing-data.test.ts` (novo)
@@ -573,17 +573,21 @@ Derivação dos três cards ficou em `use-dashboard.ts` (`orderStats`), mantendo
 - Skill: NONE
 
 **Done when**:
-- [ ] `features` ganha o card "Histórico de pedidos" (ícone `Receipt`/`ClipboardList`, texto sobre pedido registrado com itens e total, deixando claro que é recurso dos planos pagos)
-- [ ] `faqs` ganha a pergunta sobre o pedido ficar registrado no painel mesmo indo para o WhatsApp, deixando claro que não há checkout/pagamento no site e que o histórico começa no Starter
-- [ ] "Histórico de pedidos" presente em `starterFeatures` e `proFeatures` e **ausente** de `freeFeatures` (ORD-25)
-- [ ] Testes verificam presença em Starter/Pro, ausência no Free, e a existência do card e do FAQ (ORD-25)
-- [ ] Gate passa: `npx vitest run`
-- [ ] Test count: ≥ 5 testes novos passando; nenhum teste existente removido
+- [x] `features` ganha o card "Histórico de pedidos" (ícone `Receipt`/`ClipboardList`, texto sobre pedido registrado com itens e total, deixando claro que é recurso dos planos pagos)
+- [x] `faqs` ganha a pergunta sobre o pedido ficar registrado no painel mesmo indo para o WhatsApp, deixando claro que não há checkout/pagamento no site e que o histórico começa no Starter
+- [x] "Histórico de pedidos" presente em `starterFeatures` e `proFeatures` e **ausente** de `freeFeatures` (ORD-25)
+- [x] Testes verificam presença em Starter/Pro, ausência no Free, e a existência do card e do FAQ (ORD-25)
+- [x] Gate passa: `npx vitest run`
+- [x] Test count: ≥ 5 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: quick
 
 **Commit**: `feat(landing): comunica o historico de pedidos na landing`
+
+**Status**: ✅ Complete — `e755c04`. 8 testes novos (`__tests__/landing-data.test.ts`). Suíte 492 → 500. Discriminadores: `:58-59` (Free reprova tanto o rótulo exato quanto qualquer variação de "histórico"), `:39-40` (a resposta do FAQ precisa negar checkout **e** falar de pagamento), `:44` ("plano Starter" explícito). Nenhum arquivo além de `app/landing/data.tsx` e do teste foi tocado — `app/page.tsx` renderiza os quatro arrays por `map`, então o layout saiu de graça.
+
+Observação de layout (não corrigida — sem AC e fora do escopo da task): `features` passou de 6 para 7 cards e o grid é `sm:grid-cols-2 lg:grid-cols-3` (`app/page.tsx:275`), então a última linha fica com um card sozinho. Só ajuste visual; nenhuma AC de ORD-25 pede número par de cards.
 
 ---
 
