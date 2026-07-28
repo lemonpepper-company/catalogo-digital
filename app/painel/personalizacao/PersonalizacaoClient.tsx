@@ -146,9 +146,7 @@ export function PersonalizacaoClient({
           </Button>
         </div>
 
-        {f.toast && (
-          <Toast msg={f.toast.msg} tone={f.toast.tone} position="bottom-center" />
-        )}
+        {f.toast && <Toast msg={f.toast.msg} tone={f.toast.tone} />}
       </form>
     </div>
   );
