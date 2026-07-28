@@ -132,6 +132,7 @@ export const proFeatures = [
   "Produtos em destaque ilimitados",
   "Cor secundária exclusiva",
   "Histórico de pedidos",
+  "Domínio próprio",
 ];
 
 export const faqs = [
