@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { Pagination } from "@/components/ui/Pagination";
-import { formatCents, formatDeliveryLine, formatPaymentLine } from "@/lib/utils";
-import type { OrderStatus } from "@/lib/orders";
+import { Toast } from "@/components/ui/Toast";
+import { cn, formatCents, formatDeliveryLine, formatPaymentLine } from "@/lib/utils";
+import { ORDER_STATUSES, type OrderStatus } from "@/lib/orders";
 import type { StoreOrder, StoreOrderItem } from "@/lib/types";
 import { usePedidos } from "./use-pedidos";
 
@@ -58,7 +59,8 @@ function OrderStatusBadge({ status }: { status: OrderStatus }) {
 }
 
 export function PedidosClient({ orders, total, page, totalPages }: PedidosClientProps) {
-  const { selected, openOrder, closeOrder } = usePedidos(orders);
+  const { selected, openOrder, closeOrder, toast, statusAction, statusPending } =
+    usePedidos(orders);
 
   return (
     <div className="flex flex-col gap-6 w-full lg:max-w-content">
@@ -194,8 +196,37 @@ export function PedidosClient({ orders, total, page, totalPages }: PedidosClient
               {formatCents(selected.totalCents)}
             </span>
           </div>
+
+          <form action={statusAction} className="flex flex-col gap-2.5">
+            <input type="hidden" name="id" value={selected.id} />
+            <span className="font-body font-medium text-[11px] tracking-[0.08em] uppercase text-graphite">
+              Status da venda
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {ORDER_STATUSES.map((status) => (
+                <button
+                  key={status}
+                  type="submit"
+                  name="status"
+                  value={status}
+                  disabled={statusPending}
+                  className={cn(
+                    "min-h-9 px-4 rounded-pill border font-body text-[13px] transition-colors",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    status === selected.status
+                      ? "bg-obsidian border-obsidian text-white"
+                      : "bg-transparent border-sand text-obsidian hover:bg-surface-hover"
+                  )}
+                >
+                  {STATUS_LABELS[status]}
+                </button>
+              ))}
+            </div>
+          </form>
         </Modal>
       )}
+
+      {toast && <Toast msg={toast.msg} tone={toast.tone} />}
     </div>
   );
 }

@@ -1,11 +1,17 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentStore } from "@/lib/server/store";
+import { getPlanLimits } from "@/lib/plan-limits";
 import { orderPayloadSchema } from "@/lib/validation/pedido";
-import { resolveOrderItems, sanitizeCustomerName } from "@/lib/orders";
+import { isOrderStatus, resolveOrderItems, sanitizeCustomerName } from "@/lib/orders";
 import type { ProductPriceRow } from "@/lib/orders";
 
 export type RegistrarPedidoResult = { ok: true } | { ok: false };
+
+export type OrderStatusState = { error: string } | { ok: true } | null;
 
 const RATE_LIMIT_MAX = 20;
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -136,4 +142,47 @@ export async function registrarPedido(payload: unknown): Promise<RegistrarPedido
     console.error("registrarPedido: falha inesperada —", error);
     return { ok: false };
   }
+}
+
+/**
+ * Muda o status de um pedido da própria loja. Só a coluna `status` é escrita —
+ * itens e valores do pedido são registro histórico. O gate de plano vive aqui
+ * porque a action é a fronteira real, não a UI (ORD-28).
+ */
+export async function updateOrderStatus(
+  prevState: OrderStatusState,
+  formData: FormData
+): Promise<OrderStatusState> {
+  const id = formData.get("id");
+  const status = formData.get("status");
+
+  if (typeof id !== "string" || id === "") return { error: "Pedido inválido." };
+  if (!isOrderStatus(status)) return { error: "Status inválido." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado." };
+
+  const store = await getCurrentStore();
+  if (!store) return { error: "Loja não encontrada." };
+
+  if (!getPlanLimits(store.plan, store.trialEndsAt).hasOrderHistory) {
+    return { error: "Histórico de pedidos disponível a partir do plano Starter." };
+  }
+
+  const { data, error } = await supabase
+    .from("orders")
+    .update({ status })
+    .eq("id", id)
+    .eq("store_id", store.id)
+    .select("id");
+
+  if (error) return { error: "Erro ao atualizar o status do pedido." };
+  if (!data || data.length === 0) return { error: "Pedido não encontrado." };
+
+  revalidatePath("/painel/pedidos");
+  revalidatePath("/painel");
+  return { ok: true };
 }

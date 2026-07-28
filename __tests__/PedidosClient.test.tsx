@@ -1,7 +1,18 @@
-import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { PedidosClient } from "@/app/painel/pedidos/PedidosClient";
 import type { StoreOrder } from "@/lib/types";
+
+const updateOrderStatus = vi.fn();
+
+vi.mock("@/app/actions/pedidos", () => ({
+  updateOrderStatus: (...args: unknown[]) => updateOrderStatus(...args),
+}));
+
+beforeEach(() => {
+  updateOrderStatus.mockReset();
+  updateOrderStatus.mockResolvedValue({ ok: true });
+});
 
 function makeOrder(overrides: Partial<StoreOrder> = {}): StoreOrder {
   return {
@@ -146,7 +157,12 @@ describe("PedidosClient — detalhe do pedido (ORD-14)", () => {
 
     expect(within(dialog).getByText("Total")).toBeTruthy();
     expect(within(dialog).getByText("R$ 478,00")).toBeTruthy();
-    expect(within(dialog).getByText("Confirmado")).toBeTruthy();
+    // O badge de status é um <span>; os controles de mudança de status (T12)
+    // usam os mesmos rótulos em <button>.
+    const statusBadge = within(dialog)
+      .getAllByText("Confirmado")
+      .find((el) => el.tagName === "SPAN");
+    expect(statusBadge).toBeTruthy();
   });
 
   it("exibe o snapshot do item mesmo com o produto já excluído do catálogo", () => {
@@ -169,6 +185,111 @@ describe("PedidosClient — detalhe do pedido (ORD-14)", () => {
 
     expect(within(dialog).getByText("Saia plissada (produto excluído)")).toBeTruthy();
     expect(within(dialog).getByText("1x R$ 129,00")).toBeTruthy();
+  });
+});
+
+describe("PedidosClient — mudança de status (ORD-21, ORD-22)", () => {
+  it("oferece os três status no detalhe do pedido", () => {
+    const order = makeOrder();
+    render(<PedidosClient orders={[order]} total={1} page={1} totalPages={1} />);
+
+    const dialog = openDetail(order);
+
+    expect(within(dialog).getByRole("button", { name: "Pendente" })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Confirmado" })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Cancelado" })).toBeTruthy();
+  });
+
+  it.each(["Pendente", "Confirmado", "Cancelado"])(
+    "envia o id do pedido e o status %s para a action",
+    async (label) => {
+      const order = makeOrder();
+      render(<PedidosClient orders={[order]} total={1} page={1} totalPages={1} />);
+
+      const dialog = openDetail(order);
+      fireEvent.click(within(dialog).getByRole("button", { name: label }));
+
+      await waitFor(() => expect(updateOrderStatus).toHaveBeenCalledTimes(1));
+      const sent = updateOrderStatus.mock.calls[0][1] as FormData;
+      expect(sent.get("id")).toBe(order.id);
+      expect(sent.get("status")).toBe(label.toLowerCase());
+    }
+  );
+
+  it("mostra o erro devolvido pela action sem trocar o status exibido", async () => {
+    updateOrderStatus.mockResolvedValue({ error: "Pedido não encontrado." });
+    const order = makeOrder();
+    render(<PedidosClient orders={[order]} total={1} page={1} totalPages={1} />);
+
+    const dialog = openDetail(order);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Confirmado" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain(
+        "Pedido não encontrado."
+      )
+    );
+    const row = screen.getByLabelText("Ver detalhe do pedido de Ana");
+    expect(within(row).getByText("Pendente")).toBeTruthy();
+  });
+
+  it("confirma a mudança com feedback de sucesso", async () => {
+    const order = makeOrder();
+    render(<PedidosClient orders={[order]} total={1} page={1} totalPages={1} />);
+
+    const dialog = openDetail(order);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Confirmado" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain("Status atualizado")
+    );
+  });
+
+  it("desabilita os controles de status enquanto a mudança está em andamento", async () => {
+    let finish: ((value: { ok: true }) => void) | undefined;
+    updateOrderStatus.mockImplementation(
+      () => new Promise<{ ok: true }>((resolve) => (finish = resolve))
+    );
+    const order = makeOrder();
+    render(<PedidosClient orders={[order]} total={1} page={1} totalPages={1} />);
+
+    const dialog = openDetail(order);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Confirmado" }));
+
+    await waitFor(() =>
+      expect(within(dialog).getByRole("button", { name: "Cancelado" })).toBeDisabled()
+    );
+
+    finish?.({ ok: true });
+    await waitFor(() =>
+      expect(
+        within(dialog).getByRole("button", { name: "Cancelado" })
+      ).not.toBeDisabled()
+    );
+  });
+
+  it("reflete na lista o status vindo da revalidação, sem recarregar a página", async () => {
+    const order = makeOrder();
+    const { rerender } = render(
+      <PedidosClient orders={[order]} total={1} page={1} totalPages={1} />
+    );
+
+    const dialog = openDetail(order);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Confirmado" }));
+    await waitFor(() => expect(updateOrderStatus).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <PedidosClient
+        orders={[{ ...order, status: "confirmado" }]}
+        total={1}
+        page={1}
+        totalPages={1}
+      />
+    );
+
+    const row = screen.getByLabelText("Ver detalhe do pedido de Ana");
+    expect(within(row).getByText("Confirmado")).toBeTruthy();
+    expect(within(row).queryByText("Pendente")).toBeNull();
   });
 });
 
