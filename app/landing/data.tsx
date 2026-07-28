@@ -113,12 +113,15 @@ export const starterFeatures = [
   "Até 30 produtos",
   "5 categorias",
   "3 fotos por produto",
+  "Temas, fundos e formatos personalizáveis",
 ];
 
 export const proFeatures = [
   "Produtos ilimitados",
   "Categorias ilimitadas",
   "5 fotos por produto",
+  "Temas, fundos e formatos personalizáveis",
+  "Cor secundária exclusiva",
 ];
 
 export const faqs = [
