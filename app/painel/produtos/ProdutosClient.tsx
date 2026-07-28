@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { cn, formatCents } from "@/lib/utils";
 import type { StoreProduct } from "@/lib/types";
 import { useProdutos } from "./use-produtos";
@@ -433,21 +434,23 @@ function FeaturedToggle({
   featured: boolean;
   onToggle: () => void;
 }) {
+  const label = featured ? "Remover destaque" : "Destacar na vitrine";
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-label={featured ? "Remover destaque" : "Destacar na vitrine"}
-      title={featured ? "Remover destaque" : "Destacar na vitrine"}
-      className={cn(
-        "h-8 w-8 flex items-center justify-center rounded-btn border",
-        featured
-          ? "border-gold bg-gold/10 text-gold"
-          : "border-sand text-graphite hover:bg-surface-hover"
-      )}
-    >
-      <Star size={16} fill={featured ? "currentColor" : "none"} />
-    </button>
+    <Tooltip label={label}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={label}
+        className={cn(
+          "h-8 w-8 flex items-center justify-center rounded-btn border",
+          featured
+            ? "border-gold bg-gold/10 text-gold"
+            : "border-sand text-graphite hover:bg-surface-hover"
+        )}
+      >
+        <Star size={16} fill={featured ? "currentColor" : "none"} />
+      </button>
+    </Tooltip>
   );
 }
 
@@ -460,22 +463,24 @@ function ProductActions({
 }) {
   return (
     <div className="flex gap-1 flex-shrink-0">
-      <Link
-        href={editHref}
-        aria-label="Editar"
-        title="Editar"
-        className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-obsidian flex items-center justify-center hover:bg-surface-hover transition-colors"
-      >
-        <Pencil size={15} />
-      </Link>
-      <button
-        onClick={onDelete}
-        aria-label="Excluir"
-        title="Excluir"
-        className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-error flex items-center justify-center hover:bg-error-surface transition-colors"
-      >
-        <Trash2 size={15} />
-      </button>
+      <Tooltip label="Editar">
+        <Link
+          href={editHref}
+          aria-label="Editar"
+          className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-obsidian flex items-center justify-center hover:bg-surface-hover transition-colors"
+        >
+          <Pencil size={15} />
+        </Link>
+      </Tooltip>
+      <Tooltip label="Excluir">
+        <button
+          onClick={onDelete}
+          aria-label="Excluir"
+          className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-error flex items-center justify-center hover:bg-error-surface transition-colors"
+        >
+          <Trash2 size={15} />
+        </button>
+      </Tooltip>
     </div>
   );
 }
