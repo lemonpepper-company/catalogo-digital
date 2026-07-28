@@ -216,7 +216,6 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
                 product={product}
                 onOpen={setOpenProduct}
                 priority={index < 2}
-                compact={store.gridDensity === "compacto"}
               />
             ))}
           </div>
