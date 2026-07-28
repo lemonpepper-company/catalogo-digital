@@ -114,6 +114,7 @@ export const starterFeatures = [
   "5 categorias",
   "3 fotos por produto",
   "Temas, fundos e formatos personalizáveis",
+  "Até 3 produtos em destaque",
 ];
 
 export const proFeatures = [
@@ -121,6 +122,7 @@ export const proFeatures = [
   "Categorias ilimitadas",
   "5 fotos por produto",
   "Temas, fundos e formatos personalizáveis",
+  "Produtos em destaque ilimitados",
   "Cor secundária exclusiva",
 ];
 
