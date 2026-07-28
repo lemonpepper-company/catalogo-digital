@@ -75,4 +75,14 @@ describe("parseProductCsv", () => {
     expect(rows).toHaveLength(2);
     expect(rows.every((r) => r.ok)).toBe(true);
   });
+
+  it("linha em branco antes de erro: o número da linha reportado reflete a posição no arquivo original", () => {
+    const csv = `${HEADER}\n,,,,,,\n,"99,90",,,,`;
+    const { rows } = parseProductCsv(csv);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual({
+      ok: false,
+      reason: "Linha 3: nome é obrigatório.",
+    });
+  });
 });

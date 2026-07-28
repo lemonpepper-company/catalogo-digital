@@ -36,11 +36,11 @@ export function parseProductCsv(text: string): {
   }
 
   const columnIndex = (col: string) => header.indexOf(col);
-  const dataRows = table
+  const rows = table
     .slice(1)
-    .filter((cells) => cells.some((cell) => cell.trim() !== ""));
-
-  const rows = dataRows.map((cells, i) => parseRow(cells, columnIndex, i + 2));
+    .map((cells, i) => ({ cells, lineNumber: i + 2 }))
+    .filter(({ cells }) => cells.some((cell) => cell.trim() !== ""))
+    .map(({ cells, lineNumber }) => parseRow(cells, columnIndex, lineNumber));
   return { rows };
 }
 
