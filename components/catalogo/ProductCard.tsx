@@ -9,14 +9,20 @@ interface ProductCardProps {
   product: Product;
   onOpen: (product: Product) => void;
   priority?: boolean;
+  compact?: boolean;
 }
 
-export function ProductCard({ product, onOpen, priority = false }: ProductCardProps) {
+export function ProductCard({
+  product,
+  onOpen,
+  priority = false,
+  compact = false,
+}: ProductCardProps) {
   const isSoldOut = product.soldOut || product.stock === 0;
 
   return (
     <div
-      className="bg-ivory border border-sand/50 rounded-card overflow-hidden"
+      className="bg-ivory border border-sand/50 rounded-card overflow-hidden h-full flex flex-col"
       onClick={() => !isSoldOut && onOpen(product)}
     >
       <div className="relative aspect-square bg-linen">
@@ -44,7 +50,7 @@ export function ProductCard({ product, onOpen, priority = false }: ProductCardPr
         )}
       </div>
 
-      <div className="p-3 flex flex-col gap-2">
+      <div className="p-3 flex-1 flex flex-col gap-2">
         <div
           className="font-display font-medium text-[14px] text-obsidian leading-snug"
           style={{
@@ -65,7 +71,7 @@ export function ProductCard({ product, onOpen, priority = false }: ProductCardPr
           }}
           style={isSoldOut ? undefined : { background: "var(--color-primary)" }}
           className={[
-            "w-full min-h-[38px] rounded-btn flex items-center justify-center gap-1.5 px-1.5 py-2",
+            "w-full min-h-[38px] mt-auto rounded-btn flex items-center justify-center gap-1.5 px-1.5 py-2",
             "font-display font-medium text-[12px] tracking-[0.02em] text-center leading-tight transition-colors",
             isSoldOut
               ? "bg-linen text-inactive cursor-not-allowed"
@@ -76,7 +82,7 @@ export function ProductCard({ product, onOpen, priority = false }: ProductCardPr
             "Indisponível"
           ) : (
             <>
-              <ShoppingBag size={13} />
+              {!compact && <ShoppingBag size={13} />}
               Adicionar à sacola
             </>
           )}
