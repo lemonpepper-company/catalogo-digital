@@ -121,7 +121,6 @@ export const proFeatures = [
   "Categorias ilimitadas",
   "5 fotos por produto",
   "Temas, fundos e formatos personalizáveis",
-  "Cor secundária exclusiva",
 ];
 
 export const faqs = [

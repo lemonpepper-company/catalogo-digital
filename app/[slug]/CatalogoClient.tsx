@@ -18,6 +18,30 @@ interface CatalogoClientProps {
   products: Product[];
 }
 
+/**
+ * Converte um hex ("#F9F9F7" ou "#FFF") para a string de canais RGB
+ * espaçados por espaço ("249 249 247") que o tailwind.config.ts espera para
+ * compor as cores ivory/linen/sand com o padrão rgb(var(...) / <alpha-value>).
+ * Sem isso, uma loja com paleta de fundo customizada teria bg-linen correto
+ * mas bg-linen/50 (e demais utilitários com opacidade) quebrados, pois
+ * ficariam presos ao valor padrão das variáveis "-rgb".
+ */
+function hexToRgbChannels(hex: string): string | null {
+  const normalized = hex.trim().replace(/^#/, "");
+  const full =
+    normalized.length === 3
+      ? normalized
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : normalized;
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) return null;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  return `${r} ${g} ${b}`;
+}
+
 export function CatalogoClient({ store, products }: CatalogoClientProps) {
   const {
     activeCategory,
@@ -54,11 +78,21 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
   } = useCatalogo({ store, products });
 
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const bgRgb = hexToRgbChannels(store.theme.backgroundColor);
+  const surfaceRgb = hexToRgbChannels(store.theme.surfaceColor);
+  const borderRgb = hexToRgbChannels(store.theme.borderColor);
   const themeStyle = {
     "--color-primary": store.accentColor,
     "--color-bg": store.theme.backgroundColor,
     "--color-surface": store.theme.surfaceColor,
     "--color-border": store.theme.borderColor,
+    // Mantém as variáveis "-rgb" (canais RGB, usadas pelos utilitários Tailwind
+    // ivory/linen/sand com modificador de opacidade, ex. bg-linen/50) em sincronia
+    // com a paleta de fundo customizada da loja. Ver hexToRgbChannels() acima e o
+    // comentário em tailwind.config.ts.
+    ...(bgRgb ? { "--color-bg-rgb": bgRgb } : {}),
+    ...(surfaceRgb ? { "--color-surface-rgb": surfaceRgb } : {}),
+    ...(borderRgb ? { "--color-border-rgb": borderRgb } : {}),
     "--radius-card": store.theme.cardRadius,
     "--radius-btn": store.theme.btnRadius,
     ...(store.theme.fontDisplayVar !== "--font-sora"
