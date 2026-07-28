@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   toggleProductActive,
+  toggleProductFeatured,
   deleteProduct,
 } from "@/app/actions/produtos";
 import type { StoreProduct, ToastState } from "@/lib/types";
@@ -50,6 +51,16 @@ export function useProdutos(
     });
   };
 
+  const toggleFeatured = (product: StoreProduct) => {
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("id", product.id);
+      fd.set("isFeatured", String(!product.isFeatured));
+      const res = await toggleProductFeatured(null, fd);
+      if (res && "error" in res) flash(res.error, "error");
+    });
+  };
+
   const removeProduct = (id: string) => {
     startTransition(async () => {
       const fd = new FormData();
@@ -83,6 +94,7 @@ export function useProdutos(
     limitReached,
     isPending,
     toggleActive,
+    toggleFeatured,
     removeProduct,
   };
 }

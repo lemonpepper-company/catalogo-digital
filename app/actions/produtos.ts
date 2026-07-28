@@ -264,3 +264,48 @@ export async function toggleProductActive(
   revalidateTag(`catalog-${store.slug}`, { expire: 0 });
   return { ok: true };
 }
+
+export async function toggleProductFeatured(
+  prevState: ToggleActionState,
+  formData: FormData
+): Promise<ToggleActionState> {
+  const id = formData.get("id");
+  const next = formData.get("isFeatured") === "true";
+  if (typeof id !== "string") return { error: "Produto inválido." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado." };
+
+  const store = await getCurrentStore();
+  if (!store) return { error: "Loja não encontrada." };
+
+  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+
+  if (next) {
+    const { count } = await supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", store.id)
+      .eq("is_featured", true);
+    if ((count ?? 0) >= limits.maxFeaturedProducts) {
+      return {
+        error: "Limite de produtos em destaque do seu plano atingido. Fale conosco para aumentar o limite.",
+      };
+    }
+  }
+
+  const { error } = await supabase
+    .from("products")
+    .update({ is_featured: next })
+    .eq("id", id)
+    .eq("store_id", store.id);
+
+  if (error) return { error: "Erro ao atualizar destaque." };
+
+  revalidatePath("/painel/produtos");
+  revalidateTag(`catalog-${store.slug}`, { expire: 0 });
+  return { ok: true };
+}

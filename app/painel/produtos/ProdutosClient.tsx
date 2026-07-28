@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Pencil, Trash2, Package, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Search, Star } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Switch } from "@/components/ui/Switch";
@@ -51,6 +51,7 @@ export function ProdutosClient({
     limitReached,
     isPending,
     toggleActive,
+    toggleFeatured,
     removeProduct,
   } = useProdutos(products, maxProducts, counts, page, {
     q: initialQ,
@@ -273,10 +274,16 @@ export function ProdutosClient({
                         </div>
                         <div className="flex items-center justify-between gap-3 pl-[68px]">
                           <StockLabel stock={p.stock} tone={stockTone} />
-                          <VisibilityToggle
-                            active={p.isActive}
-                            onToggle={() => toggleActive(p)}
-                          />
+                          <div className="flex items-center gap-2">
+                            <VisibilityToggle
+                              active={p.isActive}
+                              onToggle={() => toggleActive(p)}
+                            />
+                            <FeaturedToggle
+                              featured={p.isFeatured}
+                              onToggle={() => toggleFeatured(p)}
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -302,10 +309,14 @@ export function ProdutosClient({
                           <StockLabel stock={p.stock} tone={stockTone} />
                         </div>
 
-                        <div className="w-[140px] flex-shrink-0">
+                        <div className="w-[140px] flex-shrink-0 flex items-center gap-2">
                           <VisibilityToggle
                             active={p.isActive}
                             onToggle={() => toggleActive(p)}
+                          />
+                          <FeaturedToggle
+                            featured={p.isFeatured}
+                            onToggle={() => toggleFeatured(p)}
                           />
                         </div>
 
@@ -412,6 +423,30 @@ function VisibilityToggle({
         {active ? "Ativo" : "Inativo"}
       </span>
     </div>
+  );
+}
+
+function FeaturedToggle({
+  featured,
+  onToggle,
+}: {
+  featured: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={featured ? "Remover destaque" : "Destacar na vitrine"}
+      className={cn(
+        "h-8 w-8 flex items-center justify-center rounded-btn border",
+        featured
+          ? "border-gold bg-gold/10 text-gold"
+          : "border-sand text-graphite hover:bg-surface-hover"
+      )}
+    >
+      <Star size={16} fill={featured ? "currentColor" : "none"} />
+    </button>
   );
 }
 
