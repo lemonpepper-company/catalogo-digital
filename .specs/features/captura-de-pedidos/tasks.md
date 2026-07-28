@@ -212,7 +212,7 @@ T16 [P]
 
 ---
 
-### T5: Client Supabase com service role (server-only) [P]
+### T5: Client Supabase com service role (server-only) [P] ✅
 
 **What**: `createAdminClient()` isolado em módulo `server-only`, com erro explícito quando a env var falta.
 **Where**: `lib/supabase/admin.ts` (novo), `__tests__/supabase-admin.test.ts` (novo)
@@ -225,18 +225,22 @@ T16 [P]
 - Skill: NONE
 
 **Done when**:
-- [ ] `import "server-only"` no topo do arquivo
-- [ ] Lê `process.env.SUPABASE_SERVICE_ROLE_KEY` (sem prefixo `NEXT_PUBLIC_`) e `NEXT_PUBLIC_SUPABASE_URL`
-- [ ] Lança `Error` com mensagem clara quando a chave está ausente/vazia; nunca loga o valor da chave
-- [ ] `auth: { persistSession: false, autoRefreshToken: false }` no client (uso stateless em servidor)
-- [ ] Nenhum import desse módulo em arquivo com `"use client"` (verificado por grep)
-- [ ] Gate passa: `npx vitest run`
-- [ ] Test count: ≥ 3 testes novos passando; nenhum teste existente removido
+- [x] `import "server-only"` no topo do arquivo
+- [x] Lê `process.env.SUPABASE_SERVICE_ROLE_KEY` (sem prefixo `NEXT_PUBLIC_`) e `NEXT_PUBLIC_SUPABASE_URL`
+- [x] Lança `Error` com mensagem clara quando a chave está ausente/vazia; nunca loga o valor da chave
+- [x] `auth: { persistSession: false, autoRefreshToken: false }` no client (uso stateless em servidor)
+- [x] Nenhum import desse módulo em arquivo com `"use client"` (verificado por grep)
+- [x] Gate passa: `npx vitest run`
+- [x] Test count: ≥ 3 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: quick
 
 **Commit**: `feat(supabase): adiciona client de service role restrito ao servidor`
+
+**Status**: ✅ Complete — 5 testes novos (`__tests__/supabase-admin.test.ts`). Suíte 382 → 387.
+
+**SPEC_DEVIATION (escopo de arquivos)**: a task listava só `lib/supabase/admin.ts` + o teste, mas os dois done-when (`import "server-only"` **e** ≥3 testes) são mutuamente inviáveis sem infra: o pacote `server-only` é resolvido pelo bundler do Next e não existe em `node_modules`, então o Vite falha na transformação de qualquer módulo que o importe (`vi.mock` não resolve — o erro é na fase de transform, antes do mock). Correção mínima: alias `server-only` → `test-utils/server-only.ts` (stub vazio) em `vitest.config.ts`. Também destrava a T10 (`lib/server/pedidos.ts` tem `import "server-only"`).
 
 ---
 
