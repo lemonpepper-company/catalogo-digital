@@ -153,6 +153,34 @@ describe("/painel/pedidos — planos pagos (ORD-30)", () => {
   });
 });
 
+describe("/painel/pedidos — histórico do período Free ao virar pago (ORD-30.7)", () => {
+  it("os pedidos gravados no Free aparecem quando o plano efetivo vira starter, sem migração", async () => {
+    // Mesma linha em `orders`, gravada enquanto a loja era Free.
+    getStoreOrders.mockResolvedValue({
+      orders: [makeOrder()],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    });
+
+    getCurrentStore.mockResolvedValue(makeStore("free"));
+    const bloqueado = await renderPage();
+
+    expect(getStoreOrders).not.toHaveBeenCalled();
+    expect(bloqueado.container.textContent).not.toContain("Ana");
+    bloqueado.unmount();
+
+    getCurrentStore.mockResolvedValue(makeStore("starter"));
+    const liberado = await renderPage();
+
+    // Mesma query de sempre — só `store_id` e a página; nada específico de plano.
+    expect(getStoreOrders).toHaveBeenCalledTimes(1);
+    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 1);
+    expect(liberado.getByText("Ana")).toBeTruthy();
+    expect(liberado.getByText("R$ 398,00")).toBeTruthy();
+  });
+});
+
 describe("/painel/pedidos — sessão ausente", () => {
   it("redireciona para /login quando não há loja do usuário", async () => {
     getCurrentStore.mockResolvedValue(null);

@@ -750,24 +750,30 @@ Mutação (estado descartável, restaurado): remover `url.searchParams.set('next
 
 ---
 
-### F4: Spec-precision gaps (ORD-27, ORD-30.7, ORD-18) ⏳
+### F4: Spec-precision gaps (ORD-27, ORD-30.7, ORD-18) ✅
 
 **What**: asserção negativa de que a captura não consulta plano; teste do histórico do período Free aparecendo no Starter; formato de dinheiro registrado como decisão de produto.
 **Where**: `__tests__/registrar-pedido.test.ts`, `__tests__/PedidosPage.test.tsx`, `.specs/features/captura-de-pedidos/spec.md`, `.specs/features/captura-de-pedidos/context.md`
 **Requirement**: ORD-27, ORD-30, ORD-18
 
 **Done when**:
-- [ ] `registrarPedido` roda com `@/lib/plan-limits` mockado de forma que **qualquer** chamada a `getPlanLimits`/`getEffectivePlan` reprova o teste (ORD-27)
-- [ ] Pedido gravado no período Free aparece quando o plano efetivo vira `starter` — mesma query, sem migração de dados (ORD-30.7)
-- [ ] `formatCents` **não** foi alterado; formato registrado nas Assumptions da `spec.md` e "separador de milhar" anotado em Deferred Ideas do `context.md` (decisão de produto, fora desta feature)
-- [ ] Gate passa: `npx vitest run && npm run lint`
+- [x] `registrarPedido` roda com `@/lib/plan-limits` mockado de forma que **qualquer** chamada a `getPlanLimits`/`getEffectivePlan` reprova o teste (ORD-27)
+- [x] Pedido gravado no período Free aparece quando o plano efetivo vira `starter` — mesma query, sem migração de dados (ORD-30.7)
+- [x] `formatCents` **não** foi alterado; formato registrado nas Assumptions da `spec.md` e "separador de milhar" anotado em Deferred Ideas do `context.md` (decisão de produto, fora desta feature)
+- [x] Gate passa: `npx vitest run && npm run lint`
 
 **Tests**: unit
 **Gate**: full
 
 **Commit**: `test(orders): fecha lacunas de precisao de ORD-27 e ORD-30.7`
 
-**Status**: ⏳ Pendente.
+**Status**: ✅ Complete — 3 testes novos (`__tests__/registrar-pedido.test.ts` +2, `__tests__/PedidosPage.test.tsx` +1). Suíte 521 → 524.
+
+- **ORD-27**: `@/lib/plan-limits` é mockado com `getPlanLimits`/`getEffectivePlan` que **lançam** se chamados (`registrar-pedido.test.ts:10-27`), então qualquer consulta a plano dentro da captura reprova o teste em vez de passar em silêncio; mais as asserções negativas explícitas `:255-256` (`not.toHaveBeenCalled()` nas duas) e `:265` (`callsOf(made, "stores", "select")` = `[["id"]]` — a action não lê nem coluna de plano da loja).
+- **ORD-30.7**: `PedidosPage.test.tsx:156-181` renderiza a **mesma** linha de `orders` duas vezes — no Free (bloqueio, `getStoreOrders` não chamado, HTML sem "Ana") e depois no Starter (`toHaveBeenCalledWith(STORE_ID, 1)`, "Ana" e "R$ 398,00" na tela). A asserção do argumento prova a ausência de migração: mesma query, só `store_id` + página.
+- **ORD-18**: `formatCents` **não** foi tocado. Formato (`R$ 1234,50`, sem separador de milhar) registrado nas Assumptions da `spec.md` com o motivo; "separador de milhar" anotado em Deferred Ideas do `context.md` como decisão de produto.
+
+Mutação (estado descartável, restaurado): `registrarPedido` passando a chamar `getPlanLimits` → **Killed** (17 failed); query de `stores` passando a ler `plan, trial_ends_at` → **Killed**; gate de plano da page invertido → **Killed** (7 failed).
 
 ---
 

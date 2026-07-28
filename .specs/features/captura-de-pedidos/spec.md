@@ -52,6 +52,7 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | Anti-abuso | Descarta gravação quando a loja já recebeu ≥ 20 pedidos nos últimos 60 s | Endpoint é público; teto barato via contagem no banco, sem estado em memória (serverless) | n (default do agente) |
 | LGPD | Política de privacidade passa a mencionar armazenamento de nome/itens do pedido | Passa a existir dado pessoal novo (nome informado pelo cliente) | n (default do agente) |
 | Card do WhatsApp na sacola | Aba do WhatsApp é pré-aberta no clique (`window.open("", "_blank")`) e só depois recebe a URL | Sem isso, o `await` da gravação faz o pop-up ser bloqueado (Safari/iOS) | n (default do agente) |
+| Formato do dinheiro nas telas de pedido (ORD-18) | O de `formatCents` (`lib/utils.ts`): `R$ 1234,50` — **sem separador de milhar** | É o formatador pré-existente do projeto, já usado nos preços de produto e nos cards do painel; a spec só pede "formatada em reais". Mudar `formatCents` aqui mexeria em toda a vitrine e todo o painel — separador de milhar é decisão de produto, registrada em Deferred Ideas do `context.md` | n (registrado em 28/07/2026, depois do spec-precision gap apontado na validação) |
 
 **Open questions:** nenhuma — tudo resolvido ou registrado acima.
 
@@ -229,7 +230,7 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-15 | P1: Histórico (estado vazio) | Design | Implementing |
 | ORD-16 | P1: Histórico (rota protegida + navegação Sidebar/MobileTabBar) | Design | Implementing (F3 aplicado — redirect com teste) |
 | ORD-17 | P1: ROI (card Pedidos no mês) | Design | Implementing (F2 aplicado — mutantes M10–M14 mortos) |
-| ORD-18 | P1: ROI (card Vendas confirmadas no mês) | Design | Implementing |
+| ORD-18 | P1: ROI (card Vendas confirmadas no mês) | Design | Implementing (F2 + formato registrado nas Assumptions — F4) |
 | ORD-19 | P1: ROI (card Aguardando confirmação) | Design | Implementing (F2 aplicado — mutantes M10–M14 mortos) |
 | ORD-20 | P1: ROI (zeros seguros, sem NaN) | Design | Implementing |
 | ORD-21 | P2: Status (persistir e refletir) | Design | Implementing |
@@ -238,10 +239,10 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-24 | P1: Segurança (sem GRANT/policy para `anon`; RLS por dono; service role server-only) | Design | Implementing (F1 aplicado — aguarda re-verificação) |
 | ORD-25 | P2: Landing (card de recurso + FAQ + planos) | T15 | Implementing |
 | ORD-26 | P2: Docs (ARCHITECTURE, Escopo) + política de privacidade | T16 | Implementing (F1 aplicado — aguarda re-verificação) |
-| ORD-27 | P1: Planos pagos (captura grava em qualquer plano) | Design | Implementing (F1 aplicado — aguarda re-verificação) |
+| ORD-27 | P1: Planos pagos (captura grava em qualquer plano) | Design | Implementing (F1 + asserção negativa de plano — F4) |
 | ORD-28 | P1: Planos pagos (histórico bloqueado no Free, sem dado real e sem query) | Design | Implementing |
 | ORD-29 | P1: Planos pagos (cards de ROI bloqueados no Free) | Design | Implementing |
-| ORD-30 | P1: Planos pagos (Starter/Pro liberam tudo; expiração rebaixa via `getEffectivePlan`) | Design | Implementing |
+| ORD-30 | P1: Planos pagos (Starter/Pro liberam tudo; expiração rebaixa via `getEffectivePlan`) | Design | Implementing (F4 aplicado — ORD-30.7 com teste) |
 
 **ID format:** `ORD-[NUMBER]`
 

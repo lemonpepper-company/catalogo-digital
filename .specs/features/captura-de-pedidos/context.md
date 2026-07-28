@@ -87,3 +87,4 @@ Registrados na tabela **Assumptions & Open Questions** da spec com o default do 
 - Gráfico de evolução de vendas / analytics próprio no painel
 - Vincular pedido à conversa real do WhatsApp
 - Expurgo/anonimização automática de pedidos antigos (LGPD avançado)
+- **Separador de milhar em `formatCents`** (`R$ 1.234,50` em vez do atual `R$ 1234,50`) — apontado pela validação de 28/07/2026 nos cards de ROI. Não é regressão desta feature: `formatCents` (`lib/utils.ts`) é o formatador de todo o projeto, então a mudança afeta vitrine e painel inteiros. Decisão de produto, fora do escopo da captura de pedidos.

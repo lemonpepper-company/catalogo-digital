@@ -7,6 +7,24 @@ vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => createAdminClient(),
 }));
 
+/**
+ * ORD-27: a captura grava em qualquer plano e **nunca** consulta plano. Qualquer
+ * chamada a `getPlanLimits`/`getEffectivePlan` durante `registrarPedido` lança —
+ * o que reprova o teste em vez de passar silenciosamente.
+ */
+const PLAN_LOOKUP_ERROR = "registrarPedido não pode consultar plano (ORD-27)";
+const getPlanLimits = vi.fn(() => {
+  throw new Error(PLAN_LOOKUP_ERROR);
+});
+const getEffectivePlan = vi.fn(() => {
+  throw new Error(PLAN_LOOKUP_ERROR);
+});
+
+vi.mock("@/lib/plan-limits", () => ({
+  getPlanLimits: () => getPlanLimits(),
+  getEffectivePlan: () => getEffectivePlan(),
+}));
+
 const STORE_ID = "11111111-1111-4111-8111-111111111111";
 const CLIENT_ORDER_ID = "22222222-2222-4222-8222-222222222222";
 const P1 = "33333333-3333-4333-8333-333333333333";
@@ -129,6 +147,9 @@ beforeEach(() => {
   from.mockReset();
   createAdminClient.mockReset();
   createAdminClient.mockImplementation(() => ({ from }));
+  // mockClear, não mockReset: a implementação que lança é o que guarda ORD-27.
+  getPlanLimits.mockClear();
+  getEffectivePlan.mockClear();
   errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -219,6 +240,29 @@ describe("registrarPedido — gravação do pedido (ORD-01)", () => {
       delivery_method: "entrega",
       delivery_address: "Rua X, 123",
     });
+  });
+});
+
+describe("registrarPedido — grava em qualquer plano (ORD-27)", () => {
+  it("grava o pedido sem nunca consultar o plano da loja", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarPedido = await loadAction();
+
+    const result = await registrarPedido(validPayload());
+
+    expect(result).toEqual({ ok: true });
+    expect(callsOf(made, "orders", "upsert")).toHaveLength(1);
+    expect(getPlanLimits).not.toHaveBeenCalled();
+    expect(getEffectivePlan).not.toHaveBeenCalled();
+  });
+
+  it("não lê nenhuma coluna de plano da loja — a query de `stores` pede só o id", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarPedido = await loadAction();
+
+    await registrarPedido(validPayload());
+
+    expect(callsOf(made, "stores", "select")).toEqual([["id"]]);
   });
 });
 
