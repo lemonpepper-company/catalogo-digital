@@ -8,6 +8,7 @@ import { getPlanLimits } from "@/lib/plan-limits";
 import { productSchema } from "@/lib/validation/painel";
 import { parseReaisToCents } from "@/lib/utils";
 import { uploadPhotos, publicUrlToPath } from "@/lib/server/upload";
+import { parseProductCsv } from "@/lib/csv-produtos";
 import type { ProductColor } from "@/lib/types";
 
 const BUCKET = "product-images";
@@ -308,4 +309,121 @@ export async function toggleProductFeatured(
   revalidatePath("/painel/produtos");
   revalidateTag(`catalog-${store.slug}`, { expire: 0 });
   return { ok: true };
+}
+
+export type ImportCsvState =
+  | { error: string }
+  | { ok: true; created: number; errors: { line: number; reason: string }[] }
+  | null;
+
+export async function importProductsCsv(
+  prevState: ImportCsvState,
+  formData: FormData
+): Promise<ImportCsvState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado." };
+
+  const store = await getCurrentStore();
+  if (!store) return { error: "Loja não encontrada." };
+
+  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  if (!limits.csvImport) {
+    return { error: "Importação em massa disponível apenas no plano Pro. Fale conosco para liberar." };
+  }
+
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) return { error: "Selecione um arquivo CSV." };
+
+  const text = await file.text();
+  const { rows, headerError } = parseProductCsv(text);
+  if (headerError) return { error: headerError };
+
+  const [{ count: productCount }, { data: existingCategories }] = await Promise.all([
+    supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", store.id),
+    supabase.from("categories").select("id, name").eq("store_id", store.id),
+  ]);
+
+  let currentProductCount = productCount ?? 0;
+  let currentCategoryCount = existingCategories?.length ?? 0;
+  const categoryIdByName = new Map(
+    (existingCategories ?? []).map((c) => [c.name.toLowerCase(), c.id as string])
+  );
+
+  let created = 0;
+  const errors: { line: number; reason: string }[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const lineNumber = i + 2;
+    const row = rows[i];
+
+    if (!row.ok) {
+      errors.push({ line: lineNumber, reason: row.reason });
+      continue;
+    }
+
+    let categoryId: string | null = null;
+    if (row.product.categoryName) {
+      const key = row.product.categoryName.toLowerCase();
+      const existingId = categoryIdByName.get(key);
+      if (existingId) {
+        categoryId = existingId;
+      } else if (currentCategoryCount >= limits.maxCategories) {
+        errors.push({ line: lineNumber, reason: "Limite de categorias do plano atingido." });
+        continue;
+      } else {
+        const { data: newCategory, error: categoryError } = await supabase
+          .from("categories")
+          .insert({ store_id: store.id, name: row.product.categoryName })
+          .select("id")
+          .single();
+        if (categoryError || !newCategory) {
+          errors.push({ line: lineNumber, reason: "Erro ao criar categoria." });
+          continue;
+        }
+        categoryId = newCategory.id as string;
+        categoryIdByName.set(key, categoryId);
+        currentCategoryCount++;
+      }
+    }
+
+    if (currentProductCount >= limits.maxProducts) {
+      errors.push({ line: lineNumber, reason: "Limite de produtos do plano atingido." });
+      continue;
+    }
+
+    const { error: insertError } = await supabase.from("products").insert({
+      store_id: store.id,
+      name: row.product.name,
+      price_cents: row.product.priceCents,
+      description: row.product.description,
+      category_id: categoryId,
+      sizes: row.product.sizes,
+      sold_sizes: [],
+      colors: row.product.colors,
+      images: [],
+      stock: row.product.stock,
+      is_active: true,
+      is_new: false,
+      is_featured: false,
+    });
+
+    if (insertError) {
+      errors.push({ line: lineNumber, reason: "Erro ao criar o produto." });
+      continue;
+    }
+
+    created++;
+    currentProductCount++;
+  }
+
+  revalidatePath("/painel/produtos");
+  revalidatePath("/painel");
+  revalidateTag(`catalog-${store.slug}`, { expire: 0 });
+  return { ok: true, created, errors };
 }
