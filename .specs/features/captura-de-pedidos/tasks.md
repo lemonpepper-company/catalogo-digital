@@ -250,7 +250,7 @@ T16 [P]
 
 ---
 
-### T6: Server Action `registrarPedido`
+### T6: Server Action `registrarPedido` ✅
 
 **What**: a action pública que valida, aplica o teto anti-abuso, resolve produtos no banco, grava pedido + itens de forma idempotente e nunca lança.
 **Where**: `app/actions/pedidos.ts` (novo), `__tests__/registrar-pedido.test.ts` (novo)
@@ -263,22 +263,26 @@ T16 [P]
 - Skill: NONE
 
 **Done when**:
-- [ ] Payload válido + loja ativa → grava 1 linha em `orders` (status `pendente`) e N linhas em `order_items`, retornando `{ ok: true }` (ORD-01)
-- [ ] `total_cents`/`unit_price_cents` calculados só de `products.price_cents`; valor monetário enviado pelo cliente é ignorado (ORD-02)
-- [ ] Slug inexistente, loja `is_active = false`, payload inválido → `{ ok: false }` sem nenhuma escrita (ORD-07)
-- [ ] Item com produto inexistente/de outra loja/inativo é descartado; pedido grava o resto; zero itens resolvidos → nada gravado (ORD-06)
-- [ ] `upsert` com `onConflict: "store_id,client_order_id"` + `ignoreDuplicates` → segunda chamada com o mesmo `client_order_id` retorna `{ ok: true }` sem gravar de novo (ORD-04)
-- [ ] ≥ 20 pedidos da loja nos últimos 60 s → `{ ok: false }`, nada gravado (ORD-08)
-- [ ] Falha no insert dos itens → pedido órfão deletado + `console.error`; retorna `{ ok: false }`
-- [ ] Erro inesperado (inclusive `createAdminClient` lançando por env ausente) é capturado, logado e retorna `{ ok: false }` — a action nunca lança (ORD-03)
-- [ ] `customer_name` gravado via `sanitizeCustomerName` (ORD-10)
-- [ ] Gate passa: `npx vitest run && npm run lint`
-- [ ] Test count: ≥ 12 testes novos passando; nenhum teste existente removido
+- [x] Payload válido + loja ativa → grava 1 linha em `orders` (status `pendente`) e N linhas em `order_items`, retornando `{ ok: true }` (ORD-01)
+- [x] `total_cents`/`unit_price_cents` calculados só de `products.price_cents`; valor monetário enviado pelo cliente é ignorado (ORD-02)
+- [x] Slug inexistente, loja `is_active = false`, payload inválido → `{ ok: false }` sem nenhuma escrita (ORD-07)
+- [x] Item com produto inexistente/de outra loja/inativo é descartado; pedido grava o resto; zero itens resolvidos → nada gravado (ORD-06)
+- [x] `upsert` com `onConflict: "store_id,client_order_id"` + `ignoreDuplicates` → segunda chamada com o mesmo `client_order_id` retorna `{ ok: true }` sem gravar de novo (ORD-04)
+- [x] ≥ 20 pedidos da loja nos últimos 60 s → `{ ok: false }`, nada gravado (ORD-08)
+- [x] Falha no insert dos itens → pedido órfão deletado + `console.error`; retorna `{ ok: false }`
+- [x] Erro inesperado (inclusive `createAdminClient` lançando por env ausente) é capturado, logado e retorna `{ ok: false }` — a action nunca lança (ORD-03)
+- [x] `customer_name` gravado via `sanitizeCustomerName` (ORD-10)
+- [x] Gate passa: `npx vitest run && npm run lint`
+- [x] Test count: ≥ 12 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: full
 
 **Commit**: `feat(orders): registra pedido no banco antes do redirect para o WhatsApp`
+
+**Status**: ✅ Complete — 23 testes novos (`__tests__/registrar-pedido.test.ts`). Suíte 389 → 412; lint em 17 erros (baseline, nenhum em arquivo novo). Nenhuma checagem de plano na action (ORD-27). Discriminadores: `:246`/`:247` (payload adulterado com `totalCents: 1`/`unitPriceCents: 1` e assertions exigindo `39800`/`19900` do banco), `:405` (janela anti-abuso conferida no timestamp exato com timers fake), `:392` (fronteira 19 pedidos grava, 20 descarta).
+
+Decisão de implementação além do texto da task: `delivery_address` grava `address ?? null` sem condicionar a `delivery === "entrega"` — a spec não define o corte e o campo só é coletado pela UI no caso `entrega`; adicionar o condicional seria lógica sem AC.
 
 ---
 

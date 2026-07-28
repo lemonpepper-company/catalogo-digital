@@ -212,14 +212,14 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| ORD-01 | P1: Pedido registrado (gravação + redirect sempre) | Design | Pending |
+| ORD-01 | P1: Pedido registrado (gravação + redirect sempre) | Design | Implementing |
 | ORD-02 | P1: Pedido registrado (preço do banco) | Design | Implementing |
-| ORD-03 | P1: Pedido registrado (timeout/falha silenciosa) | Design | Pending |
-| ORD-04 | P1: Pedido registrado (idempotência) | Design | Pending |
+| ORD-03 | P1: Pedido registrado (timeout/falha silenciosa) | Design | Implementing |
+| ORD-04 | P1: Pedido registrado (idempotência) | Design | Implementing |
 | ORD-05 | P1: Pedido registrado (nova chave ao mudar sacola) | Design | Pending |
 | ORD-06 | P1: Pedido registrado (itens não resolvidos) | Design | Implementing |
 | ORD-07 | P1: Pedido registrado (validação e limites do payload) | Design | Implementing |
-| ORD-08 | P1: Pedido registrado (teto anti-abuso) | Design | Pending |
+| ORD-08 | P1: Pedido registrado (teto anti-abuso) | Design | Implementing |
 | ORD-09 | P1: Nome opcional (campo na sacola) | Design | Pending |
 | ORD-10 | P1: Nome opcional (trim + 60 chars / null) | Design | Implementing |
 | ORD-11 | P1: Nome opcional (nunca bloqueia checkout, template intacto) | Design | Pending |
