@@ -83,14 +83,6 @@ export function PersonalizacaoClient({
                     }}
                   />
                 ))}
-                <input
-                  type="color"
-                  value={f.secondaryColor ?? "#000000"}
-                  onChange={(e) => f.setSecondaryColor(e.target.value)}
-                  aria-label="Cor personalizada"
-                  title="Cor personalizada"
-                  className="h-10 w-10 rounded-full border border-sand cursor-pointer p-0.5"
-                />
               </div>
             </div>
           )}
