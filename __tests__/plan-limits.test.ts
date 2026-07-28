@@ -34,6 +34,7 @@ describe("getPlanLimits", () => {
       themeOptions: false,
       advancedTheme: false,
       gridDensity: false,
+      csvImport: false,
     });
   });
 
@@ -46,6 +47,7 @@ describe("getPlanLimits", () => {
       themeOptions: true,
       advancedTheme: false,
       gridDensity: true,
+      csvImport: false,
     });
   });
 
@@ -58,6 +60,7 @@ describe("getPlanLimits", () => {
       themeOptions: true,
       advancedTheme: true,
       gridDensity: true,
+      csvImport: true,
     });
   });
 
@@ -71,6 +74,7 @@ describe("getPlanLimits", () => {
       themeOptions: false,
       advancedTheme: false,
       gridDensity: false,
+      csvImport: false,
     });
   });
 
@@ -84,6 +88,7 @@ describe("getPlanLimits", () => {
       themeOptions: false,
       advancedTheme: false,
       gridDensity: false,
+      csvImport: false,
     });
   });
 });
@@ -118,5 +123,21 @@ describe("getPlanLimits — feature flags de personalização", () => {
     const limits = getPlanLimits("pro", past);
     expect(limits.themeOptions).toBe(false);
     expect(limits.maxFeaturedProducts).toBe(0);
+  });
+});
+
+describe("getPlanLimits — importação CSV", () => {
+  it("free e starter não têm importação CSV", () => {
+    expect(getPlanLimits("free", null).csvImport).toBe(false);
+    expect(getPlanLimits("starter", null).csvImport).toBe(false);
+  });
+
+  it("pro tem importação CSV", () => {
+    expect(getPlanLimits("pro", null).csvImport).toBe(true);
+  });
+
+  it("pro com trial_ends_at expirado perde a importação CSV (cai para Free)", () => {
+    const past = new Date(Date.now() - 86400000).toISOString();
+    expect(getPlanLimits("pro", past).csvImport).toBe(false);
   });
 });
