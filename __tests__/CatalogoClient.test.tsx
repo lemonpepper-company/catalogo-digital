@@ -152,6 +152,31 @@ describe("CatalogoClient — seção de destaques", () => {
   });
 });
 
+describe("CatalogoClient — CSS vars de fonte", () => {
+  it("não gera referência circular (--font-sora: var(--font-sora)) no pareamento padrão", () => {
+    const { container } = render(
+      <CatalogoClient store={store} products={makeProducts(2, "Vestidos")} />
+    );
+    const themed = container.firstElementChild as HTMLElement;
+    expect(store.theme.fontDisplayVar).toBe("--font-sora");
+    expect(themed.style.getPropertyValue("--font-sora")).not.toBe("var(--font-sora)");
+    expect(themed.style.getPropertyValue("--font-dm-sans")).not.toBe("var(--font-dm-sans)");
+  });
+
+  it("sobrescreve --font-sora corretamente para pareamento não padrão", () => {
+    const editorialStore: Store = {
+      ...store,
+      theme: resolveTheme("editorial", "padrao", "padrao", null, getPlanLimits("pro", null)),
+    };
+    const { container } = render(
+      <CatalogoClient store={editorialStore} products={makeProducts(2, "Vestidos")} />
+    );
+    const themed = container.firstElementChild as HTMLElement;
+    expect(editorialStore.theme.fontDisplayVar).toBe("--font-fraunces");
+    expect(themed.style.getPropertyValue("--font-sora")).toBe("var(--font-fraunces)");
+  });
+});
+
 describe("CatalogoClient — capa da loja", () => {
   it("renderiza a capa quando a loja tem coverUrl", () => {
     render(
