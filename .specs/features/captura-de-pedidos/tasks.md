@@ -25,9 +25,11 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 | Hooks (`use-catalogo`, `use-pedidos`, `use-dashboard`) | unit | Todo comportamento observável das ACs (inclui timeout, falha e pop-up bloqueado) | `__tests__/*.test.ts` | `npx vitest run` |
 | Componentes client (`BagDrawer`, `PedidosClient`, `DashboardClient`, `Sidebar`, `MobileTabBar`) | unit (Testing Library) | Render + interação das ACs + estado vazio | `__tests__/*.test.tsx` | `npx vitest run` |
 | Dados de conteúdo da landing (`app/landing/data.tsx`) | unit | Presença do card, do FAQ e do bullet nos 3 planos (ACs de ORD-25) | `__tests__/*.test.ts` | `npx vitest run` |
-| Acesso a dados fino (`lib/server/pedidos.ts`) | none — lógica pura extraída para `lib/orders.ts`/`lib/order-metrics.ts` e testada lá; wrapper de I/O verificado em runtime na validação | mesmo padrão de `lib/server/catalog.ts` (sem teste dedicado hoje) | — | build gate + runtime |
-| Migration SQL (`supabase/migrations/*.sql`) | none | Gate: `supabase db reset` local aplica sem erro + `supabase db lint --level warning` (mesmo gate do CI) | — | `npx supabase db reset` |
+| Acesso a dados fino (`lib/server/pedidos.ts`) | **unit** (Supabase mockado com fake chain, padrão de `__tests__/registrar-pedido.test.ts:36-49`) | Cada cláusula de query que carrega outcome de AC (`eq`/`order`/`range`/`gte`) + happy path + caminho de erro | `__tests__/server-pedidos.test.ts` | `npx vitest run` |
+| Migration SQL (`supabase/migrations/*.sql`) | none no vitest — **guard de privilégios no CI** (`has_table_privilege` via `psql` depois de aplicar as migrations) | Gate: migrations aplicam sem erro + `supabase db lint --level warning` + `service_role` com o DML que a captura usa e `anon` sem nenhum privilégio em `orders`/`order_items` | `.github/workflows/supabase-migrations-check.yml` | `npx supabase migration up` |
 | Server Components / `page.tsx` / docs / conteúdo estático de página | none | Build gate | — | `npm run build` |
+
+**Correção de 28/07/2026 (F2) — `lib/server/pedidos.ts` era `none` e a decisão estava errada.** A premissa era "camada fina de I/O, a lógica pura vive em `lib/orders.ts`/`lib/order-metrics.ts`". Só que os outcomes de ORD-12 (*apenas* os pedidos da própria loja, *ordenados* por `created_at` desc), ORD-13 (páginas de *20*), ORD-17/ORD-18 (mês corrente no fuso de SP) e ORD-19 (*todos* os pendentes, sem filtro de período) não vivem nos módulos puros — vivem nas cláusulas de query deste arquivo. Como as duas páginas mockam o módulo inteiro, ele nunca era exercido: o Verifier matou 9/9 mutantes fora dele e **0/5 dentro** (M10–M14 em `validation.md` §3). A lição geral: quando a única implementação de uma AC é a forma da query, a query precisa de teste — a extração de lógica pura não cobre o que ficou no builder.
 
 ## Parallelism Assessment
 
@@ -689,25 +691,37 @@ Evidência de runtime (banco local, 28/07/2026):
 
 ---
 
-### F2: Testes de `lib/server/pedidos.ts` (M10–M14) ⏳
+### F2: Testes de `lib/server/pedidos.ts` (M10–M14) ✅
 
 **What**: cobrir a camada de query que decide qual loja, qual ordem, qual página e qual período.
 **Where**: `__tests__/server-pedidos.test.ts` (novo)
 **Requirement**: ORD-12, ORD-13, ORD-17, ORD-18, ORD-19
 
 **Done when**:
-- [ ] `getStoreOrders`: `.eq("store_id", storeId)`, `.order("created_at", { ascending: false })`, `.range(0, 19)` na página 1, `.range(20, 39)` na página 2, `clampPage` aplicado, e o caminho de erro **lançando** com `console.error` (nunca lista vazia)
-- [ ] `getOrderMetrics`: `.gte("created_at", monthStartInSaoPaulo(now).toISOString())` e `.eq("status", "pendente")` na segunda query
-- [ ] Linha de `lib/server/pedidos.ts` na Test Coverage Matrix corrigida para `unit`
-- [ ] M10–M14 morrem (verificado por mutação manual em estado descartável)
-- [ ] Gate passa: `npx vitest run && npm run lint`
+- [x] `getStoreOrders`: `.eq("store_id", storeId)`, `.order("created_at", { ascending: false })`, `.range(0, 19)` na página 1, `.range(20, 39)` na página 2, `clampPage` aplicado, e o caminho de erro **lançando** com `console.error` (nunca lista vazia)
+- [x] `getOrderMetrics`: `.gte("created_at", monthStartInSaoPaulo(now).toISOString())` e `.eq("status", "pendente")` na segunda query
+- [x] Linha de `lib/server/pedidos.ts` na Test Coverage Matrix corrigida para `unit`
+- [x] M10–M14 morrem (verificado por mutação manual em estado descartável)
+- [x] Gate passa: `npx vitest run && npm run lint`
 
 **Tests**: unit
 **Gate**: full
 
 **Commit**: `test(painel): cobre filtro, ordem, paginacao e periodo das queries de pedidos`
 
-**Status**: ⏳ Pendente.
+**Status**: ✅ Complete — 19 testes novos (`__tests__/server-pedidos.test.ts`). Suíte 500 → 519; lint em 17 erros (baseline).
+
+**Mutação manual (estado descartável, `shutil.copy2` → mutação → `npx vitest run` → restauração; `git diff` do arquivo limpo no fim):**
+
+| # | Mutação em `lib/server/pedidos.ts` | Antes (Verifier) | Agora |
+|---|---|---|---|
+| M10 | remove `.eq("store_id", storeId)` da listagem | ❌ Survived | ✅ **Killed** (1 failed) |
+| M11 | `ascending: false` → `true` | ❌ Survived | ✅ **Killed** (1 failed) |
+| M12 | `ORDERS_PAGE_SIZE` 20 → 7 | ❌ Survived | ✅ **Killed** (4 failed) |
+| M13 | remove `.eq("status", "pendente")` | ❌ Survived | ✅ **Killed** (1 failed) |
+| M14 | remove `.gte("created_at", monthStart)` | ❌ Survived | ✅ **Killed** (1 failed) |
+
+Discriminadores: `:99`/`:108` (`eq` conferido nas duas queries de `getStoreOrders`, listagem **e** contagem), `:117` (`order` exato), `:158`/`:168`/`:179` (`range` nas páginas 1, 2 e na clampada), `:229-232` (`gte` conferido contra `monthStartInSaoPaulo(now).toISOString()` **e** contra o literal `2026-07-01T03:00:00.000Z`, para o teste não passar se as duas pontas errarem junto), `:277-280` (`eq` da contagem de pendentes exatamente `[["store_id",…],["status","pendente"]]`), `:290` (`gte` **ausente** na contagem de pendentes — ORD-19 não tem filtro de período), e os 4 caminhos de erro exigindo `rejects.toThrow` (`:207`, `:215`, `:314`, `:322` — ORD-12 nunca pode virar lista vazia).
 
 ---
 

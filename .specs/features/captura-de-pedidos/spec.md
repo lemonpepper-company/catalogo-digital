@@ -223,14 +223,14 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-09 | P1: Nome opcional (campo na sacola) | Design | Implementing |
 | ORD-10 | P1: Nome opcional (trim + 60 chars / null) | Design | Implementing |
 | ORD-11 | P1: Nome opcional (nunca bloqueia checkout, template intacto) | Design | Implementing |
-| ORD-12 | P1: Histórico (lista da própria loja, ordenada) | Design | Implementing |
-| ORD-13 | P1: Histórico (paginação 20) | Design | Implementing |
+| ORD-12 | P1: Histórico (lista da própria loja, ordenada) | Design | Implementing (F2 aplicado — mutantes M10–M14 mortos) |
+| ORD-13 | P1: Histórico (paginação 20) | Design | Implementing (F2 aplicado — mutantes M10–M14 mortos) |
 | ORD-14 | P1: Histórico (detalhe do pedido com itens snapshot) | Design | Implementing |
 | ORD-15 | P1: Histórico (estado vazio) | Design | Implementing |
 | ORD-16 | P1: Histórico (rota protegida + navegação Sidebar/MobileTabBar) | Design | Implementing |
-| ORD-17 | P1: ROI (card Pedidos no mês) | Design | Implementing |
+| ORD-17 | P1: ROI (card Pedidos no mês) | Design | Implementing (F2 aplicado — mutantes M10–M14 mortos) |
 | ORD-18 | P1: ROI (card Vendas confirmadas no mês) | Design | Implementing |
-| ORD-19 | P1: ROI (card Aguardando confirmação) | Design | Implementing |
+| ORD-19 | P1: ROI (card Aguardando confirmação) | Design | Implementing (F2 aplicado — mutantes M10–M14 mortos) |
 | ORD-20 | P1: ROI (zeros seguros, sem NaN) | Design | Implementing |
 | ORD-21 | P2: Status (persistir e refletir) | Design | Implementing |
 | ORD-22 | P2: Status (qualquer transição entre os 3; valor inválido rejeitado) | Design | Implementing |
