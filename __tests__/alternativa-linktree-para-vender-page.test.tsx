@@ -6,7 +6,7 @@ import AlternativaLinktreeParaVenderPage, {
 
 describe("AlternativaLinktreeParaVenderPage", () => {
   it("tem metadata de SEO com title e description próprios", () => {
-    expect(metadata.title).toBe("Alternativa ao Linktree Pra Vender Produtos | Vtrine Digital");
+    expect(metadata.title).toBe("Alternativa ao Linktree Pra Vender Produtos");
     expect(metadata.description).toBeTruthy();
   });
 

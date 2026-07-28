@@ -3,11 +3,11 @@ import { SeoLandingPage } from "@/components/seo/SeoLandingPage";
 import { content } from "./data";
 
 export const metadata: Metadata = {
-  title: "O que é Vitrine Digital? — Vtrine Digital",
+  title: "O que é Vitrine Digital?",
   description:
     "Vitrine digital é a loja online da sua marca, sem carrinho: o cliente vê os produtos e compra direto no WhatsApp. Veja como criar a sua grátis.",
   openGraph: {
-    title: "O que é Vitrine Digital? — Vtrine Digital",
+    title: "O que é Vitrine Digital?",
     description:
       "Vitrine digital é a loja online da sua marca, sem carrinho: o cliente vê os produtos e compra direto no WhatsApp. Veja como criar a sua grátis.",
     url: "/vitrine-digital",
