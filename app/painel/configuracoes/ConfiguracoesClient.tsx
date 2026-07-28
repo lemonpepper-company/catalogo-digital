@@ -7,9 +7,12 @@ import { Input } from "@/components/ui/Input";
 import { Toast } from "@/components/ui/Toast";
 import { IdentidadeFields } from "@/components/loja/IdentidadeFields";
 import { PagamentoEntregaFields } from "@/components/loja/PagamentoEntregaFields";
+import { DominioField } from "@/components/loja/DominioField";
 import { signOut } from "@/app/actions/auth";
 import type { StoreSettings } from "@/lib/types";
+import type { PlanLimits } from "@/lib/plan-limits";
 import { useConfiguracoes, MSG_VARS } from "./use-configuracoes";
+import { useDominio } from "./use-dominio";
 
 const MSG_MOCK = {
   saudacao: "Olá! Gostaria de fazer um pedido:",
@@ -46,8 +49,15 @@ function WhatsPreviewText({ text }: { text: string }) {
   );
 }
 
-export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
+export function ConfiguracoesClient({
+  settings,
+  limits,
+}: {
+  settings: StoreSettings;
+  limits: PlanLimits;
+}) {
   const f = useConfiguracoes(settings);
+  const dominio = useDominio(settings);
   const catalogUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/${settings.slug}`;
   const catalogLabel = catalogUrl.replace(/^https?:\/\//, "");
 
@@ -188,6 +198,26 @@ export function ConfiguracoesClient({ settings }: { settings: StoreSettings }) {
       </div>
 
         {f.toast && <Toast msg={f.toast.msg} tone={f.toast.tone} />}
+      </form>
+
+      <form action={dominio.formAction}>
+        <Card>
+          <h2 className="font-display font-medium text-[16px] text-obsidian mb-1">
+            Domínio próprio
+          </h2>
+          <p className="font-body text-[13px] text-graphite mb-4">
+            Acesse sua vitrine pelo seu próprio domínio em vez de catalogo.digital/{settings.slug}.
+          </p>
+          <DominioField
+            domain={dominio.domain}
+            onDomainChange={dominio.setDomain}
+            verified={settings.customDomainVerified}
+            hasDomain={!!settings.customDomain}
+            unlocked={limits.customDomain}
+            pending={dominio.pending}
+          />
+          {dominio.toast && <Toast msg={dominio.toast.msg} tone={dominio.toast.tone} />}
+        </Card>
       </form>
     </div>
   );
