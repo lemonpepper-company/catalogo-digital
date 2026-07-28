@@ -232,9 +232,9 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-18 | P1: ROI (card Vendas confirmadas no mês) | Design | Implementing |
 | ORD-19 | P1: ROI (card Aguardando confirmação) | Design | Implementing |
 | ORD-20 | P1: ROI (zeros seguros, sem NaN) | Design | Implementing |
-| ORD-21 | P2: Status (persistir e refletir) | Design | Pending |
+| ORD-21 | P2: Status (persistir e refletir) | Design | Implementing |
 | ORD-22 | P2: Status (qualquer transição entre os 3; valor inválido rejeitado) | Design | Implementing |
-| ORD-23 | P2: Status (isolamento por loja) | Design | Pending |
+| ORD-23 | P2: Status (isolamento por loja) | Design | Implementing |
 | ORD-24 | P1: Segurança (sem GRANT/policy para `anon`; RLS por dono; service role server-only) | Design | Implementing |
 | ORD-25 | P2: Landing (card de recurso + FAQ + planos) | Design | Pending |
 | ORD-26 | P2: Docs (ARCHITECTURE, Escopo) + política de privacidade | Design | Pending |

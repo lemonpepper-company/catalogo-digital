@@ -452,7 +452,7 @@ Além da lista de arquivos da task, por exigência do done-when de `tsc --noEmit
 
 ---
 
-### T12: Mudança de status do pedido
+### T12: Mudança de status do pedido ✅
 
 **What**: Server Action `updateOrderStatus` + controles no detalhe do pedido.
 **Where**: `app/actions/pedidos.ts` (estende), `app/painel/pedidos/PedidosClient.tsx` + `use-pedidos.ts` (estende), `__tests__/update-order-status.test.ts` (novo), `__tests__/PedidosClient.test.tsx` (estende)
@@ -465,20 +465,28 @@ Além da lista de arquivos da task, por exigência do done-when de `tsc --noEmit
 - Skill: NONE
 
 **Done when**:
-- [ ] Action valida sessão (`getUser`) e loja (`getCurrentStore`), aplica `.eq("id", …).eq("store_id", store.id)` e atualiza só a coluna `status` (ORD-21, ORD-23)
-- [ ] Action exige `getPlanLimits(store.plan, store.trialEndsAt).hasOrderHistory` — plano efetivo Free → `{ error }` sem escrita (ORD-28)
-- [ ] Qualquer um dos três status é aceito a partir de qualquer status atual (ORD-22)
-- [ ] Status fora do enum → `{ error: "Status inválido." }` e nenhuma escrita (ORD-22)
-- [ ] Pedido de outra loja (0 linhas afetadas) → `{ error }` (ORD-23)
-- [ ] `revalidatePath("/painel/pedidos")` + `revalidatePath("/painel")` em caso de sucesso (ORD-21, AC5 de status)
-- [ ] UI: três controles no detalhe (Pendente/Confirmado/Cancelado) com `useActionState`, feedback via `Toast`, botão desabilitado enquanto `pending`
-- [ ] Gate passa: `npx vitest run && npm run lint`
-- [ ] Test count: ≥ 8 testes novos passando; nenhum teste existente removido
+- [x] Action valida sessão (`getUser`) e loja (`getCurrentStore`), aplica `.eq("id", …).eq("store_id", store.id)` e atualiza só a coluna `status` (ORD-21, ORD-23)
+- [x] Action exige `getPlanLimits(store.plan, store.trialEndsAt).hasOrderHistory` — plano efetivo Free → `{ error }` sem escrita (ORD-28)
+- [x] Qualquer um dos três status é aceito a partir de qualquer status atual (ORD-22)
+- [x] Status fora do enum → `{ error: "Status inválido." }` e nenhuma escrita (ORD-22)
+- [x] Pedido de outra loja (0 linhas afetadas) → `{ error }` (ORD-23)
+- [x] `revalidatePath("/painel/pedidos")` + `revalidatePath("/painel")` em caso de sucesso (ORD-21, AC5 de status)
+- [x] UI: três controles no detalhe (Pendente/Confirmado/Cancelado) com `useActionState`, feedback via `Toast`, botão desabilitado enquanto `pending`
+- [x] Gate passa: `npx vitest run && npm run lint`
+- [x] Test count: ≥ 8 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: full
 
 **Commit**: `feat(painel): permite marcar pedido como confirmado ou cancelado`
+
+**Status**: ✅ Complete — `e1a719b`. 21 testes novos (`__tests__/update-order-status.test.ts` 13, `__tests__/PedidosClient.test.tsx` +8). Suíte 452 → 473; lint em 17 erros (baseline). Discriminadores: `update-order-status.test.ts:106` (`toEqual([[{ status: "confirmado" }]])` — qualquer coluna extra no update reprova), `:107-110` (`eq` exatamente `[["id", …], ["store_id", STORE_ID]]`), `:118-125` (`revalidatePath` nos dois caminhos, na ordem), `:222`/`:236` (`expect(from).not.toHaveBeenCalled()` no Free e no trial vencido — prova que o gate corre antes de qualquer query).
+
+O toast segue o padrão já usado em `app/painel/configuracoes/use-configuracoes.ts:39-52`: o `flash` roda dentro do reducer do `useActionState`, não num `useEffect` — evita reintroduzir a classe de erro de lint `react-hooks/set-state-in-effect` que é dívida pré-existente no repo.
+
+**Adaptação de teste existente (não é enfraquecimento)**: `__tests__/PedidosClient.test.tsx` ("mostra o total e o status do pedido no detalhe", da T11) passou a localizar o badge de status pelo elemento (`<span>`) porque os controles novos usam os mesmos rótulos em `<button>`, o que tornava `getByText("Confirmado")` ambíguo. A assertion continua exigindo o rótulo exato do status no detalhe; nada foi removido ou relaxado.
+
+Os três botões ficam sempre habilitados (só desabilitam enquanto `pending`), inclusive o do status atual — ORD-22 exige que qualquer transição seja aceita partindo de qualquer status, e desabilitar o atual deixaria a re-seleção inalcançável pela UI.
 
 ---
 
