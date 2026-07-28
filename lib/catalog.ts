@@ -64,6 +64,7 @@ export function mapPublicStore(
 ): Store {
   return {
     name: row.name,
+    slug: row.slug,
     monogram: row.monogram?.trim() || initialsFromName(row.name),
     logoUrl: row.logo_url,
     coverUrl: row.cover_url,

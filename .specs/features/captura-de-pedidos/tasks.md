@@ -276,7 +276,7 @@ T16 [P]
 
 ---
 
-### T7: `slug` explícito no view model `Store`
+### T7: `slug` explícito no view model `Store` ✅
 
 **What**: expor `slug` em `Store` (preenchido por `mapPublicStore`) e atualizar as fixtures dos testes que constroem `Store`.
 **Where**: `lib/types.ts`, `lib/catalog.ts`, `__tests__/catalog.test.ts` + fixtures em `__tests__/use-catalogo.test.ts`, `__tests__/CatalogoClient.test.tsx`, `__tests__/StoreHeader.test.tsx` (as que existirem)
@@ -289,16 +289,20 @@ T16 [P]
 - Skill: NONE
 
 **Done when**:
-- [ ] `Store.slug: string` definido e preenchido por `mapPublicStore` com `row.slug`
-- [ ] Teste em `__tests__/catalog.test.ts` cobrindo `mapPublicStore` → `slug`
-- [ ] Todas as fixtures `Store` dos testes atualizadas; `npx tsc --noEmit` (ou `npm run build`) sem erro de tipo
-- [ ] Gate passa: `npx vitest run`
-- [ ] Test count: baseline + ≥ 1; nenhum teste existente removido
+- [x] `Store.slug: string` definido e preenchido por `mapPublicStore` com `row.slug`
+- [x] Teste em `__tests__/catalog.test.ts` cobrindo `mapPublicStore` → `slug`
+- [x] Todas as fixtures `Store` dos testes atualizadas; `npx tsc --noEmit` (ou `npm run build`) sem erro de tipo
+- [x] Gate passa: `npx vitest run`
+- [x] Test count: baseline + ≥ 1; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: quick
 
 **Commit**: `refactor(catalog): expoe slug da loja no view model publico`
+
+**Status**: ✅ Complete — 2 testes novos (`__tests__/catalog.test.ts:114-123`). Suíte 387 → 389. `npx tsc --noEmit` limpo (só os 2 erros pré-existentes: `.next/types/validator.ts` e `@vercel/speed-insights` ausente).
+
+Além da lista de arquivos da task, por exigência do done-when de `tsc --noEmit`: `lib/data.ts:6` (constante `STORE` de demo também constrói `Store`) e a tipagem do mock em `__tests__/supabase-admin.test.ts:9` (as assertions de T5 seguem idênticas).
 
 ---
 

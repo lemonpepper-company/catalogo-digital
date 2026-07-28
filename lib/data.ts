@@ -3,6 +3,7 @@ import { DEFAULT_ACCENT_COLOR } from "./theme";
 
 export const STORE: Store = {
   name: "Ateliê Mira",
+  slug: "ateliemira",
   monogram: "AM",
   whatsapp: "5511999990000",
   categories: ["Todos", "Vestidos", "Blusas", "Calças", "Saias"],

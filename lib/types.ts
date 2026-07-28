@@ -27,6 +27,7 @@ export interface Product {
 
 export interface Store {
   name: string;
+  slug: string;
   monogram: string;
   logoUrl?: string | null;
   coverUrl?: string | null;

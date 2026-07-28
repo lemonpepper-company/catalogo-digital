@@ -43,6 +43,7 @@ afterEach(() => {
 
 const store: Store = {
   name: "Ateliê Mira",
+  slug: "ateliemira",
   monogram: "AM",
   whatsapp: "5511999990000",
   categories: ["Todos", "Vestidos", "Blusas"],
