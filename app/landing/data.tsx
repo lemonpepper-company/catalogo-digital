@@ -8,6 +8,7 @@ import {
   Package,
   Smartphone,
   BarChart3,
+  Receipt,
 } from "lucide-react";
 
 export const painCards = [
@@ -77,6 +78,11 @@ export const features = [
     title: "Painel simples",
     desc: "Gerencie produtos e veja o que está ativo em um painel direto ao ponto.",
   },
+  {
+    icon: <Receipt size={20} />,
+    title: "Histórico de pedidos",
+    desc: "Cada pedido enviado pela sacola fica registrado no painel com os itens e o total. Recurso dos planos pagos.",
+  },
 ];
 
 export const testimonials = [
@@ -113,18 +119,24 @@ export const starterFeatures = [
   "Até 30 produtos",
   "5 categorias",
   "3 fotos por produto",
+  "Histórico de pedidos",
 ];
 
 export const proFeatures = [
   "Produtos ilimitados",
   "Categorias ilimitadas",
   "5 fotos por produto",
+  "Histórico de pedidos",
 ];
 
 export const faqs = [
   {
     q: "Preciso de maquininha ou gateway de pagamento?",
     a: "Não. O pagamento é combinado com você direto no WhatsApp, como já acontece hoje. A Vtrine cuida da vitrine e leva o cliente até a conversa — você fecha do seu jeito.",
+  },
+  {
+    q: "O pedido fica registrado em algum lugar ou só no WhatsApp?",
+    a: "Fica registrado no seu painel. Mesmo que a conversa se perca, o pedido continua ali com os itens, o total e o nome que a cliente informou — e você marca o que foi confirmado ou cancelado. Não existe checkout nem pagamento no site: a venda continua sendo fechada por você no WhatsApp. O histórico de pedidos está disponível a partir do plano Starter.",
   },
   {
     q: "Meus clientes precisam baixar algum aplicativo?",
