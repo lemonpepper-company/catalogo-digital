@@ -104,6 +104,54 @@ describe("CatalogoClient — carregamento incremental", () => {
   });
 });
 
+describe("CatalogoClient — densidade do grid", () => {
+  it("usa grid-cols-2 (padrão) quando gridDensity é 'padrao'", () => {
+    const { container } = render(
+      <CatalogoClient store={store} products={makeProducts(2, "Vestidos")} />
+    );
+    const grid = container.querySelector(".grid");
+    const classes = grid?.className.split(" ") ?? [];
+    expect(classes).toContain("grid-cols-2");
+    expect(classes).not.toContain("grid-cols-3");
+  });
+
+  it("usa grid-cols-3 quando gridDensity é 'compacto'", () => {
+    const { container } = render(
+      <CatalogoClient
+        store={{ ...store, gridDensity: "compacto" }}
+        products={makeProducts(2, "Vestidos")}
+      />
+    );
+    const grid = container.querySelector(".grid");
+    const classes = grid?.className.split(" ") ?? [];
+    expect(classes).toContain("grid-cols-3");
+    expect(classes).not.toContain("grid-cols-2");
+  });
+});
+
+describe("CatalogoClient — seção de destaques", () => {
+  it("mostra a seção Destaques quando há produtos em destaque ativos", () => {
+    const products = makeProducts(3, "Vestidos");
+    products[0].isFeatured = true;
+    products[0].active = true;
+    render(<CatalogoClient store={store} products={products} />);
+    expect(screen.getByText("Destaques")).toBeTruthy();
+  });
+
+  it("não mostra a seção Destaques quando nenhum produto está em destaque", () => {
+    render(<CatalogoClient store={store} products={makeProducts(3, "Vestidos")} />);
+    expect(screen.queryByText("Destaques")).toBeNull();
+  });
+
+  it("não mostra a seção Destaques quando o produto em destaque está inativo", () => {
+    const products = makeProducts(3, "Vestidos");
+    products[0].isFeatured = true;
+    products[0].active = false;
+    render(<CatalogoClient store={store} products={products} />);
+    expect(screen.queryByText("Destaques")).toBeNull();
+  });
+});
+
 describe("CatalogoClient — capa da loja", () => {
   it("renderiza a capa quando a loja tem coverUrl", () => {
     render(

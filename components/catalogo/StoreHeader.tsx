@@ -41,7 +41,13 @@ export function StoreHeader({
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <div className="font-display font-semibold text-[18px] text-obsidian leading-tight truncate">
+          <div
+            className="font-display font-semibold text-[18px] text-obsidian leading-tight truncate"
+            style={{
+              textTransform: store.theme.titleTransform,
+              letterSpacing: store.theme.titleLetterSpacing,
+            }}
+          >
             {store.name}
           </div>
           <div className="font-body text-[12px] text-graphite">

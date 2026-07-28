@@ -8,7 +8,9 @@ import { StoreBanner } from "@/components/catalogo/StoreBanner";
 import { ProductCard } from "@/components/catalogo/ProductCard";
 import { ProductDetail } from "@/components/catalogo/ProductDetail";
 import { BagDrawer } from "@/components/catalogo/BagDrawer";
+import { FeaturedRail } from "@/components/catalogo/FeaturedRail";
 import type { Product, Store } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { useCatalogo } from "./use-catalogo";
 
 interface CatalogoClientProps {
@@ -52,7 +54,17 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
   } = useCatalogo({ store, products });
 
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const accentStyle = { "--color-primary": store.accentColor } as React.CSSProperties;
+  const themeStyle = {
+    "--color-primary": store.accentColor,
+    "--color-bg": store.theme.backgroundColor,
+    "--color-surface": store.theme.surfaceColor,
+    "--color-border": store.theme.borderColor,
+    "--radius-card": store.theme.cardRadius,
+    "--radius-btn": store.theme.btnRadius,
+    "--font-sora": `var(${store.theme.fontDisplayVar})`,
+    "--font-dm-sans": `var(${store.theme.fontBodyVar})`,
+    ...(store.theme.secondaryColor ? { "--color-secondary": store.theme.secondaryColor } : {}),
+  } as React.CSSProperties;
 
   const headerRef = useRef<HTMLDivElement>(null);
   const [headerH, setHeaderH] = useState(0);
@@ -86,7 +98,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
     return (
       <div
         className="fixed inset-0 z-20 bg-ivory md:flex md:items-center md:justify-center md:bg-black/50 md:p-6"
-        style={accentStyle}
+        style={themeStyle}
         onClick={(e) => {
           if (e.target === e.currentTarget) setOpenProduct(null);
         }}
@@ -104,7 +116,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-ivory relative" style={accentStyle}>
+    <div className="min-h-screen bg-ivory relative" style={themeStyle}>
       <div ref={headerRef} className="sticky top-0 z-20 bg-ivory">
         <StoreHeader
           store={store}
@@ -135,6 +147,8 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
         ))}
       </div>
 
+      <FeaturedRail products={products} onOpen={setOpenProduct} />
+
       {visibleProducts.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 px-4 py-24 text-center">
           <p className="font-display font-medium text-[16px] text-obsidian">
@@ -150,7 +164,14 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 px-4 pb-8 pt-1 sm:grid-cols-3 lg:grid-cols-4">
+          <div
+            className={cn(
+              "grid gap-4 px-4 pb-8 pt-1",
+              store.gridDensity === "compacto"
+                ? "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5"
+                : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
+            )}
+          >
             {visibleProducts.map((product, index) => (
               <ProductCard
                 key={product.id}
