@@ -1,7 +1,7 @@
 # Escopo do Produto — Catálogo Digital V1
 
-**Versão:** 2.4  
-**Data:** 24 de julho de 2026
+**Versão:** 2.5  
+**Data:** 28 de julho de 2026
 
 > **Modelo de planos:** Free (automático no cadastro), Starter e Pro (liberados manualmente após contato via WhatsApp — "Fale conosco" na landing —, sem gateway de pagamento integrado ainda). A seção de depoimentos (fictícios) segue oculta na landing. Ver §4.3 e §6.
 
@@ -41,8 +41,9 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 
 | Tela | Elementos principais | Status |
 |---|---|---|
-| Dashboard | Resumo (ativos, esgotados, link do catálogo). Aviso de upgrade no topo do painel para lojas no plano Free. Dados reais do banco. | ✅ Implementado |
+| Dashboard | Resumo (ativos, esgotados, link do catálogo) + cards de ROI (pedidos no mês, vendas confirmadas no mês, aguardando confirmação — bloqueados no Free). Aviso de upgrade no topo do painel para lojas no plano Free. Dados reais do banco. | ✅ Implementado |
 | Listagem de produtos | Grid com status, toggle ativo/inativo, editar, excluir. Estado vazio. Dados reais. | ✅ Implementado |
+| Pedidos (`/painel/pedidos`) | Histórico paginado (20/página) com data, nome do cliente, itens, total e status; detalhe em modal com itens, pagamento, entrega e troca de status. Estado vazio. Estado bloqueado no plano Free. | ✅ Implementado |
 | Cadastro / edição de produto | Upload fotos (Storage), nome, preço, categoria (dropdown), cores (swatches + custom), tamanhos, estoque, visibilidade. | ✅ Implementado |
 | Categorias | Lista com editar/excluir + formulário inline "Nova categoria". Dados reais. Limites de plano. | ✅ Implementado |
 | Configurações da loja | Logo, nome, cor, WhatsApp, monograma, GA ID, Pixel ID, template de mensagem WhatsApp. | ✅ Implementado |
@@ -86,6 +87,11 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 | Preview do template | Preview em tempo real com dados mockados na tela de configurações | ✅ Implementado |
 | Variáveis disponíveis | Chips clicáveis para inserir variáveis no template | ✅ Implementado |
 | Normalização do WhatsApp | Número normalizado com código do país (+55) no momento do checkout | ✅ Implementado |
+| Nome do cliente na sacola | Campo opcional "Seu nome (opcional)" (60 caracteres), que não entra no template da mensagem | ✅ Implementado |
+| Captura do pedido no banco | O pedido é gravado em `orders`/`order_items` antes do redirect: aba do WhatsApp pré-aberta no clique, timeout de 2500 ms e falha silenciosa (a venda nunca é bloqueada). Preço e total recalculados no servidor a partir de `products.price_cents`; idempotência por `client_order_id`. **Grava em qualquer plano, inclusive Free** | ✅ Implementado |
+| Histórico de pedidos no painel | `/painel/pedidos` — lista paginada (20/página) + detalhe com itens em snapshot (sobrevive à exclusão do produto), pagamento, entrega e total | ✅ Implementado |
+| Status da venda | `pendente` (padrão da captura) / `confirmado` / `cancelado`, com qualquer transição permitida; só os confirmados somam no faturamento do painel | ✅ Implementado |
+| Cards de ROI no dashboard | "Pedidos no mês" (não cancelados), "Vendas confirmadas no mês" (R$) e "Aguardando confirmação", com corte do mês no fuso `America/Sao_Paulo` | ✅ Implementado |
 
 ### 4.3 Planos e liberação de acesso
 
@@ -97,6 +103,7 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 | Liberação manual de Starter/Pro | Edição direta de `plan` e `trial_ends_at` na tabela `stores` pelo Supabase, após contato via WhatsApp | ✅ Implementado |
 | Rebaixamento automático ao expirar | Quando `trial_ends_at` de um Starter/Pro liberado manualmente passa, os limites efetivos caem para o Free — calculado a cada checagem (`getEffectivePlan()`), sem gravar nada no banco nem job agendado | ✅ Implementado |
 | Aviso de upgrade no painel | Lojas no plano efetivo Free veem um aviso no topo do painel com link para o WhatsApp | ✅ Implementado |
+| Histórico e ROI só a partir do Starter | Capability `hasOrderHistory` em `getPlanLimits()`: no plano efetivo Free, `/painel/pedidos` e os cards de ROI mostram o estado bloqueado (`RecursoBloqueado`) e o gate roda **antes da query**, sem nenhum dado real no HTML. A captura do pedido, ao contrário, grava em qualquer plano — ao subir para Starter o histórico já está cheio. Starter/Pro com `trial_ends_at` vencido caem no bloqueio automaticamente | ✅ Implementado |
 | Tela de escolha de plano | Removida — Starter/Pro só existem na landing, com CTA "Fale conosco" | ❌ Removido |
 | Loja oculta após expiração | Depende de `is_active`, não de `trial_ends_at` — segue funcionando para desativação manual | ✅ Implementado |
 | Integração de pagamento | Stripe ou Pagar.me — cobrança recorrente automática | ⏳ Pendente — retomado após a validação |
@@ -109,9 +116,9 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 
 | Funcionalidade | Motivo | Versão |
 |---|---|---|
-| Histórico de pedidos | Pedido vai pro WhatsApp — não é capturado no sistema | V2 |
-| Status da venda | Depende do histórico de pedidos | V2 |
-| Impressão de pedidos | Depende do histórico de pedidos | V2 |
+| Impressão / recibo de pedidos | O histórico já existe (§4.2); recibo imprimível é outro ciclo | V2 |
+| Exportação CSV do histórico | Ficou para o ciclo seguinte — neste ciclo o usuário priorizou o status da venda | V2 |
+| Notificação de novo pedido (e-mail/push) | Exige provedor de envio e configuração; não é necessário para provar o ROI | V2 |
 | Múltiplos usuários por loja | Complexidade de permissões desnecessária no MVP | V2 |
 | Domínio personalizado | DNS + SSL por tenant — infra adicional | V2 |
 | Analytics próprio no painel | GA já cobre no V1 | V2 |
@@ -124,6 +131,8 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 ## 6. Modelo de monetização
 
 > O Free não tem preço — é a porta de entrada padrão do cadastro. Starter e Pro ainda não têm preço fixo publicado: a landing mostra "Sob consulta" e a liberação é negociada manualmente pelo WhatsApp enquanto não há gateway de pagamento integrado.
+>
+> **Histórico de pedidos:** o pedido é gravado em qualquer plano, inclusive no Free — o que os planos pagos liberam é a **visualização** (histórico, detalhe, status e números de faturamento). Quem sobe do Free para o Starter encontra o histórico do período gratuito já preenchido.
 
 | | Free | Starter | Pro |
 |---|---|---|---|
@@ -131,6 +140,7 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 | Produtos | Até 8 | Até 30 | Ilimitados |
 | Categorias | 1 | Até 5 | Ilimitadas |
 | Fotos por produto | 1 | Até 3 | Até 5 |
+| Histórico de pedidos | — | Incluso | Incluso |
 | Personalização (cor + capa) | Incluso | Incluso | Incluso |
 | Mensagem de pedido customizada | Incluso | Incluso | Incluso |
 | Formas de pagamento/entrega | Incluso | Incluso | Incluso |
@@ -183,7 +193,8 @@ Olá! Gostaria de fazer um pedido:
 | Comportamento | Regra |
 |---|---|
 | Sacola | Persiste durante a navegação no catálogo. Badge atualiza em tempo real. |
-| Mensagem WhatsApp | Construída com todos os itens da sacola no template configurado. Sempre nova aba. |
+| Mensagem WhatsApp | Construída com todos os itens da sacola no template configurado. Nova aba pré-aberta no clique; se o navegador bloquear o pop-up, navega na aba atual. |
+| Captura do pedido | Nunca bloqueia a venda: a gravação tem timeout de 2500 ms e qualquer falha fica só no log do servidor — o WhatsApp abre do mesmo jeito, sem erro para o cliente. Valores nunca vêm do cliente: preço e total são recalculados a partir de `products.price_cents`. |
 | Produto esgotado | Oculto no catálogo público se `stock=0` OU `is_active=false` (RLS). No painel aparece com badge. |
 | Catálogo em uso | Público e ativo enquanto `is_active=true`, independente do plano. Loja no plano efetivo Free tem os limites de criação mais restritos, mas o catálogo já publicado continua no ar normalmente. |
 | Catálogo após expiração | Exibe `CatalogExpired` (página de expiração) quando `is_active=false`. Dados preservados. Não ocorre automaticamente — depende de desativação manual. |
