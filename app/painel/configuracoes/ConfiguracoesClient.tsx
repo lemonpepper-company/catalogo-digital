@@ -206,7 +206,7 @@ export function ConfiguracoesClient({
             Domínio próprio
           </h2>
           <p className="font-body text-[13px] text-graphite mb-4">
-            Acesse sua vitrine pelo seu próprio domínio em vez de catalogo.digital/{settings.slug}.
+            Acesse sua vitrine pelo seu próprio domínio em vez de {catalogLabel}.
           </p>
           <DominioField
             domain={dominio.domain}
