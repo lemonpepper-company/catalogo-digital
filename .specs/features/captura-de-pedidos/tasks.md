@@ -47,7 +47,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 | Quick | Depois de tasks com testes unitários | `npx vitest run` |
 | Full | Igual ao Quick (não há suíte e2e/integração no projeto) + `npm run lint` | `npx vitest run && npm run lint` |
 | Build | Fim de fase, tasks de migration/config/docs | `npm run build && npm run lint && npx vitest run` |
-| Migration | Task da migration SQL | `npx supabase db reset && npx supabase db lint --level warning` |
+| Migration | Task da migration SQL | `npx supabase migration up && npx supabase db lint --level warning` (não destrutivo — aplica só as migrations pendentes). `supabase db reset` **apaga os dados locais**: só com autorização explícita do usuário. Se o Docker/stack estiver parado, `npx supabase start` primeiro. |
 
 **Baseline medido em 27/07/2026 (antes da T1):** `npx vitest run` → **32 arquivos, 323 testes, todos verdes**. A suíte precisa continuar verde e nunca ficar abaixo de 323 testes.
 
@@ -112,7 +112,7 @@ T16 [P]
 - [ ] RLS habilitada nas duas tabelas; todas as policies criadas com `to authenticated`
 - [ ] `grant select on orders`, `grant update (status) on orders`, `grant select on order_items` para `authenticated`; nenhum `insert` concedido a `authenticated`/`anon`
 - [ ] `revoke all on orders from anon` e `revoke all on order_items from anon` presentes
-- [ ] Gate passa: `npx supabase db reset && npx supabase db lint --level warning`
+- [ ] Gate passa: `npx supabase migration up && npx supabase db lint --level warning` (sem `db reset` — dados locais preservados)
 
 **Tests**: none (gate de migration)
 **Gate**: migration
