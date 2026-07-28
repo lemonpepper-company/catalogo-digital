@@ -552,7 +552,7 @@ T16 [P]
 
 ---
 
-### T17: Capability `hasOrderHistory` nos limites de plano [P]
+### T17: Capability `hasOrderHistory` nos limites de plano [P] ✅
 
 **What**: adicionar a capability de histórico de pedidos a `PlanLimits` — `false` no Free, `true` em Starter e Pro.
 **Where**: `lib/plan-limits.ts`, `__tests__/plan-limits.test.ts`
@@ -565,17 +565,19 @@ T16 [P]
 - Skill: NONE
 
 **Done when**:
-- [ ] `PlanLimits.hasOrderHistory: boolean` adicionado; `FREE_LIMITS` `false`, `STARTER_LIMITS` e `PRO_LIMITS` `true`
-- [ ] `getPlanLimits("starter", <data vencida>).hasOrderHistory === false` (rebaixamento via `getEffectivePlan` — ORD-30)
-- [ ] `getPlanLimits("pro", null).hasOrderHistory === true`
-- [ ] Nenhuma mudança de comportamento em `maxProducts`/`maxCategories`/`maxPhotos` (testes existentes seguem verdes)
-- [ ] Gate passa: `npx vitest run`
-- [ ] Test count: ≥ 4 testes novos passando; nenhum teste existente removido
+- [x] `PlanLimits.hasOrderHistory: boolean` adicionado; `FREE_LIMITS` `false`, `STARTER_LIMITS` e `PRO_LIMITS` `true`
+- [x] `getPlanLimits("starter", <data vencida>).hasOrderHistory === false` (rebaixamento via `getEffectivePlan` — ORD-30)
+- [x] `getPlanLimits("pro", null).hasOrderHistory === true`
+- [x] Nenhuma mudança de comportamento em `maxProducts`/`maxCategories`/`maxPhotos` (testes existentes seguem verdes)
+- [x] Gate passa: `npx vitest run`
+- [x] Test count: ≥ 4 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: quick
 
 **Commit**: `feat(planos): adiciona capability de historico de pedidos aos limites de plano`
+
+**Status**: ✅ Complete — 6 testes novos (`__tests__/plan-limits.test.ts:78-101`). Suíte 323 → 329. Os 5 `toEqual` exaustivos existentes ganharam a chave nova (assertion segue exaustiva, não enfraquecida).
 
 ---
 

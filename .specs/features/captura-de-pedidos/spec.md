@@ -238,10 +238,10 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-24 | P1: Segurança (sem GRANT/policy para `anon`; RLS por dono; service role server-only) | Design | Implementing |
 | ORD-25 | P2: Landing (card de recurso + FAQ + planos) | Design | Pending |
 | ORD-26 | P2: Docs (ARCHITECTURE, Escopo) + política de privacidade | Design | Pending |
-| ORD-27 | P1: Planos pagos (captura grava em qualquer plano) | Design | Pending |
-| ORD-28 | P1: Planos pagos (histórico bloqueado no Free, sem dado real e sem query) | Design | Pending |
-| ORD-29 | P1: Planos pagos (cards de ROI bloqueados no Free) | Design | Pending |
-| ORD-30 | P1: Planos pagos (Starter/Pro liberam tudo; expiração rebaixa via `getEffectivePlan`) | Design | Pending |
+| ORD-27 | P1: Planos pagos (captura grava em qualquer plano) | Design | Implementing |
+| ORD-28 | P1: Planos pagos (histórico bloqueado no Free, sem dado real e sem query) | Design | Implementing |
+| ORD-29 | P1: Planos pagos (cards de ROI bloqueados no Free) | Design | Implementing |
+| ORD-30 | P1: Planos pagos (Starter/Pro liberam tudo; expiração rebaixa via `getEffectivePlan`) | Design | Implementing |
 
 **ID format:** `ORD-[NUMBER]`
 

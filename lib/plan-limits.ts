@@ -4,24 +4,28 @@ export interface PlanLimits {
   maxProducts: number;
   maxCategories: number;
   maxPhotos: number;
+  hasOrderHistory: boolean;
 }
 
 const FREE_LIMITS: PlanLimits = {
   maxProducts: 8,
   maxCategories: 1,
   maxPhotos: 1,
+  hasOrderHistory: false,
 };
 
 const STARTER_LIMITS: PlanLimits = {
   maxProducts: 30,
   maxCategories: 5,
   maxPhotos: 3,
+  hasOrderHistory: true,
 };
 
 const PRO_LIMITS: PlanLimits = {
   maxProducts: Infinity,
   maxCategories: Infinity,
   maxPhotos: 5,
+  hasOrderHistory: true,
 };
 
 function isPaidAccessExpired(trialEndsAt: string | null): boolean {
