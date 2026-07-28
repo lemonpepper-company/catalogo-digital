@@ -74,6 +74,56 @@ describe("BagDrawer — checkout (CAT-09)", () => {
   });
 });
 
+describe("BagDrawer — nome do cliente (ORD-09, ORD-11)", () => {
+  it("exibe o campo opcional de nome quando há itens na sacola", () => {
+    renderDrawer();
+    expect(screen.getByLabelText("Seu nome (opcional)")).toBeTruthy();
+  });
+
+  it("não exibe o campo de nome quando a sacola está vazia", () => {
+    render(
+      <BagDrawer
+        open
+        items={[]}
+        onClose={vi.fn()}
+        onQty={vi.fn()}
+        onRemove={vi.fn()}
+        onCheckout={vi.fn()}
+      />
+    );
+    expect(screen.queryByLabelText("Seu nome (opcional)")).toBeNull();
+  });
+
+  it("limita o campo de nome a 60 caracteres", () => {
+    renderDrawer();
+    const input = screen.getByLabelText("Seu nome (opcional)") as HTMLInputElement;
+    expect(input.maxLength).toBe(60);
+  });
+
+  it("aciona onCustomerNameChange com o valor digitado", () => {
+    const onCustomerNameChange = vi.fn();
+    renderDrawer({ onCustomerNameChange });
+    fireEvent.change(screen.getByLabelText("Seu nome (opcional)"), {
+      target: { value: "Ana" },
+    });
+    expect(onCustomerNameChange).toHaveBeenCalledWith("Ana");
+  });
+
+  it("reflete o customerName recebido por prop", () => {
+    renderDrawer({ customerName: "Ana Maria" });
+    const input = screen.getByLabelText("Seu nome (opcional)") as HTMLInputElement;
+    expect(input.value).toBe("Ana Maria");
+  });
+
+  it("mantém o botão de envio habilitado com o campo de nome vazio", () => {
+    const { onCheckout } = renderDrawer({ customerName: "" });
+    const btn = screen.getByRole("button", { name: /Enviar pedido via WhatsApp/i });
+    expect((btn as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(btn);
+    expect(onCheckout).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("BagDrawer — pagamento e entrega (novo)", () => {
   it("não mostra seletor de pagamento quando a loja não configurou nenhuma forma", () => {
     renderDrawer({ paymentMethods: [] });

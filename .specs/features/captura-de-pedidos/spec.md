@@ -220,9 +220,9 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-06 | P1: Pedido registrado (itens não resolvidos) | Design | Implementing |
 | ORD-07 | P1: Pedido registrado (validação e limites do payload) | Design | Implementing |
 | ORD-08 | P1: Pedido registrado (teto anti-abuso) | Design | Implementing |
-| ORD-09 | P1: Nome opcional (campo na sacola) | Design | Pending |
+| ORD-09 | P1: Nome opcional (campo na sacola) | Design | Implementing |
 | ORD-10 | P1: Nome opcional (trim + 60 chars / null) | Design | Implementing |
-| ORD-11 | P1: Nome opcional (nunca bloqueia checkout, template intacto) | Design | Pending |
+| ORD-11 | P1: Nome opcional (nunca bloqueia checkout, template intacto) | Design | Implementing |
 | ORD-12 | P1: Histórico (lista da própria loja, ordenada) | Design | Pending |
 | ORD-13 | P1: Histórico (paginação 20) | Design | Pending |
 | ORD-14 | P1: Histórico (detalhe do pedido com itens snapshot) | Design | Implementing |

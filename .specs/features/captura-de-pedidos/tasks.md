@@ -316,7 +316,7 @@ Além da lista de arquivos da task, por exigência do done-when de `tsc --noEmit
 
 ---
 
-### T8: Campo "Seu nome (opcional)" no `BagDrawer`
+### T8: Campo "Seu nome (opcional)" no `BagDrawer` ✅
 
 **What**: input opcional de nome na sacola, acima do botão de envio, sem afetar `canCheckout`.
 **Where**: `components/catalogo/BagDrawer.tsx`, `__tests__/BagDrawer.test.tsx`
@@ -329,18 +329,20 @@ Além da lista de arquivos da task, por exigência do done-when de `tsc --noEmit
 - Skill: NONE
 
 **Done when**:
-- [ ] Props novas `customerName?: string` e `onCustomerNameChange?: (v: string) => void`
-- [ ] Input com `aria-label` "Seu nome (opcional)", `maxLength={60}`, exibido apenas quando há itens (ORD-09)
-- [ ] Botão de envio permanece habilitado com o campo vazio (ORD-11)
-- [ ] Digitar no campo dispara `onCustomerNameChange` com o valor
-- [ ] Sem `box-shadow`, transições ≤ 200ms, tokens do design system (`docs/CONVENTIONS.md`)
-- [ ] Gate passa: `npx vitest run`
-- [ ] Test count: ≥ 4 testes novos passando; nenhum teste existente removido
+- [x] Props novas `customerName?: string` e `onCustomerNameChange?: (v: string) => void`
+- [x] Input com `aria-label` "Seu nome (opcional)", `maxLength={60}`, exibido apenas quando há itens (ORD-09)
+- [x] Botão de envio permanece habilitado com o campo vazio (ORD-11)
+- [x] Digitar no campo dispara `onCustomerNameChange` com o valor
+- [x] Sem `box-shadow`, transições ≤ 200ms, tokens do design system (`docs/CONVENTIONS.md`)
+- [x] Gate passa: `npx vitest run`
+- [x] Test count: ≥ 4 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: quick
 
 **Commit**: `feat(catalogo): adiciona campo opcional de nome do cliente na sacola`
+
+**Status**: ✅ Complete — 6 testes novos (`__tests__/BagDrawer.test.tsx:78-124`). Suíte 412 → 418. Input reaproveita as classes exatas do campo de endereço do próprio `BagDrawer` (sem `box-shadow`, `transition-colors`, tokens `border-sand`/`rounded-input`/`text-inactive`) e vive dentro do bloco `items.length > 0`, então o "exibido apenas quando há itens" sai da estrutura existente. Critério de design system verificado por inspeção (não é assertível em unit test).
 
 ---
 
