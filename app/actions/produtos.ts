@@ -341,13 +341,20 @@ export async function importProductsCsv(
   const { rows, headerError } = parseProductCsv(text);
   if (headerError) return { error: headerError };
 
-  const [{ count: productCount }, { data: existingCategories }] = await Promise.all([
+  const [
+    { count: productCount, error: productCountError },
+    { data: existingCategories, error: categoriesError },
+  ] = await Promise.all([
     supabase
       .from("products")
       .select("id", { count: "exact", head: true })
       .eq("store_id", store.id),
     supabase.from("categories").select("id, name").eq("store_id", store.id),
   ]);
+
+  if (productCountError || categoriesError) {
+    return { error: "Erro ao verificar limites do plano. Tente novamente." };
+  }
 
   let currentProductCount = productCount ?? 0;
   let currentCategoryCount = existingCategories?.length ?? 0;
@@ -359,8 +366,8 @@ export async function importProductsCsv(
   const errors: { line: number; reason: string }[] = [];
 
   for (let i = 0; i < rows.length; i++) {
-    const lineNumber = i + 2;
     const row = rows[i];
+    const lineNumber = row.line;
 
     if (!row.ok) {
       errors.push({ line: lineNumber, reason: row.reason });

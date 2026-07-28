@@ -14,8 +14,8 @@ export interface ParsedProductRow {
 }
 
 export type ProductRowResult =
-  | { ok: true; product: ParsedProductRow }
-  | { ok: false; reason: string };
+  | { ok: true; product: ParsedProductRow; line: number }
+  | { ok: false; reason: string; line: number };
 
 const REQUIRED_COLUMNS = ["nome", "preco"];
 
@@ -55,17 +55,17 @@ function parseRow(
   };
 
   const name = get("nome");
-  if (!name) return { ok: false, reason: `Linha ${lineNumber}: nome é obrigatório.` };
+  if (!name) return { ok: false, reason: `Linha ${lineNumber}: nome é obrigatório.`, line: lineNumber };
 
   const priceCents = parseReaisToCents(get("preco"));
   if (Number.isNaN(priceCents) || priceCents <= 0) {
-    return { ok: false, reason: `Linha ${lineNumber}: preço inválido.` };
+    return { ok: false, reason: `Linha ${lineNumber}: preço inválido.`, line: lineNumber };
   }
 
   const stockRaw = get("estoque");
   const stock = stockRaw === "" ? 0 : parseInt(stockRaw, 10);
   if (Number.isNaN(stock) || stock < 0) {
-    return { ok: false, reason: `Linha ${lineNumber}: estoque inválido.` };
+    return { ok: false, reason: `Linha ${lineNumber}: estoque inválido.`, line: lineNumber };
   }
 
   const sizes = get("tamanhos")
@@ -87,6 +87,7 @@ function parseRow(
       return {
         ok: false,
         reason: `Linha ${lineNumber}: cor "${colorName}" não reconhecida.`,
+        line: lineNumber,
       };
     }
     colors.push({ label: match.name, hex: match.hex });
@@ -103,5 +104,6 @@ function parseRow(
       colors,
       description: get("descricao") || null,
     },
+    line: lineNumber,
   };
 }

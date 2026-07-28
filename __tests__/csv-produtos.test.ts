@@ -28,19 +28,20 @@ describe("parseProductCsv", () => {
         ],
         description: "Peça básica",
       },
+      line: 2,
     });
   });
 
   it("nome vazio vira erro apontando a linha (2 = primeira linha de dados)", () => {
     const csv = `${HEADER}\n,"99,90",,,,`;
     const { rows } = parseProductCsv(csv);
-    expect(rows[0]).toEqual({ ok: false, reason: "Linha 2: nome é obrigatório." });
+    expect(rows[0]).toEqual({ ok: false, reason: "Linha 2: nome é obrigatório.", line: 2 });
   });
 
   it("preço inválido vira erro", () => {
     const csv = `${HEADER}\nVestido,"não é preço",,,,,`;
     const { rows } = parseProductCsv(csv);
-    expect(rows[0]).toEqual({ ok: false, reason: "Linha 2: preço inválido." });
+    expect(rows[0]).toEqual({ ok: false, reason: "Linha 2: preço inválido.", line: 2 });
   });
 
   it("cor não reconhecida vira erro nomeando a cor", () => {
@@ -49,6 +50,7 @@ describe("parseProductCsv", () => {
     expect(rows[0]).toEqual({
       ok: false,
       reason: 'Linha 2: cor "Verde-limão" não reconhecida.',
+      line: 2,
     });
   });
 
@@ -66,6 +68,7 @@ describe("parseProductCsv", () => {
         colors: [],
         description: null,
       },
+      line: 2,
     });
   });
 
@@ -83,6 +86,7 @@ describe("parseProductCsv", () => {
     expect(rows[0]).toEqual({
       ok: false,
       reason: "Linha 3: nome é obrigatório.",
+      line: 3,
     });
   });
 
@@ -93,6 +97,7 @@ describe("parseProductCsv", () => {
     expect(rows[0]).toEqual({
       ok: false,
       reason: "Linha 3: nome é obrigatório.",
+      line: 3,
     });
   });
 });
