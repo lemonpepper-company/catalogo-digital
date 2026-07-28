@@ -15,7 +15,9 @@ export function useDominio(settings: StoreSettings) {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const [state, formAction, pending] = useActionState<State, FormData>(
+  // O estado do useActionState não é consumido: o feedback ao lojista vem do
+  // toast disparado dentro da própria action abaixo.
+  const [, formAction, pending] = useActionState<State, FormData>(
     async (prev, formData) => {
       formData.set("customDomain", domain);
       const res = await updateCustomDomain(prev, formData);
@@ -26,5 +28,5 @@ export function useDominio(settings: StoreSettings) {
     null
   );
 
-  return { domain, setDomain, state, formAction, pending, toast };
+  return { domain, setDomain, formAction, pending, toast };
 }
