@@ -5,6 +5,7 @@ import {
   canDeleteCategory,
   storeSettingsSchema,
   personalizacaoSchema,
+  domainSchema,
 } from "@/lib/validation/painel";
 
 describe("productSchema", () => {
@@ -246,5 +247,49 @@ describe("personalizacaoSchema", () => {
     const r = personalizacaoSchema.safeParse({ accentColor: "xyz" });
     expect(r.success).toBe(false);
     if (!r.success) expect(r.error.issues[0].message).toBe("Cor inválida");
+  });
+});
+
+describe("domainSchema", () => {
+  it("aceita hostname simples com TLD de dois níveis", () => {
+    expect(domainSchema.safeParse("boutiquedaana.com.br").success).toBe(true);
+  });
+
+  it("aceita hostname com TLD simples", () => {
+    expect(domainSchema.safeParse("boutique.com").success).toBe(true);
+  });
+
+  it("aceita subdomínio", () => {
+    expect(domainSchema.safeParse("loja.boutique.com.br").success).toBe(true);
+  });
+
+  it("normaliza espaços e maiúsculas", () => {
+    const r = domainSchema.safeParse("  Boutique.COM.br  ");
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data).toBe("boutique.com.br");
+  });
+
+  it("aceita null", () => {
+    expect(domainSchema.safeParse(null).success).toBe(true);
+  });
+
+  it("rejeita URL com protocolo", () => {
+    expect(domainSchema.safeParse("https://boutique.com.br").success).toBe(false);
+  });
+
+  it("rejeita domínio com path", () => {
+    expect(domainSchema.safeParse("boutique.com.br/loja").success).toBe(false);
+  });
+
+  it("rejeita domínio com porta", () => {
+    expect(domainSchema.safeParse("boutique.com.br:8080").success).toBe(false);
+  });
+
+  it("rejeita hostname sem TLD", () => {
+    expect(domainSchema.safeParse("localhost").success).toBe(false);
+  });
+
+  it("rejeita string vazia", () => {
+    expect(domainSchema.safeParse("").success).toBe(false);
   });
 });

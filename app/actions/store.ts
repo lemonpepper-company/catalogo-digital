@@ -3,7 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
-import { storeSettingsSchema, personalizacaoSchema } from "@/lib/validation/painel";
+import { storeSettingsSchema, personalizacaoSchema, domainSchema } from "@/lib/validation/painel";
 import { uploadToBucket, deleteFromBucket } from "@/lib/server/upload";
 import { getPlanLimits } from "@/lib/plan-limits";
 import {
@@ -164,5 +164,52 @@ export async function updatePersonalizacao(
   revalidatePath("/painel/personalizacao");
   revalidatePath("/painel");
   revalidateTag(`catalog-${store.slug}`, { expire: 0 });
+  return { ok: true };
+}
+
+export async function updateCustomDomain(
+  prevState: StoreActionState,
+  formData: FormData
+): Promise<StoreActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado." };
+
+  const store = await getCurrentStore();
+  if (!store) return { error: "Loja não encontrada." };
+
+  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  if (!limits.customDomain) {
+    return { error: "Domínio próprio disponível apenas no plano Pro. Fale conosco para liberar." };
+  }
+
+  const raw = (formData.get("customDomain") as string) || "";
+  const parsed = domainSchema.safeParse(raw === "" ? null : raw);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const nextDomain = parsed.data;
+  // Qualquer mudança no domínio (incluindo remoção) zera a verificação — a
+  // ativação real é sempre manual, feita por você direto no Supabase depois
+  // de confirmar o DNS. Esta action NUNCA grava custom_domain_verified = true.
+  const domainChanged = nextDomain !== store.customDomain;
+
+  const { error } = await supabase
+    .from("stores")
+    .update({
+      custom_domain: nextDomain,
+      ...(domainChanged ? { custom_domain_verified: false } : {}),
+    })
+    .eq("id", store.id);
+
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "Esse domínio já está em uso por outra loja." };
+    }
+    return { error: "Erro ao salvar o domínio." };
+  }
+
+  revalidatePath("/painel/configuracoes");
   return { ok: true };
 }
