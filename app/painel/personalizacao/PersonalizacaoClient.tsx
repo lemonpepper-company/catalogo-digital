@@ -7,6 +7,7 @@ import { CorDestaqueFields } from "@/components/loja/CorDestaqueFields";
 import { CapaFields } from "@/components/loja/CapaFields";
 import { ThemeOptionsFields } from "@/components/painel/ThemeOptionsFields";
 import { cn } from "@/lib/utils";
+import { SECONDARY_COLOR_OPTIONS } from "@/lib/data";
 import type { StoreSettings } from "@/lib/types";
 import type { PlanLimits } from "@/lib/plan-limits";
 import { usePersonalizacao } from "./use-personalizacao";
@@ -62,12 +63,35 @@ export function PersonalizacaoClient({
                   · aplicada na categoria selecionada
                 </span>
               </label>
-              <input
-                type="color"
-                value={f.secondaryColor ?? "#000000"}
-                onChange={(e) => f.setSecondaryColor(e.target.value)}
-                className="h-11 w-20 rounded-btn border border-sand cursor-pointer"
-              />
+              <div className="flex items-center gap-3 flex-wrap">
+                {SECONDARY_COLOR_OPTIONS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => f.setSecondaryColor(c)}
+                    aria-label={c}
+                    className="w-10 h-10 rounded-full transition-all duration-200"
+                    style={{
+                      background: c,
+                      border:
+                        f.secondaryColor === c
+                          ? "2px solid var(--color-primary)"
+                          : "1px solid var(--color-border)",
+                      outline: f.secondaryColor === c ? "2px solid var(--color-bg)" : "none",
+                      outlineOffset: f.secondaryColor === c ? "-4px" : "0",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                ))}
+                <input
+                  type="color"
+                  value={f.secondaryColor ?? "#000000"}
+                  onChange={(e) => f.setSecondaryColor(e.target.value)}
+                  aria-label="Cor personalizada"
+                  title="Cor personalizada"
+                  className="h-10 w-10 rounded-full border border-sand cursor-pointer p-0.5"
+                />
+              </div>
             </div>
           )}
 
@@ -122,7 +146,9 @@ export function PersonalizacaoClient({
           </Button>
         </div>
 
-        {f.toast && <Toast msg={f.toast.msg} tone={f.toast.tone} />}
+        {f.toast && (
+          <Toast msg={f.toast.msg} tone={f.toast.tone} position="bottom-center" />
+        )}
       </form>
     </div>
   );
