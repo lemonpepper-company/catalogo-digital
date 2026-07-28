@@ -35,6 +35,7 @@ describe("getPlanLimits", () => {
       themeOptions: false,
       advancedTheme: false,
       gridDensity: false,
+      customDomain: false,
     });
   });
 
@@ -48,6 +49,7 @@ describe("getPlanLimits", () => {
       themeOptions: true,
       advancedTheme: false,
       gridDensity: true,
+      customDomain: false,
     });
   });
 
@@ -61,6 +63,7 @@ describe("getPlanLimits", () => {
       themeOptions: true,
       advancedTheme: true,
       gridDensity: true,
+      customDomain: true,
     });
   });
 
@@ -75,6 +78,7 @@ describe("getPlanLimits", () => {
       themeOptions: false,
       advancedTheme: false,
       gridDensity: false,
+      customDomain: false,
     });
   });
 
@@ -89,6 +93,7 @@ describe("getPlanLimits", () => {
       themeOptions: false,
       advancedTheme: false,
       gridDensity: false,
+      customDomain: false,
     });
   });
 });
@@ -152,5 +157,21 @@ describe("getPlanLimits — feature flags de personalização", () => {
     const limits = getPlanLimits("pro", past);
     expect(limits.themeOptions).toBe(false);
     expect(limits.maxFeaturedProducts).toBe(0);
+  });
+});
+
+describe("getPlanLimits — domínio próprio", () => {
+  it("free e starter não têm domínio próprio", () => {
+    expect(getPlanLimits("free", null).customDomain).toBe(false);
+    expect(getPlanLimits("starter", null).customDomain).toBe(false);
+  });
+
+  it("pro tem domínio próprio", () => {
+    expect(getPlanLimits("pro", null).customDomain).toBe(true);
+  });
+
+  it("pro com trial_ends_at expirado perde o domínio próprio (cai para Free)", () => {
+    const past = new Date(Date.now() - 86400000).toISOString();
+    expect(getPlanLimits("pro", past).customDomain).toBe(false);
   });
 });
