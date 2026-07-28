@@ -17,10 +17,11 @@
 ## Handoff snapshot
 
 - **Branch:** `feature/captura-de-pedidos` (criada a partir de `main` em cafaeab)
-- **Fase atual:** Execute concluído (T1–T17) + **iteração 1 de fix tasks concluída** (F1–F4, commits `d9a7f12`, `762a49f`, `e035b1b`, `2632d95`). Próximo passo: **re-dispatch do Verifier** (o relatório de 28/07/2026 em `.specs/features/captura-de-pedidos/validation.md` é o FAIL que originou as fixes; ele ainda não reflete as correções).
-- **Gates atuais:** 47 arquivos / **524 testes** verdes (baseline da validação era 500); lint em **17 erros = baseline** pré-existente; `npm run build` ok.
+- **Fase atual:** ✅ **Concluída e validada.** Execute (T1–T17) + iteração 1 de fix tasks (F1–F4) + **Verifier iteração 2 = PASS** (`2b3b75e`). Relatório: `.specs/features/captura-de-pedidos/validation.md` — 30/30 ACs com outcome batendo, 0 spec-precision gaps, sensor 10/10 mutações mortas, ORD-24 aprovada por introspecção real no Postgres. Próximo passo: revisar e abrir PR.
+- **Gates atuais:** 47 arquivos / **524 testes** verdes (baseline inicial era 323); lint em **17 erros = baseline** pré-existente (dívida separada, ver chip de tarefa); `npm run build` ok.
 - **Blocker do FAIL resolvido:** `service_role` sem DML — corrigido em `supabase/migrations/20260728000000_orders_service_role_grants.sql`, aplicado no banco local com `npx supabase migration up` (nenhum `db reset`). Checkout real gravou 1 pedido + itens com total do banco; reenvio da mesma sacola manteve 1 pedido; dados de teste removidos (`orders`/`order_items` em 0).
 - **Guarda de regressão nova:** passo `Check table privileges` em `.github/workflows/supabase-migrations-check.yml` — falha se o `service_role` perder privilégio ou o `anon` ganhar qualquer um em `orders`/`order_items`. Verificado que falha no estado anterior à migration.
 - **Mutantes M10–M14** (`lib/server/pedidos.ts`), antes 5/5 sobreviventes: agora **5/5 mortos** por `__tests__/server-pedidos.test.ts`.
-- **Ambiente:** `SUPABASE_SERVICE_ROLE_KEY` já no `.env.local` (usuário, 27/07/2026). Ainda falta configurar na Vercel antes do deploy.
+- **Ambiente:** `SUPABASE_SERVICE_ROLE_KEY` já no `.env.local` (usuário, 27/07/2026). ⏳ **Ainda falta cadastrar na Vercel** (valor de produção: Supabase Dashboard → Project Settings → API keys → `service_role`) — sem ela em produção a captura não grava, só loga.
+- **Não verificado pela validação (limites de ambiente):** painel autenticado em navegador real (exige senha do usuário), paginação com 21+ pedidos semeados, concorrência de dois clientes simultâneos, e o workflow do GitHub Actions executando de fato (dispara em `pull_request`; só a lógica SQL do passo novo foi validada localmente).
 - **Feature anterior (catalogo-publico):** concluída e validada — ver `.specs/features/catalogo-publico/validation.md`.
