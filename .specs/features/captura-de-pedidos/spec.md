@@ -213,19 +213,19 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
 | ORD-01 | P1: Pedido registrado (gravação + redirect sempre) | Design | Pending |
-| ORD-02 | P1: Pedido registrado (preço do banco) | Design | Pending |
+| ORD-02 | P1: Pedido registrado (preço do banco) | Design | Implementing |
 | ORD-03 | P1: Pedido registrado (timeout/falha silenciosa) | Design | Pending |
 | ORD-04 | P1: Pedido registrado (idempotência) | Design | Pending |
 | ORD-05 | P1: Pedido registrado (nova chave ao mudar sacola) | Design | Pending |
-| ORD-06 | P1: Pedido registrado (itens não resolvidos) | Design | Pending |
+| ORD-06 | P1: Pedido registrado (itens não resolvidos) | Design | Implementing |
 | ORD-07 | P1: Pedido registrado (validação e limites do payload) | Design | Pending |
 | ORD-08 | P1: Pedido registrado (teto anti-abuso) | Design | Pending |
 | ORD-09 | P1: Nome opcional (campo na sacola) | Design | Pending |
-| ORD-10 | P1: Nome opcional (trim + 60 chars / null) | Design | Pending |
+| ORD-10 | P1: Nome opcional (trim + 60 chars / null) | Design | Implementing |
 | ORD-11 | P1: Nome opcional (nunca bloqueia checkout, template intacto) | Design | Pending |
 | ORD-12 | P1: Histórico (lista da própria loja, ordenada) | Design | Pending |
 | ORD-13 | P1: Histórico (paginação 20) | Design | Pending |
-| ORD-14 | P1: Histórico (detalhe do pedido com itens snapshot) | Design | Pending |
+| ORD-14 | P1: Histórico (detalhe do pedido com itens snapshot) | Design | Implementing |
 | ORD-15 | P1: Histórico (estado vazio) | Design | Pending |
 | ORD-16 | P1: Histórico (rota protegida + navegação Sidebar/MobileTabBar) | Design | Pending |
 | ORD-17 | P1: ROI (card Pedidos no mês) | Design | Pending |
@@ -233,7 +233,7 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-19 | P1: ROI (card Aguardando confirmação) | Design | Pending |
 | ORD-20 | P1: ROI (zeros seguros, sem NaN) | Design | Pending |
 | ORD-21 | P2: Status (persistir e refletir) | Design | Pending |
-| ORD-22 | P2: Status (qualquer transição entre os 3; valor inválido rejeitado) | Design | Pending |
+| ORD-22 | P2: Status (qualquer transição entre os 3; valor inválido rejeitado) | Design | Implementing |
 | ORD-23 | P2: Status (isolamento por loja) | Design | Pending |
 | ORD-24 | P1: Segurança (sem GRANT/policy para `anon`; RLS por dono; service role server-only) | Design | Implementing |
 | ORD-25 | P2: Landing (card de recurso + FAQ + planos) | Design | Pending |

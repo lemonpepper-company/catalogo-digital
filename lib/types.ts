@@ -1,4 +1,5 @@
 import type { Plan } from "./plan-limits";
+import type { OrderStatus } from "./orders";
 
 export type { Plan };
 
@@ -77,6 +78,27 @@ export interface StoreProduct {
   stock: number;
   isActive: boolean;
   isNew: boolean;
+}
+
+export interface StoreOrderItem {
+  productName: string;
+  unitPriceCents: number;
+  qty: number;
+  size: string | null;
+  color: string | null;
+}
+
+export interface StoreOrder {
+  id: string;
+  createdAt: string;
+  customerName: string | null;
+  paymentMethod: string | null;
+  deliveryMethod: string | null;
+  deliveryAddress: string | null;
+  itemsCount: number;
+  totalCents: number;
+  status: OrderStatus;
+  items: StoreOrderItem[];
 }
 
 export interface StoreCategory {

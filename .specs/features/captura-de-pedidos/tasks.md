@@ -123,7 +123,7 @@ T16 [P]
 
 ---
 
-### T2: Módulo puro `lib/orders.ts` [P]
+### T2: Módulo puro `lib/orders.ts` [P] ✅
 
 **What**: constantes, status, sanitização do nome, resolução de itens com preço do banco, mapeamento de linha do banco para `StoreOrder` e gerador de `client_order_id`.
 **Where**: `lib/orders.ts` (novo), `lib/types.ts` (adiciona `StoreOrder`/`StoreOrderItem`), `__tests__/orders.test.ts` (novo)
@@ -136,18 +136,20 @@ T16 [P]
 - Skill: NONE
 
 **Done when**:
-- [ ] `ORDER_STATUSES`, `OrderStatus`, `isOrderStatus`, `MAX_ORDER_LINES`, `MAX_QTY`, `CUSTOMER_NAME_MAX` exportados
-- [ ] `sanitizeCustomerName` — trim, corta em 60, `""`/só-espaços/`null`/`undefined` → `null` (ORD-10)
-- [ ] `resolveOrderItems` — preço vem sempre da linha de produto; item sem produto correspondente é descartado; `totalCents` = Σ(unit × qty); `itemsCount` = Σ(qty); mesma combinação produto+tamanho+cor gera linhas distintas (ORD-02, ORD-06)
-- [ ] `mapOrderRow` converte linha do Supabase (snake_case + `order_items` aninhado) em `StoreOrder` (ORD-14)
-- [ ] `newClientOrderId` retorna uuid v4 válido usando `crypto.randomUUID` e mantém o formato quando `randomUUID` é indisponível
-- [ ] Gate passa: `npx vitest run`
-- [ ] Test count: ≥ 14 testes novos passando; nenhum teste existente removido
+- [x] `ORDER_STATUSES`, `OrderStatus`, `isOrderStatus`, `MAX_ORDER_LINES`, `MAX_QTY`, `CUSTOMER_NAME_MAX` exportados
+- [x] `sanitizeCustomerName` — trim, corta em 60, `""`/só-espaços/`null`/`undefined` → `null` (ORD-10)
+- [x] `resolveOrderItems` — preço vem sempre da linha de produto; item sem produto correspondente é descartado; `totalCents` = Σ(unit × qty); `itemsCount` = Σ(qty); mesma combinação produto+tamanho+cor gera linhas distintas (ORD-02, ORD-06)
+- [x] `mapOrderRow` converte linha do Supabase (snake_case + `order_items` aninhado) em `StoreOrder` (ORD-14)
+- [x] `newClientOrderId` retorna uuid v4 válido usando `crypto.randomUUID` e mantém o formato quando `randomUUID` é indisponível
+- [x] Gate passa: `npx vitest run`
+- [x] Test count: ≥ 14 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: quick
 
 **Commit**: `feat(orders): adiciona modulo puro de resolucao e mapeamento de pedidos`
+
+**Status**: ✅ Complete — 23 testes novos (`__tests__/orders.test.ts`). Suíte 329 → 352. Discriminador de ORD-02: o payload do teste `:79` carrega `unitPriceCents: 1` adulterado e a assertion exige `19900` do banco.
 
 ---
 
