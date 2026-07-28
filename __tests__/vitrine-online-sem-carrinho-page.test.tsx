@@ -6,7 +6,7 @@ import VitrineOnlineSemCarrinhoPage, {
 
 describe("VitrineOnlineSemCarrinhoPage", () => {
   it("tem metadata de SEO com title e description próprios", () => {
-    expect(metadata.title).toBe("Vitrine Online Sem Carrinho de Compras | Vtrine Digital");
+    expect(metadata.title).toBe("Vitrine Online Sem Carrinho de Compras");
     expect(metadata.description).toBeTruthy();
   });
 

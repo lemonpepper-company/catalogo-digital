@@ -4,7 +4,7 @@ import CatalogoDigitalGratisPage, { metadata } from "@/app/catalogo-digital-grat
 
 describe("CatalogoDigitalGratisPage", () => {
   it("tem metadata de SEO com title e description próprios", () => {
-    expect(metadata.title).toBe("Catálogo Digital Grátis — Crie o seu em minutos | Vtrine Digital");
+    expect(metadata.title).toBe("Catálogo Digital Grátis — Crie o seu em minutos");
     expect(metadata.description).toBeTruthy();
   });
 

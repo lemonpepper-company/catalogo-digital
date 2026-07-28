@@ -4,7 +4,7 @@ import VitrineDigitalPage, { metadata } from "@/app/vitrine-digital/page";
 
 describe("VitrineDigitalPage", () => {
   it("tem metadata de SEO com title e description próprios", () => {
-    expect(metadata.title).toBe("O que é Vitrine Digital? — Vtrine Digital");
+    expect(metadata.title).toBe("O que é Vitrine Digital?");
     expect(metadata.description).toBeTruthy();
   });
 

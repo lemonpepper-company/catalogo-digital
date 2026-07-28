@@ -4,7 +4,7 @@ import VenderPeloWhatsappPage, { metadata } from "@/app/vender-pelo-whatsapp/pag
 
 describe("VenderPeloWhatsappPage", () => {
   it("tem metadata de SEO com title e description próprios", () => {
-    expect(metadata.title).toBe("Como Vender Pelo WhatsApp de Forma Organizada | Vtrine Digital");
+    expect(metadata.title).toBe("Como Vender Pelo WhatsApp de Forma Organizada");
     expect(metadata.description).toBeTruthy();
   });
 
