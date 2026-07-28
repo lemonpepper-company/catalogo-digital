@@ -438,6 +438,7 @@ function FeaturedToggle({
       type="button"
       onClick={onToggle}
       aria-label={featured ? "Remover destaque" : "Destacar na vitrine"}
+      title={featured ? "Remover destaque" : "Destacar na vitrine"}
       className={cn(
         "h-8 w-8 flex items-center justify-center rounded-btn border",
         featured
@@ -462,6 +463,7 @@ function ProductActions({
       <Link
         href={editHref}
         aria-label="Editar"
+        title="Editar"
         className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-obsidian flex items-center justify-center hover:bg-surface-hover transition-colors"
       >
         <Pencil size={15} />
@@ -469,6 +471,7 @@ function ProductActions({
       <button
         onClick={onDelete}
         aria-label="Excluir"
+        title="Excluir"
         className="w-9 h-9 rounded-btn border border-sand/50 bg-transparent text-error flex items-center justify-center hover:bg-error-surface transition-colors"
       >
         <Trash2 size={15} />
