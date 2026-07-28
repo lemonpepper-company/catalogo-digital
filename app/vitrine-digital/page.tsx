@@ -12,6 +12,11 @@ export const metadata: Metadata = {
       "Vitrine digital é a loja online da sua marca, sem carrinho: o cliente vê os produtos e compra direto no WhatsApp. Veja como criar a sua grátis.",
     url: "/vitrine-digital",
   },
+  twitter: {
+    title: "O que é Vitrine Digital?",
+    description:
+      "Vitrine digital é a loja online da sua marca, sem carrinho: o cliente vê os produtos e compra direto no WhatsApp. Veja como criar a sua grátis.",
+  },
 };
 
 export default function VitrineDigitalPage() {

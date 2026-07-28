@@ -12,6 +12,11 @@ export const metadata: Metadata = {
       "Link na bio genérico não vende. Troque por uma vitrine com produtos, preços e fotos — o cliente compra direto pelo WhatsApp, sem sair do link.",
     url: "/alternativa-linktree-para-vender",
   },
+  twitter: {
+    title: "Alternativa ao Linktree Pra Vender Produtos",
+    description:
+      "Link na bio genérico não vende. Troque por uma vitrine com produtos, preços e fotos — o cliente compra direto pelo WhatsApp, sem sair do link.",
+  },
 };
 
 export default function AlternativaLinktreeParaVenderPage() {
