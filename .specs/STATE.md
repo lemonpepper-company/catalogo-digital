@@ -12,12 +12,13 @@
 - **AD-008** — A captura do pedido nunca bloqueia a venda: aba do WhatsApp é pré-aberta no clique e a gravação corre num `Promise.race` com timeout de 2500 ms; falha/timeout → abre o WhatsApp e loga o erro no servidor. (feature: captura-de-pedidos)
 - **AD-009** — Valor do pedido é sempre recalculado a partir de `products.price_cents` no servidor; nenhum campo monetário do cliente é aceito. Itens são gravados com snapshot (`product_name`, `unit_price_cents`) e `product_id` com `on delete set null`. (feature: captura-de-pedidos)
 - **AD-010** — Status da venda tem três estados (`pendente` default, `confirmado`, `cancelado`) com transição livre entre eles (correção sempre possível); faturamento do dashboard conta só `confirmado`, e `cancelado` sai também da contagem de pedidos do mês. (feature: captura-de-pedidos)
+- **AD-011** — Histórico de pedidos e cards de ROI são recurso de **Starter/Pro**: plano efetivo `free` vê estado bloqueado (sem número real, sem query executada), com CTA de WhatsApp no padrão do banner de `app/painel/layout.tsx`. A **captura grava em qualquer plano** — ao subir de plano o histórico já está pronto. Gate via nova capability `hasOrderHistory` em `lib/plan-limits.ts`. (feature: captura-de-pedidos)
 
 ## Handoff snapshot
 
 - **Branch:** `feature/captura-de-pedidos` (criada a partir de `main` em cafaeab)
 - **Fase atual:** Specify + Design + Tasks concluídos (`.specs/features/captura-de-pedidos/`). Aguardando aprovação do usuário para o Execute.
 - **Baseline de testes:** 32 arquivos / 323 testes verdes em 27/07/2026.
-- **Plano:** 16 tasks em 4 fases (fundação de schema/módulos puros → captura no catálogo → painel/histórico/status/ROI → landing e docs).
-- **Bloqueio de ambiente:** `SUPABASE_SERVICE_ROLE_KEY` precisa ser adicionada pelo usuário em `.env.local` (`supabase status`) e depois na Vercel; sem ela a captura simplesmente não grava.
+- **Plano:** 17 tasks em 4 fases (fundação de schema/módulos puros/gate de plano → captura no catálogo → painel/histórico/status/ROI → landing e docs). 30 requisitos (ORD-01..30).
+- **Ambiente:** `SUPABASE_SERVICE_ROLE_KEY` **já adicionada** ao `.env.local` pelo usuário em 27/07/2026. Ainda falta configurar na Vercel antes do deploy.
 - **Feature anterior (catalogo-publico):** concluída e validada — ver `.specs/features/catalogo-publico/validation.md`.

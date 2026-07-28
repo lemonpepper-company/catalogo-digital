@@ -19,7 +19,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 | Code Layer | Required Test Type | Coverage Expectation | Location Pattern | Run Command |
 |---|---|---|---|---|
-| Módulos puros de domínio (`lib/orders.ts`, `lib/order-metrics.ts`) | unit | Todos os branches; 1:1 com as ACs da spec; toda edge case listada | `__tests__/*.test.ts` | `npx vitest run` |
+| Módulos puros de domínio (`lib/orders.ts`, `lib/order-metrics.ts`, `lib/plan-limits.ts`) | unit | Todos os branches; 1:1 com as ACs da spec; toda edge case listada | `__tests__/*.test.ts` | `npx vitest run` |
 | Schemas zod (`lib/validation/pedido.ts`) | unit | Aceita payload válido + rejeita cada regra (uuid, ≤20 linhas, qty, enums) | `__tests__/*.test.ts` | `npx vitest run` |
 | Server Actions (`app/actions/pedidos.ts`) | unit (Supabase mockado, padrão de `__tests__/slug-check-route.test.ts`) | Happy path + cada caminho de erro/rejeição da spec | `__tests__/*.test.ts` | `npx vitest run` |
 | Hooks (`use-catalogo`, `use-pedidos`, `use-dashboard`) | unit | Todo comportamento observável das ACs (inclui timeout, falha e pop-up bloqueado) | `__tests__/*.test.ts` | `npx vitest run` |
@@ -55,13 +55,15 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 ## Execution Plan
 
-### Phase 1: Fundação — schema e módulos puros (T1 sequencial, T2–T5 order-free)
+### Phase 1: Fundação — schema, módulos puros e gate de plano (T1 sequencial, T2–T5/T7/T17 order-free)
 
 ```
 T1 ──┬→ T2 [P]
      ├→ T3 [P]
      ├→ T4 [P]
-     └→ T5 [P]
+     ├→ T5 [P]
+     └→ T7 [P]
+T17 [P]
 ```
 
 ### Phase 2: Captura no catálogo público
@@ -71,11 +73,12 @@ T2, T4, T5 ──→ T6 ──→ T9
 T7 ──→ T8 ──→ T9
 ```
 
-### Phase 3: Painel — histórico, status e ROI
+### Phase 3: Painel — histórico, status, ROI e gate de plano
 
 ```
 T2, T3 ──→ T10 ──→ T11 ──→ T12
-T10 ──→ T14
+T10, T17 ──→ T14
+T17 ──→ T11
 T13 [P]
 ```
 
@@ -373,13 +376,13 @@ T16 [P]
 
 ---
 
-### T11: Tela `/painel/pedidos` (lista + detalhe)
+### T11: Tela `/painel/pedidos` (lista + detalhe + gate de plano)
 
-**What**: rota do histórico com lista paginada, `Modal` de detalhe e estado vazio.
-**Where**: `app/painel/pedidos/page.tsx`, `app/painel/pedidos/PedidosClient.tsx`, `app/painel/pedidos/use-pedidos.ts`, `app/painel/pedidos/loading.tsx` (novos), `__tests__/PedidosClient.test.tsx` (novo)
-**Depends on**: T10
-**Reuses**: estrutura de `app/painel/produtos/` (page sem lógica + client + hook + loading), `Card`, `Modal`, `Pagination`, `Badge`, `formatCents`, `formatPaymentLine`/`formatDeliveryLine`
-**Requirement**: ORD-12, ORD-13, ORD-14, ORD-15
+**What**: rota do histórico com lista paginada, `Modal` de detalhe, estado vazio e estado bloqueado para o plano Free.
+**Where**: `app/painel/pedidos/page.tsx`, `app/painel/pedidos/PedidosClient.tsx`, `app/painel/pedidos/use-pedidos.ts`, `app/painel/pedidos/loading.tsx`, `components/painel/RecursoBloqueado.tsx` (novos), `__tests__/PedidosClient.test.tsx`, `__tests__/RecursoBloqueado.test.tsx` (novos)
+**Depends on**: T10, T17
+**Reuses**: estrutura de `app/painel/produtos/` (page sem lógica + client + hook + loading), `Card`, `Modal`, `Pagination`, `Badge`, `formatCents`, `formatPaymentLine`/`formatDeliveryLine`, texto/estilo do banner de upgrade em `app/painel/layout.tsx:31`, `VTRINE_WHATSAPP_NUMBER` de `lib/contact.ts`
+**Requirement**: ORD-12, ORD-13, ORD-14, ORD-15, ORD-28, ORD-30
 
 **Tools**:
 - MCP: NONE
@@ -392,8 +395,11 @@ T16 [P]
 - [ ] Detalhe (Modal) mostra cada item com nome, tamanho, cor, qtd, unitário e subtotal, mais pagamento, entrega + endereço quando `entrega`, total e status (ORD-14)
 - [ ] Zero pedidos → estado vazio explicando que os pedidos aparecem quando um cliente envia a sacola (ORD-15)
 - [ ] Item com `productName` de produto já excluído continua sendo exibido (snapshot — ORD-14/AC7)
+- [ ] `hasOrderHistory === false` → a `page.tsx` renderiza `RecursoBloqueado` e **não chama** `getStoreOrders` (ORD-28)
+- [ ] `RecursoBloqueado` não recebe nenhum pedido/contagem/total como prop e não exibe número real (ORD-28)
+- [ ] `hasOrderHistory === true` → lista e detalhe funcionam integralmente (ORD-30)
 - [ ] Gate passa: `npx vitest run && npm run lint`
-- [ ] Test count: ≥ 8 testes novos passando; nenhum teste existente removido
+- [ ] Test count: ≥ 11 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: full
@@ -407,8 +413,8 @@ T16 [P]
 **What**: Server Action `updateOrderStatus` + controles no detalhe do pedido.
 **Where**: `app/actions/pedidos.ts` (estende), `app/painel/pedidos/PedidosClient.tsx` + `use-pedidos.ts` (estende), `__tests__/update-order-status.test.ts` (novo), `__tests__/PedidosClient.test.tsx` (estende)
 **Depends on**: T11
-**Reuses**: padrão `useActionState` de `docs/CONVENTIONS.md`; `isOrderStatus` de T2; `Toast`
-**Requirement**: ORD-21, ORD-22, ORD-23
+**Reuses**: padrão `useActionState` de `docs/CONVENTIONS.md`; `isOrderStatus` de T2; `getPlanLimits` de T17; `Toast`
+**Requirement**: ORD-21, ORD-22, ORD-23, ORD-28
 
 **Tools**:
 - MCP: NONE
@@ -416,6 +422,7 @@ T16 [P]
 
 **Done when**:
 - [ ] Action valida sessão (`getUser`) e loja (`getCurrentStore`), aplica `.eq("id", …).eq("store_id", store.id)` e atualiza só a coluna `status` (ORD-21, ORD-23)
+- [ ] Action exige `getPlanLimits(store.plan, store.trialEndsAt).hasOrderHistory` — plano efetivo Free → `{ error }` sem escrita (ORD-28)
 - [ ] Qualquer um dos três status é aceito a partir de qualquer status atual (ORD-22)
 - [ ] Status fora do enum → `{ error: "Status inválido." }` e nenhuma escrita (ORD-22)
 - [ ] Pedido de outra loja (0 linhas afetadas) → `{ error }` (ORD-23)
@@ -462,9 +469,9 @@ T16 [P]
 
 **What**: segunda linha de `StatCard` com pedidos do mês, vendas confirmadas do mês e pendentes, mais link "Ver pedidos".
 **Where**: `app/painel/page.tsx`, `app/painel/DashboardClient.tsx`, `app/painel/use-dashboard.ts`, `__tests__/DashboardClient.test.tsx` (novo)
-**Depends on**: T10
-**Reuses**: `StatCard`, `formatCents`, `getOrderMetrics` de T10
-**Requirement**: ORD-17, ORD-18, ORD-19, ORD-20
+**Depends on**: T10, T17
+**Reuses**: `StatCard`, `formatCents`, `getOrderMetrics` de T10, `RecursoBloqueado` de T11, `getPlanLimits` de T17
+**Requirement**: ORD-17, ORD-18, ORD-19, ORD-20, ORD-29, ORD-30
 
 **Tools**:
 - MCP: NONE
@@ -477,8 +484,10 @@ T16 [P]
 - [ ] Card "Aguardando confirmação" com `metrics.pendingCount` (ORD-19)
 - [ ] Métricas zeradas renderizam `0` e `R$ 0,00` (ORD-20)
 - [ ] Link "Ver pedidos" → `/painel/pedidos`
+- [ ] `hasOrderHistory === false` → `page.tsx` **não chama** `getOrderMetrics`, passa `metrics: null` e o client mostra o aviso de upgrade no lugar dos três cards; os cards de produtos seguem intactos (ORD-29)
+- [ ] Nenhum número real de pedido/faturamento no HTML quando o plano efetivo é Free (ORD-29)
 - [ ] Gate passa: `npx vitest run && npm run lint`
-- [ ] Test count: ≥ 5 testes novos passando; nenhum teste existente removido
+- [ ] Test count: ≥ 7 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: full
@@ -500,12 +509,12 @@ T16 [P]
 - Skill: NONE
 
 **Done when**:
-- [ ] `features` ganha o card "Histórico de pedidos" (ícone `Receipt`/`ClipboardList`, texto sobre pedido registrado com itens e total)
-- [ ] `faqs` ganha a pergunta sobre o pedido ficar registrado no painel mesmo indo para o WhatsApp, deixando claro que não há checkout/pagamento no site
-- [ ] "Histórico de pedidos" presente em `freeFeatures`, `starterFeatures` e `proFeatures`
-- [ ] Testes verificam a presença nos quatro arrays (ORD-25)
+- [ ] `features` ganha o card "Histórico de pedidos" (ícone `Receipt`/`ClipboardList`, texto sobre pedido registrado com itens e total, deixando claro que é recurso dos planos pagos)
+- [ ] `faqs` ganha a pergunta sobre o pedido ficar registrado no painel mesmo indo para o WhatsApp, deixando claro que não há checkout/pagamento no site e que o histórico começa no Starter
+- [ ] "Histórico de pedidos" presente em `starterFeatures` e `proFeatures` e **ausente** de `freeFeatures` (ORD-25)
+- [ ] Testes verificam presença em Starter/Pro, ausência no Free, e a existência do card e do FAQ (ORD-25)
 - [ ] Gate passa: `npx vitest run`
-- [ ] Test count: ≥ 4 testes novos passando; nenhum teste existente removido
+- [ ] Test count: ≥ 5 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: quick
@@ -529,7 +538,7 @@ T16 [P]
 **Done when**:
 - [ ] Política de privacidade menciona que itens, total e nome informado no pedido são armazenados e ficam visíveis ao lojista
 - [ ] `docs/ARCHITECTURE.md`: schema com `orders`/`order_items`, rota `/painel/pedidos`, arquivos novos na tabela, bloco de env com `SUPABASE_SERVICE_ROLE_KEY` (server-only) e "Estado atual" atualizado
-- [ ] `docs/roadmap/Escopo.md`: §4.2 ganha as linhas de captura/histórico/status como implementadas; §5 deixa de listar "Histórico de pedidos"/"Status da venda" como V2 (impressão e CSV permanecem V2)
+- [ ] `docs/roadmap/Escopo.md`: §4.2 ganha as linhas de captura/histórico/status como implementadas; §5 deixa de listar "Histórico de pedidos"/"Status da venda" como V2 (impressão e CSV permanecem V2); §6 (tabela de monetização) ganha a linha "Histórico de pedidos" com Free `—` e Starter/Pro `Incluso`; §4.3 registra o gate por plano
 - [ ] `AGENTS.md`: cuidado crítico registrando que `orders`/`order_items` nunca recebem grant para `anon`
 - [ ] Gate passa: `npm run build && npm run lint && npx vitest run`
 - [ ] Test count: baseline mantido; nenhum teste existente removido
@@ -538,6 +547,33 @@ T16 [P]
 **Gate**: build
 
 **Commit**: `docs: registra captura de pedidos na arquitetura, escopo e politica de privacidade`
+
+---
+
+### T17: Capability `hasOrderHistory` nos limites de plano [P]
+
+**What**: adicionar a capability de histórico de pedidos a `PlanLimits` — `false` no Free, `true` em Starter e Pro.
+**Where**: `lib/plan-limits.ts`, `__tests__/plan-limits.test.ts`
+**Depends on**: None
+**Reuses**: `PlanLimits`, `getPlanLimits` e `getEffectivePlan` já existentes (rebaixamento por `trial_ends_at` sai de graça)
+**Requirement**: ORD-27, ORD-28, ORD-29, ORD-30
+
+**Tools**:
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+- [ ] `PlanLimits.hasOrderHistory: boolean` adicionado; `FREE_LIMITS` `false`, `STARTER_LIMITS` e `PRO_LIMITS` `true`
+- [ ] `getPlanLimits("starter", <data vencida>).hasOrderHistory === false` (rebaixamento via `getEffectivePlan` — ORD-30)
+- [ ] `getPlanLimits("pro", null).hasOrderHistory === true`
+- [ ] Nenhuma mudança de comportamento em `maxProducts`/`maxCategories`/`maxPhotos` (testes existentes seguem verdes)
+- [ ] Gate passa: `npx vitest run`
+- [ ] Test count: ≥ 4 testes novos passando; nenhum teste existente removido
+
+**Tests**: unit
+**Gate**: quick
+
+**Commit**: `feat(planos): adiciona capability de historico de pedidos aos limites de plano`
 
 ---
 
@@ -550,14 +586,16 @@ Phase 1:
        ├── T4 [P]
        ├── T5 [P]
        └── T7 [P]
+  T17 [P]  (independente de T1)
 
 Phase 2:
   T2, T4, T5 ──→ T6 ─┐
   T7 ──→ T8 ─────────┴──→ T9
 
 Phase 3:
-  T2, T3 ──→ T10 ──→ T11 ──→ T12
-                 └──→ T14
+  T2, T3 ──→ T10 ─┬─→ T11 ──→ T12
+                  └─→ T14
+  T17 ────────────┴─→ T11, T14
   T13 [P]
 
 Phase 4:
@@ -589,6 +627,7 @@ Phase 4:
 | T14: cards de ROI | 1 seção do dashboard | ✅ Granular |
 | T15: landing | 1 arquivo de dados | ✅ Granular |
 | T16: docs + política | Conteúdo, sem lógica | ✅ Granular |
+| T17: capability de plano | 1 campo + 3 constantes no mesmo arquivo | ✅ Granular |
 
 ---
 
@@ -606,12 +645,13 @@ Phase 4:
 | T8 | T7 | T7 → T8 | ✅ Match |
 | T9 | T6, T8 | T6, T8 → T9 | ✅ Match |
 | T10 | T2, T3 | T2, T3 → T10 | ✅ Match |
-| T11 | T10 | T10 → T11 | ✅ Match |
+| T11 | T10, T17 | T10 → T11, T17 → T11 | ✅ Match |
 | T12 | T11 | T11 → T12 | ✅ Match |
 | T13 | T1 | T13 [P] (sem seta de entrada além de T1, satisfeita na Phase 1) | ✅ Match |
-| T14 | T10 | T10 → T14 | ✅ Match |
+| T14 | T10, T17 | T10 → T14, T17 → T14 | ✅ Match |
 | T15 | None | T15 [P] | ✅ Match |
 | T16 | None | T16 [P] | ✅ Match |
+| T17 | None | T17 [P] na Phase 1 | ✅ Match |
 
 ---
 
@@ -635,24 +675,21 @@ Phase 4:
 | T14 | Server Component + componente client + hook | unit | unit | ✅ OK |
 | T15 | Dados de conteúdo | unit | unit | ✅ OK |
 | T16 | Docs + conteúdo estático de página | none | none | ✅ OK |
+| T17 | Módulo puro de domínio (`lib/plan-limits.ts`) | unit | unit | ✅ OK |
 
 ---
 
-## Pré-requisito de ambiente (bloqueia T6 em runtime, não a implementação)
+## Pré-requisito de ambiente
 
-`SUPABASE_SERVICE_ROLE_KEY` precisa existir em `.env.local` (e depois na Vercel). O arquivo `.env.local` é protegido pelo hook `.claude/hooks/protect-env.sh` — **o usuário adiciona a variável**. Chave local: `supabase status` → campo `service_role key`.
+`SUPABASE_SERVICE_ROLE_KEY` — ✅ **adicionada ao `.env.local` pelo usuário em 27/07/2026** (valor de `supabase status -o env | grep SERVICE_ROLE_KEY`). O arquivo é protegido pelo hook `.claude/hooks/protect-env.sh`, então a variável é sempre responsabilidade do usuário.
 
-```bash
-supabase status
-```
-
-Sem a variável, o catálogo continua funcionando e a captura simplesmente não grava (retorna `{ ok: false }` e loga) — comportamento coberto pela AC de ORD-03.
+⏳ **Pendente para o deploy:** cadastrar a mesma variável (com o valor de produção, do Supabase Dashboard → Project Settings → API keys → `service_role`) nas env vars da Vercel. Sem ela em produção, o catálogo continua funcionando e a captura só não grava (`{ ok: false }` + log) — comportamento coberto pela AC de ORD-03.
 
 ---
 
 ## Requirement Coverage
 
-26 requisitos, 26 mapeados para tasks, 0 sem mapeamento.
+30 requisitos, 30 mapeados para tasks, 0 sem mapeamento.
 
 | Requirement | Tasks |
 |---|---|
@@ -672,6 +709,10 @@ Sem a variável, o catálogo continua funcionando e a captura simplesmente não 
 | ORD-14 | T2, T11 |
 | ORD-15 | T11 |
 | ORD-16 | T13 |
+| ORD-27 | T17 (garantido por ausência de checagem de plano em T6) |
+| ORD-28 | T11, T12, T17 |
+| ORD-29 | T14, T17 |
+| ORD-30 | T11, T14, T17 |
 | ORD-17 | T3, T10, T14 |
 | ORD-18 | T3, T10, T14 |
 | ORD-19 | T3, T10, T14 |

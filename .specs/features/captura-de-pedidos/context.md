@@ -42,6 +42,16 @@ Interceptar o payload que o `BagDrawer` já monta no checkout, gravar o pedido (
 - Status: `pendente` (default na captura) / `confirmado` / `cancelado`; qualquer transição entre os três é permitida para permitir correção.
 - Item "Pedidos" no Sidebar e no MobileTabBar.
 
+### Gating por plano (decidido em 27/07/2026, depois da primeira rodada)
+
+- Histórico e cards de ROI: **só a partir do Starter**. Free vê bloqueio.
+- **A captura grava em qualquer plano**, inclusive Free — quando o lojista sobe para Starter, o histórico já está cheio e serve de argumento imediato.
+- Estado bloqueado: item "Pedidos" continua na navegação em todos os planos; a tela e os cards mostram bloqueio **sem número real** (nenhuma contagem, nenhum total), no padrão do banner de upgrade de `app/painel/layout.tsx:31` (texto + "Falar no WhatsApp →").
+- A página do Free **não executa a query** de pedidos — o gate acontece antes do I/O, para nada do histórico chegar ao HTML.
+- Gate calculado com `getEffectivePlan(store.plan, store.trialEndsAt)`: Starter/Pro com `trial_ends_at` vencido cai automaticamente para o bloqueio.
+- Capability nova em `lib/plan-limits.ts` (`hasOrderHistory`), na mesma estrutura de `PlanLimits` já usada por produtos/categorias/fotos.
+- Landing: "Histórico de pedidos" entra em Starter e Pro, **fora** do Free.
+
 ### Agent's Discretion
 
 - Forma exata do detalhe do pedido (modal vs. linha expansível), micro-layout dos cards, ícone do item de navegação, texto dos estados vazios — seguindo `docs/DESIGN_SYSTEM.md` e reutilizando `Modal`/`Pagination`/`StatCard` existentes.
@@ -52,7 +62,6 @@ Interceptar o payload que o `BagDrawer` já monta no checkout, gravar o pedido (
 
 Registrados na tabela **Assumptions & Open Questions** da spec com o default do agente e a justificativa:
 
-- Disponibilidade por plano (default: todos os planos, inclusive Free)
 - Divergência de preço entre sacola e banco (default: banco vence)
 - Item cujo produto não resolve (default: descarta o item, grava o resto; nenhum item resolvido → não grava)
 - Chave de idempotência regenerada a cada mudança da sacola

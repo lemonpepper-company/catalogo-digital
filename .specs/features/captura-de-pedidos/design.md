@@ -10,7 +10,7 @@
 
 O checkout deixa de ser "monta mensagem → abre `wa.me`" e passa a ser "monta mensagem → **pré-abre a aba** → tenta gravar (≤2500 ms) → aponta a aba para `wa.me`". A gravação roda numa Server Action pública que **não confia em nada** do cliente: recebe slug, `client_order_id`, itens (id + variação + qtd) e o nome opcional; resolve os produtos no banco, recalcula preços e total, e grava com a **service role** (server-only). Nenhum caminho de erro da gravação bloqueia o redirect.
 
-No painel, duas leituras novas (histórico paginado e métricas do mês) usam o client autenticado normal, protegidas por RLS por dono da loja.
+No painel, duas leituras novas (histórico paginado e métricas do mês) usam o client autenticado normal, protegidas por RLS por dono da loja — e **atrás de um gate de plano**: `getPlanLimits(...).hasOrderHistory` decide se a página busca dados ou renderiza o estado bloqueado. A captura, ao contrário, é indiferente ao plano: grava sempre, para que o upgrade encontre o histórico pronto.
 
 ```mermaid
 graph TD
@@ -28,9 +28,13 @@ graph TD
     L --> M["aba.location.href = wa.me/...<br/>(fallback: window.location.href)"]
     K -.->|"sucesso ou falha — irrelevante p/ o redirect"| L
 
-    N["Lojista /painel/pedidos"] --> O["lib/server/pedidos.ts<br/>getStoreOrders(page)"]
+    N["Lojista /painel/pedidos"] --> N1{"getPlanLimits().hasOrderHistory<br/>(getEffectivePlan)"}
+    N1 -->|"free → bloqueio"| N2["Estado bloqueado<br/>sem query, sem numero real"]
+    N1 -->|"starter/pro"| O["lib/server/pedidos.ts<br/>getStoreOrders(page)"]
     O --> P["RLS: orders/order_items<br/>só da própria loja"]
-    Q["Lojista /painel"] --> R["getOrderMetrics()<br/>+ lib/order-metrics.ts (puro)"]
+    Q["Lojista /painel"] --> Q1{"hasOrderHistory?"}
+    Q1 -->|"free"| Q2["Aviso de upgrade<br/>no lugar dos cards"]
+    Q1 -->|"starter/pro"| R["getOrderMetrics()<br/>+ lib/order-metrics.ts (puro)"]
     S["Muda status no detalhe"] --> T["updateOrderStatus (Server Action)<br/>revalidatePath /painel + /painel/pedidos"]
 ```
 
@@ -164,11 +168,24 @@ Fora isso, a única alternativa relevante era o "fire-and-forget" (abrir o Whats
 - **Interfaces**: `page.tsx` passa `metrics: OrderMetrics`; `DashboardClient` renderiza uma segunda linha de `StatCard` ("Pedidos no mês", "Vendas confirmadas no mês", "Aguardando confirmação") e um link "Ver pedidos".
 - **Reuses**: `StatCard`, `formatCents`.
 
+### Gate de plano (`hasOrderHistory`)
+
+- **Purpose**: decidir, num único lugar, se a loja tem direito a ver histórico e métricas.
+- **Location**: `lib/plan-limits.ts` (estende `PlanLimits`)
+- **Interfaces**: `PlanLimits.hasOrderHistory: boolean` — `false` no Free, `true` em Starter e Pro; resolvido por `getPlanLimits(plan, trialEndsAt)`, que já passa por `getEffectivePlan()`.
+- **Dependencies**: nenhuma nova.
+- **Reuses**: exatamente a estrutura que já entrega `maxProducts`/`maxCategories`/`maxPhotos`, incluindo o rebaixamento automático quando `trial_ends_at` vence.
+- **Consumo**:
+  - `app/painel/pedidos/page.tsx` — `false` → renderiza `PedidosBloqueado` e **não chama** `getStoreOrders` (nenhum dado no HTML).
+  - `app/painel/page.tsx` — `false` → não chama `getOrderMetrics`; o `DashboardClient` recebe `metrics: null` e mostra o aviso de upgrade no lugar dos três cards.
+  - `app/actions/pedidos.ts` — `registrarPedido` **não** consulta plano (ORD-27); `updateOrderStatus` exige `hasOrderHistory` (um Free não deveria alcançar a UI, mas a action é a fronteira real).
+- **Componente do bloqueio**: `components/painel/RecursoBloqueado.tsx` — título, descrição e CTA "Falar no WhatsApp →", reaproveitando texto/estilo do banner de `app/painel/layout.tsx:31` e `VTRINE_WHATSAPP_NUMBER` de `lib/contact.ts`.
+
 ### Navegação
 
 - **Purpose**: acesso ao histórico.
 - **Location**: `components/painel/Sidebar.tsx`, `components/painel/MobileTabBar.tsx`, `lib/types.ts` (`PainelRoute`)
-- **Decisão**: item "Pedidos" (ícone `Receipt`) entra depois de "Produtos". O `MobileTabBar` passa a ter 6 abas; para caber em 375 px, o label de "Personalização" vira "Estilo" (o item de config já usa "Config.").
+- **Decisão**: item "Pedidos" (ícone `Receipt`) entra depois de "Produtos", **visível em todos os planos** (é o que gera o upgrade). O `MobileTabBar` passa a ter 6 abas; para caber em 375 px, o label de "Personalização" vira "Estilo" (o item de config já usa "Config.").
 
 ---
 
@@ -297,6 +314,8 @@ export interface StoreOrder {
 | `SUPABASE_SERVICE_ROLE_KEY` ausente | `createAdminClient` lança; `registrarPedido` captura, loga e retorna `{ ok: false }` | Nenhum — catálogo segue funcionando sem captura |
 | Erro ao ler pedidos no painel | `console.error` + propaga (vira 500 com rastro) — nunca finge lista vazia | Página de erro do painel |
 | Status inválido no update | `{ error: "Status inválido." }` | Toast de erro na lista |
+| Loja Free acessando `/painel/pedidos` | Gate de plano antes de qualquer query → estado bloqueado | Tela de upgrade, sem nenhum dado do histórico |
+| Loja Free chamando `updateOrderStatus` | Gate `hasOrderHistory` na action → `{ error }` | Nada muda (caminho inalcançável pela UI) |
 | Pedido de outra loja no update | `.eq("store_id", store.id)` + RLS → 0 linhas → `{ error }` | Toast de erro |
 
 ---
@@ -313,6 +332,7 @@ export interface StoreOrder {
 | **Performance**: contagem anti-abuso por pedido | `app/actions/pedidos.ts` (novo) | +1 query por checkout | Query `count head` sobre índice `orders(store_id, created_at desc)` — custo desprezível |
 | **Test gap**: `handleCheckout` hoje só é testado pelo caminho do `window.open` | `__tests__/use-catalogo.test.ts` | Regressão silenciosa no redirect | Novos testes cobrindo: grava e abre, falha e abre, timeout e abre, pop-up bloqueado |
 | **UX**: `MobileTabBar` chega a 6 abas em 375 px | `components/painel/MobileTabBar.tsx:40` | Labels truncados | Label "Personalização" → "Estilo"; verificação visual em 375 px na validação |
+| **Vazamento**: dado do histórico chegando ao HTML de uma loja Free | `app/painel/pedidos/page.tsx` (novo) | Recurso pago exposto antes do upgrade | Gate de plano **antes** de `getStoreOrders`/`getOrderMetrics`; nenhum componente de bloqueio recebe pedido ou métrica como prop |
 | **LGPD**: passa a existir dado pessoal informado pelo cliente | `app/politica-de-privacidade/page.tsx` | Política desatualizada | ORD-26 inclui a menção ao armazenamento de nome/itens |
 | **Divergência**: preço do banco pode diferir do exibido na sacola | `lib/orders.ts` (novo) | Total do painel ≠ mensagem do WhatsApp em edição concorrente | Assunção registrada na spec; banco é fonte de verdade; janela de exposição é minúscula |
 
@@ -331,5 +351,7 @@ export interface StoreOrder {
 | Corte do mês | `monthStartInSaoPaulo` via `Intl.DateTimeFormat` com `timeZone: "America/Sao_Paulo"` | Sem dependência nova de data; corte no fuso do lojista |
 | Slug no view model | `Store.slug` explícito | `catalogUrl` guardando o slug é ambíguo e frágil para a captura |
 | Detalhe do pedido | `Modal` existente | Zero componente novo; mesma linguagem visual do painel |
+| Gate de plano | Capability `hasOrderHistory` em `PlanLimits`, aplicada **antes da query** | Um único ponto de verdade, já com rebaixamento por `trial_ends_at`; gate antes do I/O impede vazamento de dado no HTML |
+| Captura no Free | Grava sempre, sem consultar plano | Histórico pronto no momento do upgrade; menos um caminho condicional na action pública |
 
-> **Decisões de projeto** (a registrar em `.specs/STATE.md`): AD-007 (service role server-only + `orders` sem grant para `anon`), AD-008 (captura nunca bloqueia o redirect do WhatsApp), AD-009 (preço do banco é a fonte de verdade do pedido), AD-010 (status da venda com três estados e transição livre).
+> **Decisões de projeto** (a registrar em `.specs/STATE.md`): AD-007 (service role server-only + `orders` sem grant para `anon`), AD-008 (captura nunca bloqueia o redirect do WhatsApp), AD-009 (preço do banco é a fonte de verdade do pedido), AD-010 (status da venda com três estados e transição livre), AD-011 (histórico/ROI só de Starter para cima, com captura em todos os planos).
