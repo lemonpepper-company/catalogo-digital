@@ -523,7 +523,7 @@ O done-when de "sem overflow horizontal em 375 px" fica para a validação, como
 
 ---
 
-### T14: Cards de ROI no dashboard
+### T14: Cards de ROI no dashboard ✅
 
 **What**: segunda linha de `StatCard` com pedidos do mês, vendas confirmadas do mês e pendentes, mais link "Ver pedidos".
 **Where**: `app/painel/page.tsx`, `app/painel/DashboardClient.tsx`, `app/painel/use-dashboard.ts`, `__tests__/DashboardClient.test.tsx` (novo)
@@ -536,21 +536,27 @@ O done-when de "sem overflow horizontal em 375 px" fica para a validação, como
 - Skill: NONE
 
 **Done when**:
-- [ ] `page.tsx` busca `getOrderMetrics(store.id)` e passa `metrics` para o client (sem lógica na page)
-- [ ] Card "Pedidos no mês" com `metrics.ordersThisMonth` (ORD-17)
-- [ ] Card "Vendas confirmadas no mês" com `formatCents(metrics.confirmedCentsThisMonth)` (ORD-18)
-- [ ] Card "Aguardando confirmação" com `metrics.pendingCount` (ORD-19)
-- [ ] Métricas zeradas renderizam `0` e `R$ 0,00` (ORD-20)
-- [ ] Link "Ver pedidos" → `/painel/pedidos`
-- [ ] `hasOrderHistory === false` → `page.tsx` **não chama** `getOrderMetrics`, passa `metrics: null` e o client mostra o aviso de upgrade no lugar dos três cards; os cards de produtos seguem intactos (ORD-29)
-- [ ] Nenhum número real de pedido/faturamento no HTML quando o plano efetivo é Free (ORD-29)
-- [ ] Gate passa: `npx vitest run && npm run lint`
-- [ ] Test count: ≥ 7 testes novos passando; nenhum teste existente removido
+- [x] `page.tsx` busca `getOrderMetrics(store.id)` e passa `metrics` para o client (sem lógica na page)
+- [x] Card "Pedidos no mês" com `metrics.ordersThisMonth` (ORD-17)
+- [x] Card "Vendas confirmadas no mês" com `formatCents(metrics.confirmedCentsThisMonth)` (ORD-18)
+- [x] Card "Aguardando confirmação" com `metrics.pendingCount` (ORD-19)
+- [x] Métricas zeradas renderizam `0` e `R$ 0,00` (ORD-20)
+- [x] Link "Ver pedidos" → `/painel/pedidos`
+- [x] `hasOrderHistory === false` → `page.tsx` **não chama** `getOrderMetrics`, passa `metrics: null` e o client mostra o aviso de upgrade no lugar dos três cards; os cards de produtos seguem intactos (ORD-29)
+- [x] Nenhum número real de pedido/faturamento no HTML quando o plano efetivo é Free (ORD-29)
+- [x] Gate passa: `npx vitest run && npm run lint`
+- [x] Test count: ≥ 7 testes novos passando; nenhum teste existente removido
 
 **Tests**: unit
 **Gate**: full
 
 **Commit**: `feat(painel): mostra pedidos e faturamento do mes no dashboard`
+
+**Status**: ✅ Complete — `b1ece55`. 11 testes novos (`__tests__/DashboardClient.test.tsx` 8, `__tests__/DashboardPage.test.tsx` 3). Suíte 481 → 492; build ok; lint em 17 erros (baseline). Discriminadores: `DashboardClient.test.tsx:37` (helper `statValue` lê o valor do próprio `StatCard` pelo rótulo, então nenhum "0" de outro card satisfaz a assertion), `:52` (`"R$ 1234,50"` reprova render de centavos crus), `DashboardPage.test.tsx:83` (`expect(getOrderMetrics).not.toHaveBeenCalled()` no Free), `:110` (mesmo com Starter vencido).
+
+Derivação dos três cards ficou em `use-dashboard.ts` (`orderStats`), mantendo `DashboardClient` sem cálculo e `page.tsx` sem lógica além do gate. `orderStats === null` é o sinal único de bloqueio — o client não recebe nenhum número quando o plano é Free.
+
+**Desvio de escopo de arquivos (1, aditivo):** `__tests__/DashboardPage.test.tsx` — mesma razão da T11: ORD-29 ("`page.tsx` **não chama** `getOrderMetrics`") e ORD-30/AC6 não são observáveis na camada de componente. Sem esse arquivo o done-when central da task ficaria sem evidência.
 
 ---
 
