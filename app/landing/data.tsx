@@ -130,8 +130,8 @@ export const proFeatures = [
   "5 fotos por produto",
   "Temas, fundos e formatos personalizáveis",
   "Produtos em destaque ilimitados",
-  "Cor secundária exclusiva",
   "Histórico de pedidos",
+  "Cor secundária exclusiva",
   "Domínio próprio",
   "Importação de produtos por planilha",
 ];
