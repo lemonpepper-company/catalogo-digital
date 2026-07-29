@@ -64,7 +64,7 @@ export function ImportarProdutosModal({ onClose }: ImportarProdutosModalProps) {
               </p>
               {result.errors.map((e, i) => (
                 <p key={i} className="font-body text-[13px] text-graphite">
-                  Linha {e.line}: {e.reason}
+                  {e.reason.startsWith("Linha ") ? e.reason : `Linha ${e.line}: ${e.reason}`}
                 </p>
               ))}
             </div>
