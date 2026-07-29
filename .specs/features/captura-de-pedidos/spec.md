@@ -11,6 +11,7 @@ Hoje o pedido nasce e morre no WhatsApp: o `BagDrawer` monta a mensagem, o clien
 - [ ] O dashboard mostra "Pedidos no mês", "Vendas confirmadas no mês (R$)" e "Aguardando confirmação" — prova de ROI direta
 - [ ] O lojista marca cada pedido como Confirmado / Cancelado / Pendente, e o faturamento conta apenas os confirmados
 - [ ] Histórico e números de ROI são exclusivos de Starter/Pro; Free vê a tela bloqueada com CTA de upgrade — mas o pedido dele continua sendo gravado
+- [ ] Nome do cliente é obrigatório e, junto com um código curto do pedido, viaja na mensagem do WhatsApp — o lojista localiza a venda no painel por código ou nome
 - [ ] Landing page e documentação passam a comunicar o recurso como diferencial dos planos pagos
 
 ## Out of Scope
@@ -38,7 +39,12 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 |---|---|---|---|
 | Falha/lentidão na gravação | Timeout de 2500 ms; WhatsApp abre de qualquer forma, erro só no log do servidor | A venda nunca pode ser perdida por causa do registro | y (usuário) |
 | Como o pedido é gravado | `SUPABASE_SERVICE_ROLE_KEY` **server-only**; `orders`/`order_items` sem nenhum GRANT para `anon` | Server Action pública validando tudo; anon não consegue injetar pedido falso direto na API do Supabase | y (usuário) |
-| Dados do cliente | Só "Seu nome (opcional)", máx. 60 caracteres | Telefone já chega no WhatsApp; atrito quase zero | y (usuário) |
+| Dados do cliente | "Seu nome" **obrigatório** (mín. 2 e máx. 60 caracteres após `trim()`); sem telefone | Revisado em 28/07/2026: o nome viaja na mensagem para o lojista casar a conversa com o registro. Telefone segue desnecessário — o WhatsApp já entrega o número | y (usuário, ciclo 2) |
+| Identificador do pedido na mensagem | Código curto de 6 caracteres **gerado no cliente**, derivado do `client_order_id`, gravado em `orders.code` | Um código vindo do servidor exigiria esperar a resposta para montar a mensagem — no timeout de 2500 ms ou numa falha o pedido iria sem código, quebrando AD-008. Custo aceito: não é sequencial | y (usuário, ciclo 2) |
+| Template customizado das lojas existentes | Ganham as variáveis `{nome}`/`{pedido}` mas **não** são reescritos; sem anexo automático | Escolha explícita do usuário: template é conteúdo do lojista. Quem quiser o formato novo clica em "Restaurar padrão" | y (usuário, ciclo 2) |
+| Formato padrão da mensagem | `buildWhatsAppMessage` (lojas com `message_template` nulo) **e** `MSG_DEFAULT` (textarea + "Restaurar padrão") passam a incluir nome e código, e precisam ficar idênticos | São duas fontes do mesmo formato, sincronizadas na mão hoje. Divergir faria "loja nova" e "restaurar" produzirem mensagens diferentes | n (default do agente) |
+| Busca no histórico | Campo único que filtra por código **ou** nome do cliente, no servidor, dentro da loja | Localizar o pedido é o objetivo da mudança; com 20 por página, exibir o código sem busca não resolve | y (usuário, ciclo 2) |
+| Pedidos gravados antes desta mudança | Migration nova adiciona `code` e faz backfill a partir do `client_order_id`; nada é reescrito à mão | Migration já aplicada nunca é editada (padrão do projeto). Em produção a tabela ainda não existe, então o backfill é só para o ambiente local | n (default do agente) |
 | Escopo do painel | Histórico + cards de ROI + status da venda | Escolha explícita do usuário | y (usuário) |
 | Disponibilidade por plano | Visualização (histórico + cards de ROI) só a partir do **Starter**; Free vê tela bloqueada com CTA de WhatsApp | Diferencial de plano pago, alinhado ao pacote de diferenciação já em curso | y (usuário) |
 | Captura numa loja Free | **Grava normalmente** em qualquer plano — só a visualização é travada | Ao subir para Starter o lojista encontra o histórico já cheio ("você já gerou R$ X"); custo zero e conversão muito mais forte | y (usuário) |
@@ -81,21 +87,50 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 
 ---
 
-### P1: Nome opcional do cliente na sacola ⭐ MVP
+### P1: Nome obrigatório do cliente na sacola ⭐ MVP
 
-**User Story**: Como lojista, quero saber de quem é cada pedido no histórico, para identificar a venda sem depender da conversa.
+> **Revisão de 28/07/2026 (ciclo 2):** o nome era opcional e não entrava na mensagem. Passou a ser obrigatório e a viajar no WhatsApp junto com o código do pedido, para o lojista localizar a venda no painel. ACs 1–5 abaixo substituem as anteriores.
 
-**Why P1**: Sem isso o histórico lista pedidos anônimos e perde metade da utilidade.
+**User Story**: Como lojista, quero que todo pedido chegue com o nome de quem comprou, para identificar a venda sem depender da conversa.
+
+**Why P1**: Sem nome o histórico lista pedidos anônimos; e sem nome na mensagem o lojista não liga a conversa ao registro.
 
 **Acceptance Criteria**:
 
-1. WHEN a sacola tem itens THEN o `BagDrawer` SHALL exibir um campo de texto opcional "Seu nome (opcional)".
+1. WHEN a sacola tem itens THEN o `BagDrawer` SHALL exibir o campo obrigatório "Seu nome", com `maxLength` de 60.
 2. WHEN o cliente preenche o nome THEN o valor SHALL ser gravado em `orders.customer_name` com `trim()` aplicado e limitado a 60 caracteres.
-3. WHEN o campo está vazio ou contém apenas espaços THEN `orders.customer_name` SHALL ser `null`.
-4. WHEN o campo está vazio THEN o botão de envio SHALL permanecer habilitado (o nome nunca bloqueia o checkout).
-5. WHEN o cliente preenche o nome THEN a mensagem do WhatsApp SHALL permanecer exatamente com o formato atual (o nome não entra no template).
+3. WHEN o campo está vazio, contém apenas espaços, ou tem menos de 2 caracteres após `trim()` THEN o botão "Enviar pedido via WhatsApp" SHALL ficar desabilitado e a sacola SHALL exibir "Informe seu nome para continuar" (mesmo padrão de bloqueio já usado para pagamento e entrega).
+4. WHEN o payload chega ao servidor sem nome válido (vazio, espaços ou menos de 2 caracteres após `trim()`) THEN o sistema SHALL rejeitar sem gravar nada, retornando `{ ok: false }` — `orders.customer_name` nunca é `null`.
+5. WHEN o pedido é enviado THEN a mensagem do WhatsApp SHALL conter o nome informado e o código do pedido (ver ORD-31..34).
 
-**Independent Test**: preencher "Ana" e enviar → `customer_name = 'Ana'`; enviar com o campo em branco → `customer_name IS NULL`, com o pedido gravado nas duas vezes.
+**Independent Test**: com o campo vazio, o botão está desabilitado e a mensagem de bloqueio aparece; preencher "Ana" habilita, e o envio grava `customer_name = 'Ana'` com o nome visível na mensagem.
+
+---
+
+### P1: Código do pedido na mensagem e localização no painel ⭐ MVP
+
+> **Adicionada no ciclo 2 (28/07/2026).** O lojista recebia a mensagem no WhatsApp sem nenhuma forma de casar aquela conversa com a linha do histórico.
+
+**User Story**: Como lojista, quero que a mensagem do WhatsApp traga um código do pedido, para eu achar exatamente aquele pedido na tela de Pedidos.
+
+**Why P1**: Sem isso o histórico existe mas não é acionável na hora da conversa — que é quando o lojista precisa dele.
+
+**Acceptance Criteria**:
+
+1. WHEN o cliente envia o pedido THEN o cliente SHALL gerar um código de 6 caracteres (`[A-Z0-9]`) derivado do `client_order_id`, SHALL incluí-lo na mensagem do WhatsApp e SHALL enviá-lo no payload; o servidor SHALL gravá-lo em `orders.code`.
+2. WHEN o mesmo `client_order_id` é reenviado THEN o código SHALL ser idêntico (derivação determinística) — reenvio da mesma sacola não gera código novo.
+3. WHEN a gravação falha ou estoura o timeout THEN a mensagem do WhatsApp SHALL continuar contendo nome e código (a geração não depende do servidor — AD-008 preservada).
+4. WHEN a loja tem `message_template` nulo (loja nova) THEN o formato padrão SHALL incluir o nome do cliente e o código do pedido.
+5. WHEN o lojista clica "Restaurar padrão" nas configurações THEN o template restaurado SHALL incluir `{nome}` e `{pedido}`, e SHALL ser idêntico ao formato produzido para `message_template` nulo.
+6. WHEN a loja já tem um template customizado THEN ele SHALL ser preservado como está — sem reescrita e sem anexo automático de código.
+7. WHEN o lojista edita o template THEN as variáveis `{nome}` e `{pedido}` SHALL estar disponíveis como chips clicáveis e SHALL ser renderizadas no preview.
+8. WHEN uma variável não é usada no template THEN ela SHALL ser resolvida como hoje (sem sobra de linha em branco).
+9. WHEN o lojista abre `/painel/pedidos` THEN cada linha da lista e o detalhe SHALL exibir o código do pedido.
+10. WHEN o lojista digita um código (completo ou parcial) ou parte do nome do cliente no campo de busca THEN a lista SHALL exibir apenas os pedidos da própria loja que casam, case-insensitive, com a paginação recalculada sobre o resultado filtrado.
+11. WHEN a busca não encontra nada THEN a tela SHALL exibir estado vazio de busca, distinto do estado "nenhum pedido ainda".
+12. WHEN a busca está preenchida e o plano efetivo é `free` THEN o bloqueio de ORD-28 SHALL continuar valendo — nenhuma query é executada.
+
+**Independent Test**: enviar um pedido, copiar o código da mensagem do WhatsApp, colar na busca de `/painel/pedidos` e cair exatamente naquele pedido.
 
 ---
 
@@ -243,12 +278,17 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-28 | P1: Planos pagos (histórico bloqueado no Free, sem dado real e sem query) | Design | ✅ Verified |
 | ORD-29 | P1: Planos pagos (cards de ROI bloqueados no Free) | Design | ✅ Verified |
 | ORD-30 | P1: Planos pagos (Starter/Pro liberam tudo; expiração rebaixa via `getEffectivePlan`) | Design | ✅ Verified |
+| ORD-31 | P1: Nome obrigatório (bloqueio no cliente + rejeição no servidor) | Ciclo 2 | Pending |
+| ORD-32 | P1: Código do pedido gerado no cliente, na mensagem e em `orders.code` | Ciclo 2 | Pending |
+| ORD-33 | P1: Formato padrão e "Restaurar padrão" com nome e código (as duas fontes idênticas) | Ciclo 2 | Pending |
+| ORD-34 | P1: Variáveis `{nome}`/`{pedido}` disponíveis, com chips e preview; template customizado preservado | Ciclo 2 | Pending |
+| ORD-35 | P1: Código na lista e no detalhe + busca por código ou nome | Ciclo 2 | Pending |
 
 **ID format:** `ORD-[NUMBER]`
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 30 total, 30 verificados na iteração 2 da validação (`validation.md`), 0 sem mapeamento ✅
+**Coverage:** 35 total, 30 verificados na iteração 2 da validação (`validation.md`), 0 sem mapeamento ✅
 
 ---
 
