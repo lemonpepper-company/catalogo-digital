@@ -117,4 +117,11 @@ describe("Configurações — preview do WhatsApp reflete pagamento/entrega reai
 
     expect(screen.getByText(/Entrega: Retirar no local/)).toBeTruthy();
   });
+
+  it("não mostra nenhuma forma de pagamento/entrega no preview quando a loja não configurou nenhuma", () => {
+    render(<ConfiguracoesClient settings={makeSettings(null)} limits={proLimits} />);
+
+    expect(screen.queryByText(/Forma de pagamento/)).toBeNull();
+    expect(screen.queryByText(/Entrega:/)).toBeNull();
+  });
 });
