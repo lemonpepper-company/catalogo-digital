@@ -27,6 +27,56 @@ jobs:
       - name: Lint database schema
         run: supabase db lint --level warning
 
+      # Guard de privilégios (o único lugar do projeto com banco de verdade):
+      # a suíte de testes mocka o client do Supabase, então um GRANT faltando
+      # passa despercebido — foi assim que a captura de pedidos nasceu quebrada
+      # (`permission denied for table stores` com 500 testes verdes).
+      # Roda o psql de dentro do container do banco para não depender de
+      # postgresql-client no runner. `do $$ ... raise exception` faz o passo
+      # falhar com exit != 0.
+      - name: Check table privileges (orders/order_items)
+        run: |
+          docker exec -i supabase_db_catalogo-digital \
+            psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare
+            faltando text;
+            vazando  text;
+          begin
+            -- service_role precisa de exatamente o que app/actions/pedidos.ts usa
+            select string_agg(format('%s:%s', req.tbl, req.priv), ', ' order by req.tbl, req.priv)
+              into faltando
+              from (values
+                ('public.orders', 'select'),      -- contagem anti-abuso + id inserido
+                ('public.orders', 'insert'),      -- upsert do pedido
+                ('public.orders', 'delete'),      -- rollback do pedido órfão
+                ('public.order_items', 'select'),
+                ('public.order_items', 'insert'),
+                ('public.stores', 'select'),      -- lookup da loja por slug
+                ('public.products', 'select')     -- preço e nome do produto
+              ) as req(tbl, priv)
+             where not has_table_privilege('service_role', req.tbl, req.priv);
+
+            if faltando is not null then
+              raise exception 'service_role sem privilegio necessario: %', faltando;
+            end if;
+
+            -- anon não pode ter NENHUM privilégio em orders/order_items (ORD-24)
+            select string_agg(format('%s:%s', t.tbl, p.priv), ', ' order by t.tbl, p.priv)
+              into vazando
+              from (values ('public.orders'), ('public.order_items')) as t(tbl),
+                   (values ('select'), ('insert'), ('update'), ('delete'),
+                           ('truncate'), ('references'), ('trigger'), ('maintain')) as p(priv)
+             where has_table_privilege('anon', t.tbl, p.priv);
+
+            if vazando is not null then
+              raise exception 'anon com privilegio em orders/order_items: %', vazando;
+            end if;
+
+            raise notice 'grants ok: service_role com DML na captura, anon sem nada';
+          end $$;
+          SQL
+
       - name: Stop Supabase
         if: always()
         run: supabase stop --no-backup

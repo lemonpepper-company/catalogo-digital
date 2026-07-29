@@ -37,7 +37,7 @@ export default function PoliticaDePrivacidadePage() {
             Política de Privacidade
           </h1>
           <p className="font-body text-[15px] text-graphite">
-            Última atualização: 1 de julho de 2026. Esta política descreve como
+            Última atualização: 28 de julho de 2026. Esta política descreve como
             a Vtrine Digital coleta, usa e protege suas informações pessoais, em
             conformidade com a Lei Geral de Proteção de Dados (Lei nº
             13.709/2018 — LGPD).
@@ -73,6 +73,7 @@ export default function PoliticaDePrivacidadePage() {
               "Dados de conta: nome completo e endereço de e-mail (fornecidos no cadastro); senha armazenada em formato de hash seguro gerenciado pelo Supabase.",
               "Dados da loja: nome da loja, endereço público (slug), número de WhatsApp, cor de destaque, logotipo, descrição e monograma.",
               "Dados de produtos: nome, preço, descrição, tamanhos, cores e imagens dos produtos cadastrados.",
+              "Dados de pedidos: quando alguém envia um pedido pela sacola de um catálogo, armazenamos os itens escolhidos (nome do produto, tamanho, cor, quantidade e valor unitário), o total, a forma de pagamento e de entrega, o endereço informado quando a entrega é escolhida e o nome que a pessoa digita no campo opcional da sacola. Esses dados ficam visíveis no painel para o lojista dono daquela loja, que é quem vai atender o pedido.",
               "Dados de uso: plano contratado e data de criação da conta.",
             ].map((item) => (
               <li
@@ -92,6 +93,7 @@ export default function PoliticaDePrivacidadePage() {
           <ul className="flex flex-col gap-2">
             {[
               "Prestação do serviço contratado: criar e exibir o catálogo público de produtos.",
+              "Registro dos pedidos enviados pela sacola do catálogo, para que o lojista acompanhe as vendas geradas pela vitrine e identifique quem fez cada pedido.",
               "Cobrança recorrente da assinatura mensal.",
               "Comunicações transacionais: confirmação de e-mail, recuperação de senha e avisos sobre a conta.",
               "Segurança e melhoria contínua do serviço.",

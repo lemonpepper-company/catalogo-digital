@@ -1,4 +1,5 @@
 import type { Plan } from "./plan-limits";
+import type { OrderStatus } from "./orders";
 import type { ResolvedTheme } from "@/lib/theme-options";
 
 export type { Plan };
@@ -28,6 +29,7 @@ export interface Product {
 
 export interface Store {
   name: string;
+  slug: string;
   monogram: string;
   logoUrl?: string | null;
   coverUrl?: string | null;
@@ -64,6 +66,7 @@ export interface ToastState {
 export type PainelRoute =
   | "dashboard"
   | "produtos"
+  | "pedidos"
   | "cadastro"
   | "categorias"
   | "configuracoes";
@@ -82,6 +85,27 @@ export interface StoreProduct {
   isActive: boolean;
   isNew: boolean;
   isFeatured: boolean;
+}
+
+export interface StoreOrderItem {
+  productName: string;
+  unitPriceCents: number;
+  qty: number;
+  size: string | null;
+  color: string | null;
+}
+
+export interface StoreOrder {
+  id: string;
+  createdAt: string;
+  customerName: string | null;
+  paymentMethod: string | null;
+  deliveryMethod: string | null;
+  deliveryAddress: string | null;
+  itemsCount: number;
+  totalCents: number;
+  status: OrderStatus;
+  items: StoreOrderItem[];
 }
 
 export interface StoreCategory {

@@ -1,10 +1,12 @@
 import { cn } from "@/lib/utils";
 
-type Tone = "new" | "soldout";
+type Tone = "new" | "soldout" | "success" | "error";
 
 const toneStyles: Record<Tone, string> = {
   new: "bg-gold text-white",
   soldout: "bg-soldout text-white",
+  success: "bg-success text-white",
+  error: "bg-error text-white",
 };
 
 interface BadgeProps {

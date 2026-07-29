@@ -1,0 +1,36 @@
+import { redirect } from "next/navigation";
+import { getCurrentStore } from "@/lib/server/store";
+import { getPlanLimits } from "@/lib/plan-limits";
+import { getStoreOrders } from "@/lib/server/pedidos";
+import { RecursoBloqueado } from "@/components/painel/RecursoBloqueado";
+import { PedidosClient } from "./PedidosClient";
+
+export default async function PedidosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const store = await getCurrentStore();
+  if (!store) redirect("/login");
+
+  // Gate antes de qualquer I/O: no plano Free nenhum dado do histórico chega
+  // ao HTML (ORD-28).
+  if (!getPlanLimits(store.plan, store.trialEndsAt).hasOrderHistory) {
+    return (
+      <RecursoBloqueado
+        titulo="Histórico de pedidos"
+        descricao="Cada pedido enviado pela sacola já está sendo registrado. Faça upgrade para ver o histórico completo, com itens, total e status de cada venda."
+      />
+    );
+  }
+
+  const { page: pageParam } = await searchParams;
+  const { orders, total, page, totalPages } = await getStoreOrders(
+    store.id,
+    Number(pageParam ?? "1")
+  );
+
+  return (
+    <PedidosClient orders={orders} total={total} page={page} totalPages={totalPages} />
+  );
+}

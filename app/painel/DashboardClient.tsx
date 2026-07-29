@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/Button";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card } from "@/components/ui/Card";
 import { Toast } from "@/components/ui/Toast";
+import { RecursoBloqueado } from "@/components/painel/RecursoBloqueado";
 import { formatCents } from "@/lib/utils";
+import type { OrderMetrics } from "@/lib/order-metrics";
 import type { StoreProduct } from "@/lib/types";
 import { useDashboard } from "./use-dashboard";
 
@@ -15,15 +17,25 @@ interface DashboardClientProps {
   products: StoreProduct[];
   storeName: string;
   catalogUrl: string;
+  metrics: OrderMetrics | null;
 }
 
 export function DashboardClient({
   products,
   storeName,
   catalogUrl,
+  metrics,
 }: DashboardClientProps) {
-  const { copied, toast, handleCopy, activeProducts, soldOutProducts, recent, total } =
-    useDashboard(products, catalogUrl);
+  const {
+    copied,
+    toast,
+    handleCopy,
+    activeProducts,
+    soldOutProducts,
+    recent,
+    total,
+    orderStats,
+  } = useDashboard(products, catalogUrl, metrics);
 
   return (
     <div className="flex flex-col gap-6 w-full lg:max-w-content">
@@ -53,6 +65,32 @@ export function DashboardClient({
           tone="soldout"
         />
         <StatCard value={total} label="Produtos no catálogo" />
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-3.5">
+          <h2 className="font-display font-medium text-[18px] text-obsidian">
+            Vendas pela vitrine
+          </h2>
+          <Link
+            href="/painel/pedidos"
+            className="font-body text-[14px] text-graphite hover:text-obsidian transition-colors"
+          >
+            Ver pedidos
+          </Link>
+        </div>
+        {orderStats ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {orderStats.map((stat) => (
+              <StatCard key={stat.label} value={stat.value} label={stat.label} />
+            ))}
+          </div>
+        ) : (
+          <RecursoBloqueado
+            titulo="Pedidos e faturamento do mês"
+            descricao="Seus pedidos já estão sendo registrados. Faça upgrade para ver quantos pedidos e quanto em vendas a sua vitrine gerou."
+          />
+        )}
       </div>
 
       <Card>

@@ -4,6 +4,7 @@ export interface PlanLimits {
   maxProducts: number;
   maxCategories: number;
   maxPhotos: number;
+  hasOrderHistory: boolean;
   maxFeaturedProducts: number;
   themeOptions: boolean;
   advancedTheme: boolean;
@@ -14,6 +15,7 @@ const FREE_LIMITS: PlanLimits = {
   maxProducts: 8,
   maxCategories: 1,
   maxPhotos: 1,
+  hasOrderHistory: false,
   maxFeaturedProducts: 0,
   themeOptions: false,
   advancedTheme: false,
@@ -24,6 +26,7 @@ const STARTER_LIMITS: PlanLimits = {
   maxProducts: 30,
   maxCategories: 5,
   maxPhotos: 3,
+  hasOrderHistory: true,
   maxFeaturedProducts: 3,
   themeOptions: true,
   advancedTheme: false,
@@ -34,6 +37,7 @@ const PRO_LIMITS: PlanLimits = {
   maxProducts: Infinity,
   maxCategories: Infinity,
   maxPhotos: 5,
+  hasOrderHistory: true,
   maxFeaturedProducts: Infinity,
   themeOptions: true,
   advancedTheme: true,

@@ -69,6 +69,8 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
     setSelectedDelivery,
     address,
     setAddress,
+    customerName,
+    setCustomerName,
     canCheckout,
     checkoutBlockedReason,
     handleAdd,
@@ -236,6 +238,8 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
         onSelectDelivery={setSelectedDelivery}
         address={address}
         onAddressChange={setAddress}
+        customerName={customerName}
+        onCustomerNameChange={setCustomerName}
         onClose={() => setBagOpen(false)}
         onQty={handleQty}
         onRemove={handleRemove}

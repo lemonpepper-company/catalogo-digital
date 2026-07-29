@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Tag,
+  Receipt,
   Layers,
   Palette,
   Settings,
@@ -32,6 +33,7 @@ function NavItem({ href, icon, label, active }: NavItemProps) {
   return (
     <Link
       href={href}
+      aria-current={active ? "page" : undefined}
       className={cn(
         "flex items-center gap-3 w-full px-3.5 py-[11px] rounded-btn",
         "font-body text-[15px] transition-all duration-200",
@@ -96,6 +98,12 @@ export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
           icon={<Tag size={19} />}
           label="Produtos"
           active={isActive("/painel/produtos")}
+        />
+        <NavItem
+          href="/painel/pedidos"
+          icon={<Receipt size={19} />}
+          label="Pedidos"
+          active={isActive("/painel/pedidos")}
         />
         <NavItem
           href="/painel/categorias"

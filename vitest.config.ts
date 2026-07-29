@@ -17,6 +17,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "."),
+      // `server-only` é resolvido pelo bundler do Next e não existe em
+      // node_modules — sem este alias, todo teste de módulo server-only falha
+      // na transformação do Vite.
+      "server-only": resolve(__dirname, "test-utils/server-only.ts"),
     },
   },
 });
