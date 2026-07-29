@@ -22,11 +22,26 @@ export interface OrderInfo {
   payment?: string | null;
   delivery?: string | null;
   address?: string | null;
+  customerName?: string | null;
+  code?: string | null;
 }
 
 export function formatPaymentLine(payment?: string | null): string {
   const method = PAYMENT_METHODS.find((m) => m.value === payment);
   return method ? `Forma de pagamento: ${method.label}` : "";
+}
+
+// {nome} e {pedido} resolvem para uma linha rotulada inteira, no mesmo padrão de
+// {pagamento}/{entrega} — e para string vazia quando o dado não veio, para
+// collapseBlankLines não deixar linha sobrando (ORD-34.8).
+export function formatCustomerNameLine(customerName?: string | null): string {
+  const name = customerName?.trim();
+  return name ? `Cliente: ${name}` : "";
+}
+
+export function formatOrderCodeLine(code?: string | null): string {
+  const trimmed = code?.trim();
+  return trimmed ? `Pedido: ${trimmed}` : "";
 }
 
 export function formatDeliveryLine(delivery?: string | null, address?: string | null): string {
@@ -65,11 +80,16 @@ export function formatItemsBlock(items: WhatsAppItem[]): string {
     .join("\n\n");
 }
 
+// Formato padrão das lojas com `message_template` nulo. Precisa ficar idêntico ao
+// MSG_DEFAULT das configurações (ORD-33.5) — as duas fontes são sincronizadas na
+// mão e o teste de paridade em __tests__/utils.test.ts trava isso.
 export function buildWhatsAppMessage(items: WhatsAppItem[], order?: OrderInfo): string {
   const total = cartTotal(items);
+  const nome = formatCustomerNameLine(order?.customerName);
+  const pedido = formatOrderCodeLine(order?.code);
   const pagamento = formatPaymentLine(order?.payment);
   const entrega = formatDeliveryLine(order?.delivery, order?.address);
-  const message = `${WHATSAPP_GREETING}\n\n${formatItemsBlock(items)}\n\n${pagamento}\n\n${entrega}\n\n${WHATSAPP_SEPARATOR}\n*Total: ${formatMoney(total)}*\n${WHATSAPP_SEPARATOR}`;
+  const message = `${WHATSAPP_GREETING}\n\n${nome}\n${pedido}\n\n${formatItemsBlock(items)}\n\n${pagamento}\n\n${entrega}\n\n${WHATSAPP_SEPARATOR}\n*Total: ${formatMoney(total)}*\n${WHATSAPP_SEPARATOR}`;
   return collapseBlankLines(message);
 }
 
@@ -102,6 +122,8 @@ export function renderWhatsAppMessage(
     .replaceAll("{saudacao}", WHATSAPP_GREETING)
     .replaceAll("{itens}", formatItemsBlock(items))
     .replaceAll("{total}", formatMoney(cartTotal(items)))
+    .replaceAll("{nome}", formatCustomerNameLine(order?.customerName))
+    .replaceAll("{pedido}", formatOrderCodeLine(order?.code))
     .replaceAll("{pagamento}", formatPaymentLine(order?.payment))
     .replaceAll("{entrega}", formatDeliveryLine(order?.delivery, order?.address));
   return collapseBlankLines(rendered);
