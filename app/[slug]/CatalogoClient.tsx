@@ -134,27 +134,6 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
     return () => observer.disconnect();
   }, [hasMore, loadMore]);
 
-  if (openProduct) {
-    return (
-      <div
-        className="fixed inset-0 z-20 bg-ivory md:flex md:items-center md:justify-center md:bg-black/20 md:backdrop-blur-md md:p-6"
-        style={themeStyle}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) setOpenProduct(null);
-        }}
-      >
-        <div className="w-full h-full bg-ivory md:h-[88vh] md:max-w-[920px] md:rounded-card md:overflow-hidden md:shadow-2xl">
-          <ProductDetail
-            product={openProduct}
-            onBack={() => setOpenProduct(null)}
-            onAdd={handleAdd}
-          />
-          {toast && <Toast msg={toast} position="bottom-center" />}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-ivory relative" style={themeStyle}>
       <div ref={headerRef} className="sticky top-0 z-20 bg-ivory">
@@ -247,6 +226,23 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
       />
 
       {toast && <Toast msg={toast} position="bottom-center" />}
+
+      {openProduct && (
+        <div
+          className="fixed inset-0 z-20 bg-ivory md:flex md:items-center md:justify-center md:bg-black/20 md:backdrop-blur-md md:p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setOpenProduct(null);
+          }}
+        >
+          <div className="w-full h-full bg-ivory md:h-[88vh] md:max-w-[920px] md:rounded-card md:overflow-hidden md:shadow-2xl">
+            <ProductDetail
+              product={openProduct}
+              onBack={() => setOpenProduct(null)}
+              onAdd={handleAdd}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
