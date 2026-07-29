@@ -17,7 +17,7 @@ interface FakeChain {
   [key: string]: unknown;
 }
 
-const CHAIN_METHODS = ["select", "eq", "gte", "order", "range"] as const;
+const CHAIN_METHODS = ["select", "eq", "gte", "or", "order", "range"] as const;
 
 /** Mesmo padrão de fake chain de `__tests__/registrar-pedido.test.ts:36-49`. */
 function makeChain(result: Result): FakeChain {
@@ -53,6 +53,7 @@ function setupSupabase(results: Result[]): FakeChain[] {
 function orderRow(overrides: Record<string, unknown> = {}) {
   return {
     id: ORDER_ID,
+    code: "HS0L52",
     created_at: "2026-07-27T15:30:00.000Z",
     customer_name: "Ana",
     payment_method: "pix",
@@ -126,6 +127,7 @@ describe("getStoreOrders — só os pedidos da própria loja, mais recentes prim
     expect(result.orders).toEqual([
       {
         id: ORDER_ID,
+        code: "HS0L52",
         createdAt: "2026-07-27T15:30:00.000Z",
         customerName: "Ana",
         paymentMethod: "pix",
@@ -194,6 +196,99 @@ describe("getStoreOrders — páginas de 20 (ORD-13)", () => {
     const { getStoreOrders } = await loadModule();
 
     const result = await getStoreOrders(STORE_ID, 1);
+
+    expect(result).toEqual({ orders: [], total: 0, page: 1, totalPages: 1 });
+  });
+});
+
+describe("getStoreOrders — busca por código ou nome (ORD-35.10)", () => {
+  const FILTER = "code.ilike.%ana%,customer_name.ilike.%ana%";
+
+  it("filtra a listagem por código ou nome, case-insensitive via ilike", async () => {
+    const made = setupSupabase([{ count: 1 }, { data: [orderRow()] }]);
+    const { getStoreOrders } = await loadModule();
+
+    await getStoreOrders(STORE_ID, 1, "ana");
+
+    expect(made[1].calls.or).toEqual([[FILTER]]);
+  });
+
+  it("aplica o mesmo filtro na contagem, mantendo o isolamento por loja", async () => {
+    const made = setupSupabase([{ count: 1 }, { data: [orderRow()] }]);
+    const { getStoreOrders } = await loadModule();
+
+    await getStoreOrders(STORE_ID, 1, "ana");
+
+    expect(made[0].calls.or).toEqual([[FILTER]]);
+    expect(made[0].calls.eq).toEqual([["store_id", STORE_ID]]);
+    expect(made[1].calls.eq).toEqual([["store_id", STORE_ID]]);
+  });
+
+  it("recalcula a paginação sobre o resultado filtrado", async () => {
+    const made = setupSupabase([{ count: 25 }, { data: [orderRow()] }]);
+    const { getStoreOrders } = await loadModule();
+
+    const result = await getStoreOrders(STORE_ID, 2, "ana");
+
+    expect(result).toMatchObject({ total: 25, page: 2, totalPages: 2 });
+    expect(made[1].calls.range).toEqual([[20, 39]]);
+  });
+
+  it("busca com código parcial e em caixa baixa monta o filtro com o termo cru", async () => {
+    const made = setupSupabase([{ count: 1 }, { data: [orderRow()] }]);
+    const { getStoreOrders } = await loadModule();
+
+    await getStoreOrders(STORE_ID, 1, "hs0l");
+
+    expect(made[1].calls.or).toEqual([
+      ["code.ilike.%hs0l%,customer_name.ilike.%hs0l%"],
+    ]);
+  });
+
+  it("aplica trim no termo", async () => {
+    const made = setupSupabase([{ count: 1 }, { data: [orderRow()] }]);
+    const { getStoreOrders } = await loadModule();
+
+    await getStoreOrders(STORE_ID, 1, "   ana   ");
+
+    expect(made[1].calls.or).toEqual([[FILTER]]);
+  });
+
+  it("descarta vírgula, parênteses e curingas que quebrariam o filtro do PostgREST", async () => {
+    const made = setupSupabase([{ count: 1 }, { data: [orderRow()] }]);
+    const { getStoreOrders } = await loadModule();
+
+    await getStoreOrders(STORE_ID, 1, "an,a()%*\\");
+
+    expect(made[1].calls.or).toEqual([[FILTER]]);
+  });
+
+  it("não aplica filtro nenhum quando a busca está vazia ou só com espaços", async () => {
+    for (const query of ["", "   ", "()"]) {
+      const made = setupSupabase([{ count: 1 }, { data: [orderRow()] }]);
+      const { getStoreOrders } = await loadModule();
+
+      await getStoreOrders(STORE_ID, 1, query);
+
+      expect(made[0].calls.or).toBeUndefined();
+      expect(made[1].calls.or).toBeUndefined();
+    }
+  });
+
+  it("sem argumento de busca continua listando o histórico inteiro", async () => {
+    const made = setupSupabase([{ count: 1 }, { data: [orderRow()] }]);
+    const { getStoreOrders } = await loadModule();
+
+    await getStoreOrders(STORE_ID, 1);
+
+    expect(made[1].calls.or).toBeUndefined();
+  });
+
+  it("busca sem resultado devolve lista vazia com total 0, sem erro", async () => {
+    setupSupabase([{ count: 0 }, { data: [] }]);
+    const { getStoreOrders } = await loadModule();
+
+    const result = await getStoreOrders(STORE_ID, 1, "zzzzzz");
 
     expect(result).toEqual({ orders: [], total: 0, page: 1, totalPages: 1 });
   });

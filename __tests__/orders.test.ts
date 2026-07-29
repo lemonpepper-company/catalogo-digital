@@ -266,6 +266,7 @@ describe("resolveOrderItems", () => {
 describe("mapOrderRow", () => {
   const row: OrderRow = {
     id: "o1",
+    code: "HS0L52",
     created_at: "2026-07-20T13:45:00.000Z",
     customer_name: "Ana",
     payment_method: "pix",
@@ -296,6 +297,7 @@ describe("mapOrderRow", () => {
     const order = mapOrderRow(row);
     expect(order).toEqual({
       id: "o1",
+      code: "HS0L52",
       createdAt: "2026-07-20T13:45:00.000Z",
       customerName: "Ana",
       paymentMethod: "pix",

@@ -13,7 +13,21 @@ import type { StoreOrder } from "@/lib/types";
 export const ORDERS_PAGE_SIZE = 20;
 
 const ORDER_COLS =
-  "id, created_at, customer_name, payment_method, delivery_method, delivery_address, items_count, total_cents, status, order_items(product_name, unit_price_cents, qty, size, color)";
+  "id, code, created_at, customer_name, payment_method, delivery_method, delivery_address, items_count, total_cents, status, order_items(product_name, unit_price_cents, qty, size, color)";
+
+/**
+ * Busca por código **ou** nome do cliente, case-insensitive (ORD-35.10). Vírgula,
+ * parênteses e `%`/`*`/`\` são descartados: o PostgREST usa vírgula para separar
+ * os termos do `or` e parênteses para agrupá-los, e os curingas mudariam o LIKE —
+ * nenhum deles faz sentido num código ou nome.
+ */
+function orderSearchTerm(query: string): string {
+  return query.trim().replace(/[,()%*\\]/g, "");
+}
+
+function searchFilter(term: string): string {
+  return `code.ilike.%${term}%,customer_name.ilike.%${term}%`;
+}
 
 export interface StoreOrdersPage {
   orders: StoreOrder[];
@@ -29,17 +43,27 @@ function fail(context: string, error: { message: string }): never {
   throw new Error(`${context}: ${error.message}`);
 }
 
-/** Histórico da loja, 20 por página, mais recentes primeiro. RLS restringe à loja do dono. */
+/**
+ * Histórico da loja, 20 por página, mais recentes primeiro. RLS restringe à loja
+ * do dono e o `.eq("store_id")` mantém o isolamento explícito também na busca.
+ * A contagem usa o mesmo filtro da listagem — a paginação é recalculada sobre o
+ * resultado filtrado (ORD-35.10).
+ */
 export async function getStoreOrders(
   storeId: string,
-  page: number
+  page: number,
+  query = ""
 ): Promise<StoreOrdersPage> {
   const supabase = await createClient();
+  const term = orderSearchTerm(query);
 
-  const { count, error: countError } = await supabase
+  let countQuery = supabase
     .from("orders")
     .select("id", { count: "exact", head: true })
     .eq("store_id", storeId);
+  if (term) countQuery = countQuery.or(searchFilter(term));
+
+  const { count, error: countError } = await countQuery;
 
   if (countError) fail(`getStoreOrders(${storeId}) — erro ao contar pedidos`, countError);
 
@@ -48,10 +72,10 @@ export async function getStoreOrders(
   const currentPage = clampPage(page, totalPages);
   const from = (currentPage - 1) * ORDERS_PAGE_SIZE;
 
-  const { data, error } = await supabase
-    .from("orders")
-    .select(ORDER_COLS)
-    .eq("store_id", storeId)
+  let listQuery = supabase.from("orders").select(ORDER_COLS).eq("store_id", storeId);
+  if (term) listQuery = listQuery.or(searchFilter(term));
+
+  const { data, error } = await listQuery
     .order("created_at", { ascending: false })
     .range(from, from + ORDERS_PAGE_SIZE - 1);
 

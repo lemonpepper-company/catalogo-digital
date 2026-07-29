@@ -51,6 +51,7 @@ export interface OrderItemRow {
 
 export interface OrderRow {
   id: string;
+  code: string;
   created_at: string;
   customer_name: string | null;
   payment_method: string | null;
@@ -143,6 +144,7 @@ function mapOrderItemRow(row: OrderItemRow): StoreOrderItem {
 export function mapOrderRow(row: OrderRow): StoreOrder {
   return {
     id: row.id,
+    code: row.code,
     createdAt: row.created_at,
     customerName: row.customer_name,
     paymentMethod: row.payment_method,
