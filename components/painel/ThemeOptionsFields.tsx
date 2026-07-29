@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { FONT_PAIRINGS, BACKGROUND_PALETTES, CORNER_STYLES } from "@/lib/theme-options";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { UpsellHint } from "@/components/painel/UpsellHint";
+import { PLAN_GATE_LABEL } from "@/lib/contact";
 
 interface Option {
   key: string;
@@ -54,7 +55,7 @@ function OptionRow({
             </button>
           );
           return locked ? (
-            <Tooltip key={opt.key} label="Disponível no Starter">
+            <Tooltip key={opt.key} label={PLAN_GATE_LABEL.starter}>
               {button}
             </Tooltip>
           ) : (
@@ -125,7 +126,7 @@ export function ThemeOptionsFields({
       />
       {!unlocked && (
         <UpsellHint
-          label="Disponível no Starter — fale conosco"
+          label={`${PLAN_GATE_LABEL.starter} — fale conosco`}
           whatsappMessage="Olá! Quero saber mais sobre desbloquear as opções de tema."
         />
       )}

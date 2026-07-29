@@ -8,3 +8,9 @@ export function vtrineWhatsAppHref(message: string): string {
 
 export const SUPPORT_WHATSAPP_MESSAGE =
   "Olá! Preciso de suporte com minha loja na Vtrine Digital.";
+
+/** Rótulos exibidos em tooltips/upsells quando um recurso exige um plano superior. */
+export const PLAN_GATE_LABEL = {
+  starter: "Disponível no Starter",
+  pro: "Disponível no Pro",
+} as const;

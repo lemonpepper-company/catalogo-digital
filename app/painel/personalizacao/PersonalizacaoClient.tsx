@@ -11,6 +11,7 @@ import { ThemeOptionsFields } from "@/components/painel/ThemeOptionsFields";
 import { UpsellHint } from "@/components/painel/UpsellHint";
 import { cn } from "@/lib/utils";
 import { SECONDARY_COLOR_OPTIONS } from "@/lib/data";
+import { PLAN_GATE_LABEL } from "@/lib/contact";
 import type { StoreSettings } from "@/lib/types";
 import type { PlanLimits } from "@/lib/plan-limits";
 import { usePersonalizacao } from "./use-personalizacao";
@@ -73,7 +74,7 @@ export function PersonalizacaoClient({
                   />
                 );
                 return locked ? (
-                  <Tooltip key={c} label="Disponível no Pro">
+                  <Tooltip key={c} label={PLAN_GATE_LABEL.pro}>
                     {button}
                   </Tooltip>
                 ) : (
@@ -84,7 +85,7 @@ export function PersonalizacaoClient({
             {!f.limits.advancedTheme && (
               <div className="mt-2">
                 <UpsellHint
-                  label="Disponível no Pro — fale conosco"
+                  label={`${PLAN_GATE_LABEL.pro} — fale conosco`}
                   whatsappMessage="Olá! Quero saber mais sobre desbloquear a cor secundária."
                 />
               </div>
@@ -133,7 +134,7 @@ export function PersonalizacaoClient({
                   </button>
                 );
                 return locked ? (
-                  <Tooltip key={d} label="Disponível no Starter">
+                  <Tooltip key={d} label={PLAN_GATE_LABEL.starter}>
                     {button}
                   </Tooltip>
                 ) : (
