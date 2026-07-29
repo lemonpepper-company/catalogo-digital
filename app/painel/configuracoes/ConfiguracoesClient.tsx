@@ -13,6 +13,8 @@ import { useConfiguracoes, MSG_VARS } from "./use-configuracoes";
 
 const MSG_MOCK = {
   saudacao: "Olá! Gostaria de fazer um pedido:",
+  nome: "Cliente: Ana",
+  pedido: "Pedido: A1B2C3",
   itens:
     "01. Produto Exemplo\n    Quantidade: 2x | Valor unitário: R$ 50,00\n    Tamanho: M\n    Cor: Preto\n    Subtotal: R$ 100,00",
   total: "R$ 100,00",
@@ -23,6 +25,8 @@ const MSG_MOCK = {
 function renderTemplate(tpl: string) {
   return tpl
     .replace(/\{saudacao\}/g, MSG_MOCK.saudacao)
+    .replace(/\{nome\}/g, MSG_MOCK.nome)
+    .replace(/\{pedido\}/g, MSG_MOCK.pedido)
     .replace(/\{itens\}/g, MSG_MOCK.itens)
     .replace(/\{total\}/g, MSG_MOCK.total)
     .replace(/\{pagamento\}/g, MSG_MOCK.pagamento)
