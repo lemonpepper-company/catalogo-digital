@@ -124,6 +124,7 @@ export const proFeatures = [
   "Temas, fundos e formatos personalizáveis",
   "Produtos em destaque ilimitados",
   "Cor secundária exclusiva",
+  "Importação de produtos por planilha",
 ];
 
 export const faqs = [
