@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PAYMENT_METHOD_VALUES, DELIVERY_METHOD_VALUES } from "@/lib/data";
+import { stripWwwPrefix } from "@/lib/domain-routing";
 
 export const productSchema = z.object({
   name: z.string().min(2, "Nome do produto é obrigatório"),
@@ -45,6 +46,9 @@ export const personalizacaoSchema = z.object({
 });
 
 // Hostname puro: sem protocolo, sem path, sem porta. Ex: "boutiquedaana.com.br".
+// Remove um "www." líder após validar o formato — apex é o valor canônico
+// salvo (ver stripWwwPrefix em lib/domain-routing.ts, também usado pelo
+// middleware para casar os dois formatos com a mesma loja).
 export const domainSchema = z
   .string()
   .trim()
@@ -53,6 +57,7 @@ export const domainSchema = z
     /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/,
     "Domínio inválido — use o formato exemplo.com.br, sem http:// e sem barras"
   )
+  .transform(stripWwwPrefix)
   .nullable();
 
 export function canDeleteCategory(productCount: number): boolean {

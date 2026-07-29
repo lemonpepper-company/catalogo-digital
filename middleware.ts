@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createAnonClient } from '@/lib/supabase/server'
-import { isOwnHost } from '@/lib/domain-routing'
+import { isOwnHost, stripWwwPrefix } from '@/lib/domain-routing'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -11,11 +11,16 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host')?.split(':')[0]?.toLowerCase() ?? ''
 
   if (pathname === '/' && !isOwnHost(hostname, process.env.NEXT_PUBLIC_SITE_URL)) {
+    // Provedores de DNS/Vercel costumam redirecionar apex↔www automaticamente
+    // — o Host da request pode chegar com "www." mesmo quando o lojista
+    // cadastrou o domínio sem ele (domainSchema também normaliza ao salvar,
+    // ver lib/validation/painel.ts). Remove o prefixo pros dois formatos
+    // apontarem pra mesma loja.
     const anon = createAnonClient()
     const { data: store, error } = await anon
       .from('stores')
       .select('slug, custom_domain_verified')
-      .eq('custom_domain', hostname)
+      .eq('custom_domain', stripWwwPrefix(hostname))
       .maybeSingle()
 
     if (error) {
