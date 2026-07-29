@@ -251,6 +251,27 @@ describe("ProdutosClient — contadores e paginação", () => {
     expect(input.value).toBe("vestido");
   });
 
+  it("sem csvImport no plano, mostra o link do Pro e esconde o botão de importar planilha", () => {
+    render(
+      <ProdutosClient
+        products={[makeProduct()]}
+        maxProducts={Infinity}
+        limits={{ ...baseLimits, csvImport: false }}
+        counts={baseCounts}
+        page={1}
+        totalPages={1}
+        categories={[]}
+        {...noFilters}
+      />
+    );
+    expect(
+      screen.getByText("Importação em massa — disponível no Pro")
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Importar planilha" })
+    ).toBeNull();
+  });
+
   it("selecionar uma categoria aplica o filtro imediatamente via router.replace", () => {
     render(
       <ProdutosClient

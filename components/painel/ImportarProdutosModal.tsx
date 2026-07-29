@@ -18,8 +18,13 @@ export function ImportarProdutosModal({ onClose }: ImportarProdutosModalProps) {
 
   const result = state && "ok" in state ? state : null;
 
+  // Enquanto a importação está em andamento no servidor, ignora Escape e
+  // clique no backdrop — fechar aqui não cancela o server action e faria o
+  // usuário perder a visibilidade do que já foi importado.
+  const guardedClose = pending ? () => {} : onClose;
+
   return (
-    <Modal title="Importar produtos" onClose={onClose}>
+    <Modal title="Importar produtos" onClose={guardedClose}>
       {!result ? (
         <form
           action={(formData) => {
@@ -44,7 +49,7 @@ export function ImportarProdutosModal({ onClose }: ImportarProdutosModalProps) {
             <p className="font-body text-[13px] text-error">{state.error}</p>
           )}
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="ghost" onClick={onClose}>
+            <Button type="button" variant="ghost" onClick={guardedClose} disabled={pending}>
               Cancelar
             </Button>
             <Button type="submit" variant="primary" disabled={!file || pending}>

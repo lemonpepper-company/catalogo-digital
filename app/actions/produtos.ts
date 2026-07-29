@@ -5,7 +5,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
 import { getPlanLimits } from "@/lib/plan-limits";
-import { productSchema } from "@/lib/validation/painel";
+import { productSchema, categoryNameSchema } from "@/lib/validation/painel";
 import { parseReaisToCents } from "@/lib/utils";
 import { uploadPhotos, publicUrlToPath } from "@/lib/server/upload";
 import { parseProductCsv } from "@/lib/csv-produtos";
@@ -336,10 +336,18 @@ export async function importProductsCsv(
 
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "Selecione um arquivo CSV." };
+  if (file.size > 1_000_000) {
+    return { error: "Arquivo muito grande. O limite é 1MB." };
+  }
 
   const text = await file.text();
   const { rows, headerError } = parseProductCsv(text);
   if (headerError) return { error: headerError };
+  if (rows.length > 500) {
+    return {
+      error: "O arquivo tem muitas linhas. O limite é 500 produtos por importação.",
+    };
+  }
 
   const [
     { count: productCount, error: productCountError },
@@ -374,6 +382,22 @@ export async function importProductsCsv(
       continue;
     }
 
+    const nameCheck = productSchema.shape.name.safeParse(row.product.name);
+    if (!nameCheck.success) {
+      errors.push({ line: lineNumber, reason: nameCheck.error.issues[0].message });
+      continue;
+    }
+    const priceCheck = productSchema.shape.priceCents.safeParse(row.product.priceCents);
+    if (!priceCheck.success) {
+      errors.push({ line: lineNumber, reason: priceCheck.error.issues[0].message });
+      continue;
+    }
+    const stockCheck = productSchema.shape.stock.safeParse(row.product.stock);
+    if (!stockCheck.success) {
+      errors.push({ line: lineNumber, reason: stockCheck.error.issues[0].message });
+      continue;
+    }
+
     let categoryId: string | null = null;
     if (row.product.categoryName) {
       const key = row.product.categoryName.toLowerCase();
@@ -384,9 +408,14 @@ export async function importProductsCsv(
         errors.push({ line: lineNumber, reason: "Limite de categorias do plano atingido." });
         continue;
       } else {
+        const categoryNameCheck = categoryNameSchema.safeParse(row.product.categoryName);
+        if (!categoryNameCheck.success) {
+          errors.push({ line: lineNumber, reason: categoryNameCheck.error.issues[0].message });
+          continue;
+        }
         const { data: newCategory, error: categoryError } = await supabase
           .from("categories")
-          .insert({ store_id: store.id, name: row.product.categoryName })
+          .insert({ store_id: store.id, name: categoryNameCheck.data })
           .select("id")
           .single();
         if (categoryError || !newCategory) {
