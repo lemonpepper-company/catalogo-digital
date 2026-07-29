@@ -278,17 +278,17 @@ Toda ambiguidade está resolvida aqui — nada fica silenciosamente indefinido.
 | ORD-28 | P1: Planos pagos (histórico bloqueado no Free, sem dado real e sem query) | Design | ✅ Verified |
 | ORD-29 | P1: Planos pagos (cards de ROI bloqueados no Free) | Design | ✅ Verified |
 | ORD-30 | P1: Planos pagos (Starter/Pro liberam tudo; expiração rebaixa via `getEffectivePlan`) | Design | ✅ Verified |
-| ORD-31 | P1: Nome obrigatório (bloqueio no cliente + rejeição no servidor) | Ciclo 2 | Implementing |
-| ORD-32 | P1: Código do pedido gerado no cliente, na mensagem e em `orders.code` | Ciclo 2 | Implementing |
-| ORD-33 | P1: Formato padrão e "Restaurar padrão" com nome e código (as duas fontes idênticas) | Ciclo 2 | Implementing |
-| ORD-34 | P1: Variáveis `{nome}`/`{pedido}` disponíveis, com chips e preview; template customizado preservado | Ciclo 2 | Implementing |
-| ORD-35 | P1: Código na lista e no detalhe + busca por código ou nome | Ciclo 2 | Implementing |
+| ORD-31 | P1: Nome obrigatório (bloqueio no cliente + rejeição no servidor) | Ciclo 2 | ✅ Verified |
+| ORD-32 | P1: Código do pedido gerado no cliente, na mensagem e em `orders.code` | Ciclo 2 | ✅ Verified |
+| ORD-33 | P1: Formato padrão e "Restaurar padrão" com nome e código (as duas fontes idênticas) | Ciclo 2 | ✅ Verified |
+| ORD-34 | P1: Variáveis `{nome}`/`{pedido}` disponíveis, com chips e preview; template customizado preservado | Ciclo 2 | ✅ Verified |
+| ORD-35 | P1: Código na lista e no detalhe + busca por código ou nome | Ciclo 2 | ✅ Verified |
 
 **ID format:** `ORD-[NUMBER]`
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 35 total, 30 verificados na iteração 2 da validação (`validation.md`), 0 sem mapeamento ✅
+**Coverage:** 35 total, **35 verificados** — ORD-01..30 na iteração 2 do ciclo 1 e ORD-31..35 no ciclo 2 (`validation.md`), 0 sem mapeamento ✅
 
 ---
 
