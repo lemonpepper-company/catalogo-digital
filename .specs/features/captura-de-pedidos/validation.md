@@ -362,3 +362,438 @@ Nenhuma foi penalizada (nenhuma recorrência). As 5 seguem `candidate` porque a 
 **Problemas encontrados**: nenhum bloqueante. Limitações de verificação, não defeitos: painel autenticado não observado em navegador real; o workflow de CI teve sua lógica SQL validada localmente mas nunca rodou no runner do GitHub; concorrência de dois clientes não exercitada.
 
 **Next steps**: promover ORD-01..30 a `Verified` na spec e marcar `tasks.md` como `Done`. Fora deste ciclo: decidir o separador de milhar em `formatCents` (Deferred Ideas do `context.md`) e, se quiser fechar a última lacuna de evidência, um teste de integração que exercite `registrarPedido` contra o Postgres local.
+
+---
+---
+
+# Captura de Pedidos — Validation **Ciclo 2** (nome obrigatório + código do pedido)
+
+**Date**: 2026-07-28
+**Spec**: `.specs/features/captura-de-pedidos/spec.md` — foco em **ORD-31..35** e nas ACs revisadas da story "P1: Nome obrigatório do cliente na sacola". As ACs antigas do nome opcional (**ORD-09..11**) foram **revogadas pela spec** e não foram tratadas como requisito.
+**Diff range**: `65bc6ea..4e0c940` (`git diff main..HEAD`), branch `feature/pedido-nome-e-codigo`, 11 commits (10 de implementação + 1 de spec)
+**Verifier**: sub-agent independente (author ≠ verifier). Coverage re-derivada do zero, evidence-or-zero. Não herda as premissas do implementador nem dos Verifiers do ciclo 1.
+**Escopo desta seção**: as garantias do ciclo 1 (ORD-01..30) **não** foram revalidadas por inteiro — só as que a mudança podia derrubar (§C2-3).
+
+---
+
+## Veredito
+
+**✅ PASS** — 17/17 sub-ACs de ORD-31..35 com asserção casando o outcome da spec, 12/12 mutações mortas, 11/11 alterações de teste justificadas por AC nova (nenhuma enfraquecida), `anon` sem privilégio na coluna `code` por introspecção real, e checkout end-to-end confirmado em browser + Postgres, inclusive no caminho de falha de gravação.
+
+Três achados **não bloqueantes** ficam registrados em §C2-9 — o mais relevante é que a guarda de CI de privilégios é cega a `grant` **por coluna** para `anon` (comprovado empiricamente).
+
+---
+
+## C2-1. Gates
+
+| Gate | Comando | Resultado |
+|---|---|---|
+| Testes | `npx vitest run` | ✅ **657 passed, 0 failed, 0 skipped** (60 arquivos). Reconfirmado 2× depois do sensor: 657 |
+| Tipos | `npx tsc --noEmit` | ✅ **limpo** (exit 0, nenhuma saída) |
+| Lint | `npm run lint` | ✅ **17 erros = baseline exato**: `ConfiguracoesClient.tsx` (15), `SlugInput.tsx:26` (1), `use-catalogo.ts:72` (1). **Nenhum erro novo** — o de `use-catalogo.ts` é o mesmo `set-state-in-effect` pré-existente, só deslocado de `:67` para `:72` pelos imports novos |
+| Build | `npm run build` | ✅ passa; 26 rotas, incluindo `ƒ /painel/pedidos` |
+| Migrations | `supabase_migrations.schema_migrations` | ✅ `20260728100000_orders_code` aplicada no banco local |
+
+**Test integrity**: 524 (ciclo 1) → **657** (+133). Nenhum arquivo de teste perdeu testes (`BagDrawer` 17→17, `pedido-validation` 17→21, `orders` 23→35, `registrar-pedido` 25→30, `server-pedidos` 19→28, `use-catalogo` 23→32, `utils` 50→60, `PedidosPage` 8→12, `PedidosClient` 17→27). Zero `skip`/`only`/`todo` na suíte. Nenhuma asserção enfraquecida (auditoria completa em §C2-4).
+
+---
+
+## C2-2. Spec-Anchored Acceptance Criteria — ORD-31..35 (17/17)
+
+Numeração `ORD-3x.N` = AC nº N da story correspondente, igual à usada nos comentários do código.
+
+### ORD-31 — Nome obrigatório do cliente (5 ACs revisadas)
+
+| AC | Outcome definido na spec | `file:line` + assertion | Result |
+|---|---|---|---|
+| **31.1** sacola com itens → campo obrigatório "Seu nome", `maxLength` 60 | label exatamente `"Seu nome"`; `required`; `maxLength=60`; ausente com sacola vazia | `__tests__/BagDrawer.test.tsx:81-83` — `getByLabelText("Seu nome")` + `expect(input.required).toBe(true)`; `:103` — `expect(input.maxLength).toBe(60)`; `:97` — `expect(queryByLabelText("Seu nome")).toBeNull()` com `items=[]` | ✅+RT |
+| **31.2** valor gravado em `orders.customer_name` com `trim()` e ≤60 | `"   Ana Maria   "` → `"Ana Maria"`; 70 chars → 60 | `__tests__/registrar-pedido.test.ts:487` — `expect(upsertRow(made).customer_name).toBe("Ana Maria")`; `:528` — `.toBe("A".repeat(60))`; `__tests__/orders.test.ts:66,82-83,88-89` | ✅+RT |
+| **31.3** vazio / só espaços / <2 chars após `trim()` → botão desabilitado + "Informe seu nome para continuar" | string **exata**; `canCheckout=false`; `onCheckout` não chamado | `__tests__/use-catalogo.test.ts:94-96` (vazio), `:102-103` (`"    "`), `:109-110` (`"  A  "`) — `expect(canCheckout).toBe(false)` + `expect(checkoutBlockedReason).toBe("Informe seu nome para continuar")`; `:116-118` — `"  An  "` → `true` + `toBeNull()`; `__tests__/BagDrawer.test.tsx:128-133` — `getByText("Informe seu nome para continuar")` + `expect(btn.disabled).toBe(true)` + `expect(onCheckout).not.toHaveBeenCalled()` | ✅+RT |
+| **31.4** servidor sem nome válido → `{ ok: false }` sem gravar | `{ok:false}`, 0 writes, `from` não chamado; zod rejeita ausente/null/""/"   "/1 char | `__tests__/registrar-pedido.test.ts:490-499` (`"   "`) — `toEqual({ok:false})` + `expect(writeCalls(made)).toHaveLength(0)` + `expect(from).not.toHaveBeenCalled()`; `:501-509` (1 char); `:511-521` (ausente); `__tests__/pedido-validation.test.ts:181-189` — `it.each` dos 6 casos → `success === false` | ✅ |
+| **31.5** mensagem do WhatsApp contém o nome e o código | mensagem carrega nome e código | `__tests__/use-catalogo.test.ts:310-311` — `expect(message).toContain("Cliente: Ana")` + `toContain("Pedido: ${payload.code}")`; `:340-352` — URL byte a byte igual a `renderWhatsAppMessage(...,{customerName:"Ana",code})` | ✅+RT |
+
+### ORD-32 — Código gerado no cliente, na mensagem e em `orders.code` (ACs 1–3)
+
+| AC | Outcome definido na spec | `file:line` + assertion | Result |
+|---|---|---|---|
+| **32.1** cliente gera 6 chars `[A-Z0-9]` derivados do `client_order_id`, põe na mensagem, manda no payload; servidor grava em `orders.code` | `code` casa `/^[A-Z0-9]{6}$/` **e** `=== deriveOrderCode(clientOrderId)`; `upsert.code` = valor recebido; formato inválido → `{ok:false}` sem gravar | `__tests__/orders.test.ts:119-122` — `toHaveLength(6)` + `toMatch(ORDER_CODE_PATTERN)`; `__tests__/use-catalogo.test.ts:297-298` — `expect(payload.code).toMatch(ORDER_CODE_PATTERN)` + `expect(payload.code).toBe(deriveOrderCode(payload.clientOrderId))`; `__tests__/registrar-pedido.test.ts:200` — `expect(upsertRow(made).code).toBe("HS0L52")`; `:533-542`,`:544-553` — código malformado/ausente → `{ok:false}` + 0 writes; `__tests__/pedido-validation.test.ts:191-197` — 7 formatos rejeitados | ✅+RT |
+| **32.2** mesmo `client_order_id` → código idêntico (determinístico) | reenvio da mesma sacola repete o código; sacola alterada muda | `__tests__/orders.test.ts:125-128` — `expect(deriveOrderCode(UUID_A)).toBe(deriveOrderCode(UUID_A))`; `:135-137` — vetores travados `"HS0L52"`/`"MIXICD"`; `__tests__/use-catalogo.test.ts:497` — `expect(capturePayload(1).code).toBe(capturePayload(0).code)`; `:511` — `.not.toBe(...)` após mudar qty | ✅+RT |
+| **32.3** falha ou timeout → mensagem **continua** com nome e código (AD-008 preservada) | aba pré-aberta antes de qualquer `await`; mensagem completa nos dois caminhos de falha | `__tests__/use-catalogo.test.ts:246-256` — chama `handleCheckout()` **sem `await`** e já assere `expect(openMock()).toHaveBeenCalledWith("","_blank")` + `expect(tab.location.href).toBe("")`; `:362-374` — `mockRejectedValue` → `toContain("Cliente: Ana")` + `toContain("Pedido: <derivado>")`; `:376-392` — `advanceTimersByTimeAsync(2500)` com promise pendente → idem | ✅+RT |
+
+### ORD-33 — Formato padrão e "Restaurar padrão" (ACs 4–5)
+
+| AC | Outcome definido na spec | `file:line` + assertion | Result |
+|---|---|---|---|
+| **33.4** `message_template` nulo → formato padrão inclui nome e código | mensagem esperada **byte a byte**, com `Cliente:`/`Pedido:` entre saudação e itens | `__tests__/utils.test.ts:142-163` — `expect(buildWhatsAppMessage(items,{customerName:"Ana",code:"HS0L52"})).toBe(expected)` com o array de 13 linhas literal; `__tests__/ConfiguracoesMensagem.test.tsx:84-88` — template nulo abre o textarea em `MSG_DEFAULT` | ✅+RT |
+| **33.5** "Restaurar padrão" traz `{nome}`/`{pedido}` **e** é idêntico ao formato de `message_template` nulo | igualdade **exata** entre as duas fontes, em vários cenários | `__tests__/mensagem-padrao.test.ts:44-51` — `it.each` de **5 cenários**: `expect(renderWhatsAppMessage(MSG_DEFAULT, items, order)).toBe(buildWhatsAppMessage(items, order))` (completo / sem pagamento-entrega / sem nome / sem código / sem nada); `:63-66` — `MSG_DEFAULT` contém os 2 tokens; `__tests__/ConfiguracoesMensagem.test.tsx:74-81` — clique em "Restaurar padrão" → `expect(textarea.value).toBe(MSG_DEFAULT)` | ✅ — **cadeado de paridade real**, não um `toContain` frouxo |
+
+### ORD-34 — Variáveis `{nome}`/`{pedido}`, chips, preview, template preservado (ACs 6–8)
+
+| AC | Outcome definido na spec | `file:line` + assertion | Result |
+|---|---|---|---|
+| **34.6** template customizado preservado como está, sem reescrita nem anexo | valor do textarea **idêntico** ao gravado; render não injeta nome/código | `__tests__/ConfiguracoesMensagem.test.tsx:67-72` — `expect(templateTextarea().value).toBe(custom)`; `__tests__/utils.test.ts:402-407` — `renderWhatsAppMessage(custom, items, {customerName:"Ana",code:"HS0L52"})` → exatamente `Oi! Quero:\n<itens>\nTotal R$ 80,00` (sem sobra) | ✅ |
+| **34.7** `{nome}`/`{pedido}` como chips clicáveis e renderizadas no preview | chips por nome acessível; clique insere o token; preview mostra os valores mock | `__tests__/ConfiguracoesMensagem.test.tsx:45-50` — `getByRole("button",{name:"+ {nome}"})` e `"+ {pedido}"`; `:52-58` — clique → `expect(textarea.value).toContain("{pedido}")`; `:60-65` — `getByText(/Cliente: Ana/)` + `getByText(/Pedido: A1B2C3/)`; `__tests__/utils.test.ts:384-390` — `renderWhatsAppMessage("{nome}\n{pedido}",…)` → `"Cliente: Ana\nPedido: HS0L52"`; `__tests__/mensagem-padrao.test.ts:68-75` — **toda** variável de `MSG_DEFAULT` está em `MSG_VARS`; `:77-87` — nenhum chip resolve para o próprio token | ✅ |
+| **34.8** variável não usada resolve como hoje, sem sobra de linha em branco | `"Início\n\n{nome}\n{pedido}\n\nFim"` → `"Início\n\nFim"`; nunca `\n{3,}` | `__tests__/utils.test.ts:397-400` — `expect(msg).toBe("Início\n\nFim")`; `:164-168`,`:170-174` — só código / só nome → posição exata + `expect(msg).not.toMatch(/\n{3,}/)` | ✅ |
+
+### ORD-35 — Código na lista e no detalhe + busca (ACs 9–12)
+
+| AC | Outcome definido na spec | `file:line` + assertion | Result |
+|---|---|---|---|
+| **35.9** cada linha da lista **e** o detalhe exibem o código | os dois códigos visíveis na lista; código dentro do dialog | `__tests__/PedidosClient.test.tsx:102-118` — `getByText("HS0L52")` + `getByText("MIXICD")` com 2 pedidos; `:120-127` — `within(dialog).getByText("MIXICD")`; `__tests__/PedidosPage.test.tsx:157-163` — código renderizado pela página real | ✅+RT (via PostgREST) |
+| **35.10** código (completo/parcial) ou parte do nome → só os pedidos da própria loja que casam, case-insensitive, paginação recalculada sobre o filtrado | filtro `or=(code.ilike.%t%,customer_name.ilike.%t%)` na **listagem e na contagem**; `.eq("store_id")` mantido nas duas; `range` recalculado | `__tests__/server-pedidos.test.ts:207-214` — `expect(made[1].calls.or).toEqual([["code.ilike.%ana%,customer_name.ilike.%ana%"]])`; `:216-225` — mesmo filtro na contagem + `expect(made[0].calls.eq).toEqual([["store_id",STORE_ID]])`; `:227-236` — `count:25` → `toMatchObject({total:25,page:2,totalPages:2})` + `range` `[[20,39]]`; `:238-247` — parcial minúsculo `"hs0l"`; `:249-256` — `trim`; `:258-265` — sanitização de `,()%*\`; `:267-278` — busca vazia → `or` **undefined** nas duas queries; `__tests__/PedidosPage.test.tsx:135-141` — `expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID,1,"hs0l")`; `:143-155` — busca + página; `__tests__/PedidosClient.test.tsx:137-152` — debounce 400 ms → `replace("/painel/pedidos?q=HS0L52",{scroll:false})` (sem `page`); `:190-202` — `href="/painel/pedidos?page=2&q=ana"` | ✅+RT (query real no Postgres, §C2-6d) |
+| **35.11** busca sem resultado → estado vazio de busca **distinto** de "nenhum pedido ainda" | "Nenhum pedido encontrado" presente **e** "Nenhum pedido ainda" ausente; termo citado; campo de busca permanece | `__tests__/PedidosClient.test.tsx:427-437` — `getByText("Nenhum pedido encontrado")` + `expect(queryByText("Nenhum pedido ainda")).toBeNull()` + texto da loja-vazia ausente; `:439-447` — termo citado + input com o valor; `:417-421` — loja sem pedido **não** mostra o campo de busca | ✅ |
+| **35.12** busca preenchida + plano `free` → bloqueio de ORD-28 continua; nenhuma query | `getStoreOrders` **não** chamado; bloqueio exibido; nada do histórico no HTML; campo de busca ausente | `__tests__/PedidosPage.test.tsx:119-131` — `expect(getStoreOrders).not.toHaveBeenCalled()` + `getByText("Disponível a partir do plano Starter")` + `not.toContain("Ana")` + `not.toContain("HS0L52")` + `expect(queryByLabelText("Buscar por código ou nome do cliente")).toBeNull()`. Estrutural: o gate está **antes** do `await searchParams` (`app/painel/pedidos/page.tsx:18` vs `:27`) | ✅ (M8 morto) |
+
+### Como as ACs foram descobertas (evidence-or-zero)
+
+Nenhuma AC foi declarada coberta sem busca. As buscas usadas, todas sobre `__tests__/`: `grep -n 'ORD-31.4\|ORD-32.3\|ORD-33.5\|ORD-34.6\|ORD-34.7\|ORD-34.8\|ORD-35.9\|ORD-35.10\|ORD-35.11\|ORD-35.12'`, `grep -n 'Informe seu nome para continuar'`, `grep -n 'input.required\|input.maxLength\|getByLabelText("Seu nome")'`, `grep -n 'customer_name).toBe\|upsertRow(made).code'`, `grep -n 'sanitizeCustomerName('`, `grep -n 'toMatch(ORDER_CODE_PATTERN)'`, `grep -n 'MSG_DEFAULT'`, `grep -n 'Cliente: Ana\|Pedido: \${'`, `grep -n 'sincronamente no clique'`. Cada AC acima cita `file:line` + a expressão da assertion.
+
+### Resumo
+
+- ✅ **17/17** sub-ACs de ORD-31..35 com asserção casando o outcome definido na spec
+- ⚠️ **1** spec-precision gap (não bloqueante, §C2-9 achado 2): os rótulos exatos das linhas novas da mensagem (`"Cliente: "` e `"Pedido: "`) são escolha de implementação — ORD-31.5/32.1 só exigem que "a mensagem contenha o nome e o código". Os testes assertam as strings exatas (mais preciso que a spec), então o risco não é teste frouxo, é a spec não travar o texto que o lojista vê — mesmo padrão do gap de `formatCents` fechado no ciclo 1 (L-005)
+- ✅ **12** sub-ACs confirmadas também em runtime real (marcadas +RT)
+
+---
+
+## C2-3. Regressão do ciclo 1 — o que a mudança podia derrubar
+
+| Requisito | Por que estava em risco | Verificação | Result |
+|---|---|---|---|
+| **ORD-01** aba pré-aberta sincronamente, **antes** de qualquer `await` | o ciclo 2 inseriu 3 chamadas novas (`clientOrderIdFor`, `deriveOrderCode`, `sanitizeCustomerName`) e o `renderWhatsAppMessage` antes do `window.open` | Leitura: `app/[slug]/use-catalogo.ts:140-155` — tudo que precede `window.open("", "_blank")` é síncrono e puro; o primeiro `await` está em `:159`. Teste: `use-catalogo.test.ts:246-256` (sem `await`). **Runtime**: hook em `window.open`/`fetch` mostrou `open("","_blank")` em `t=128351 ms`, POST da Server Action em `t=128377`, atribuição do `href` em `t=128535` — ordem open → fetch → href | ✅ (M1 morto) |
+| **ORD-03** falha/timeout de 2500 ms → WhatsApp abre; **agora com nome e código** | a mensagem passou a depender de dados novos | `use-catalogo.test.ts:355-360` (rejeição, toast segue "Abrindo o WhatsApp…"), `:362-374` e `:376-392` (falha e timeout **com** nome e código). **Runtime**: com `insert` revogado do `service_role`, a mensagem saiu com `Cliente: Bea Falha` + `Pedido: 6OJ0T1`, erro só no log do servidor, nada na tela (§C2-6e) | ✅ |
+| **ORD-04** idempotência | `code` entrou no `upsert` | `registrar-pedido.test.ts` — `onConflict:"store_id,client_order_id", ignoreDuplicates:true` intacto; `use-catalogo.test.ts:485-497` — reenvio repete `clientOrderId` **e** `code`. Índice `orders_store_id_client_order_id_key` confirmado no banco | ✅ |
+| **ORD-24** `anon` sem privilégio, **inclusive na coluna `code` nova** | coluna nova em tabela com grants | Introspecção real: `has_column_privilege('anon','public.orders',<toda coluna>, select/insert/update/references)` → **0 linhas verdadeiras**; `has_table_privilege` → 0 linhas. Controle positivo `has_column_privilege('anon','public.stores','slug','select') = t` prova que a consulta funciona. PostgREST com chave `anon`: `GET orders` → **HTTP 401 `permission denied for table orders`**; `POST orders` com `code` → **HTTP 401** (§C2-5) | ✅ |
+| **ORD-28/29** gate de plano, **agora também com busca preenchida** | `searchParams.q` é lido depois do gate | `app/painel/pedidos/page.tsx:18` (gate) vem antes de `:27` (`await searchParams`) e de `:29` (`getStoreOrders`); `PedidosPage.test.tsx:119-131` cobre Free **com** `q="HS0L52"`; M8 (gate invertido) mata 11 testes | ✅ |
+| **ORD-12/13** lista e paginação sem busca | `getStoreOrders` ganhou 3º parâmetro com default `""` | `server-pedidos.test.ts:279-286` — sem argumento, `or` fica `undefined`; toda a bateria de `.range`/`.order`/`.eq` do ciclo 1 segue verde | ✅ |
+| **ORD-33.4 / formato §8** mensagem das lojas sem nome/código | o formato padrão mudou | `utils.test.ts:120-141` — o formato exato do Escopo §8 é **preservado byte a byte** quando não há nome nem código (`collapseBlankLines` come as duas linhas) | ✅ |
+
+**Nenhuma regressão encontrada.**
+
+---
+
+## C2-4. Auditoria das alterações de teste (crítica nesta rodada)
+
+11 assinaturas `it(...)` de testes pré-existentes foram alteradas (o pedido falava em 7; a contagem por `git diff` é 11, incluindo renomeações mecânicas). Para cada uma: qual AC nova exige o comportamento, e se a asserção ficou mais forte ou mais fraca. Comparado com `git show` de `a99f765`, `c0a2f4f`, `881b1f5`, `c53986e`, `84c2bc3`, `1b5ae09`.
+
+| # | Teste (antes → depois) | Arquivo | AC que exige a mudança | Força da asserção |
+|---|---|---|---|---|
+| 1 | "exibe o campo **opcional** de nome…" → "exibe o campo **obrigatório** de nome… (ORD-31.1)" | `BagDrawer.test.tsx:80-84` | **ORD-31.1** (`spec.md:100`): campo obrigatório "Seu nome" | ⬆️ **Mais forte** — antes só `getByLabelText`; agora label exata **+** `expect(input.required).toBe(true)` |
+| 2 | "mantém o botão de envio **habilitado** com o campo de nome vazio" → "**bloqueia** o envio e exibe o aviso… (ORD-31.3)" | `BagDrawer.test.tsx:121-136` | **ORD-31.3** (`spec.md:102`). A AC antiga (ORD-11, "nome vazio não bloqueia") foi **explicitamente revogada** pela nota de revisão em `spec.md:92` | ⬆️ **Mais forte** — 1 asserção (`disabled === false`) → 4 (texto de bloqueio presente, texto de WhatsApp ausente, `disabled === true`, `onCheckout` não chamado) |
+| 3 | "limita o campo de nome a 60 caracteres" → idem "(ORD-31.1)" | `BagDrawer.test.tsx:101-104` | **ORD-31.1** (`maxLength` de 60) | ↔️ **Igual** — só a label mudou; `expect(input.maxLength).toBe(60)` preservado |
+| 4 | "aceita o payload mínimo: 1 item, **sem nome**…" → "…**nome e código**, sem pagamento ou entrega" | `pedido-validation.test.ts:28-31` | **ORD-31.4** + **ORD-32.1**: os dois campos passaram a ser obrigatórios no schema | ↔️ **Igual** em força; o `minimalPayload` teve de ganhar os campos novos, senão o teste de "payload mínimo válido" testaria um payload inválido |
+| 5 | "aceita o payload completo com nome, pagamento…" → "…com nome, **código**, pagamento…" | `pedido-validation.test.ts:33-45` | **ORD-32.1** | ↔️ **Igual** |
+| 6 | "aceita **null nos campos opcionais**" → "aceita null em **pagamento, entrega e endereço**" (removeu `customerName: null`) | `pedido-validation.test.ts:65-75` | **ORD-31.4** (`spec.md:103`): payload sem nome válido **SHALL** ser rejeitado | ⬆️ **Mais forte** no conjunto — o caso removido não desapareceu: migrou para a lista de **rejeição** em `:181-189` (`null` entre os 6 casos que devem falhar) |
+| 7 | "**grava null** quando o nome vem em branco" → "**rejeita** nome em branco sem gravar nada (ORD-31.4)" | `registrar-pedido.test.ts:490-499` | **ORD-31.4** — inversão exigida pela AC nova; a AC antiga (ORD-10, "branco → `null`") está revogada | ⬆️ **Mais forte** — 1 asserção (`customer_name` é `null`) → 3 (`{ok:false}`, 0 writes, `from` não chamado). Somaram-se 2 testes irmãos (1 char, ausente) |
+| 8 | "fica true com whatsapp e sem pagamento/entrega **(comportamento atual preservado)**" → "fica true com whatsapp **e nome**, sem pagamento/entrega" | `use-catalogo.test.ts:44-47` | **ORD-31.3**: o nome entrou no `canCheckout`, então o cenário precisa preenchê-lo para isolar a variável sob teste | ↔️ **Igual** — `expect(canCheckout).toBe(true)` preservado; o `withName()` é setup, não relaxamento. E o cenário oposto (sem nome → `false`) ganhou 4 testes dedicados em `:93-119` |
+| 9 | "informa para selecionar pagamento/entrega **quando a loja tem whatsapp mas faltam seleções**" → "…**quando só faltam as seleções**" | `use-catalogo.test.ts:151-163` | **ORD-31.3** — mesma razão do #8; a string asserida continua `"Selecione forma de pagamento e entrega para continuar."` | ↔️ **Igual** |
+| 10 | "aponta a aba pré-aberta … **sem** o nome do cliente (ORD-11)" → "… **com nome e código** (ORD-31.5)"; `.not.toContain("Ana")` → `.toContain("Ana")` | `use-catalogo.test.ts:337-353` | **ORD-31.5** (`spec.md:104`): a mensagem **SHALL** conter o nome e o código. A asserção antiga afirmava o **oposto** e só podia sobreviver enquanto ORD-11 valesse | ⬆️ **Mais forte** — a igualdade byte a byte da URL foi preservada e o `expectedMsg` agora inclui `customerName` e `code`, então o teste trava o formato completo, não só a presença de "Ana" |
+| 11 | "mantém o formato exato do Escopo §8" → "…**quando não há nome nem código**" | `utils.test.ts:127-141` | **ORD-34.8** (`spec.md:127`): variável não usada resolve sem sobra de linha — é justamente o que mantém o §8 intacto sem nome/código | ↔️ **Igual** — o array de 13 linhas esperado é **idêntico** ao anterior; só o título ficou mais preciso. O caso com nome e código foi **adicionado** em `:142-163`, não substituiu |
+
+**Veredito da auditoria: 11/11 justificadas por AC do ciclo 2. Zero asserções enfraquecidas.** As 3 inversões reais (#2, #7, #10) correspondem exatamente às 3 ACs que a spec marca como revogadas (`spec.md:92`, ORD-09..11), e as três terminaram com mais asserções do que tinham.
+
+Duas observações da auditoria (nenhuma bloqueante):
+- `use-catalogo.test.ts:315-328` ("envia null (nunca string vazia) em nome, pagamento, entrega e endereço não informados") **não** foi alterado e continua assertando `customerName: null` no payload. Não é contradição: o teste cobre a normalização do cliente (`"" → null`, nunca `""`), e o servidor rejeita esse payload (#7). É defesa em profundidade, e o invariante "nunca string vazia" segue coberto.
+- `orders.test.ts:135-137` trava os vetores `HS0L52`/`MIXICD` como constantes literais. Confirmei de forma **independente** que não são inventados: rodei a expressão SQL do backfill (`20260728100000_orders_code.sql:16-27`) no Postgres local contra 10 uuids (os 2 vetores, `00000000-…`, `ffffffff-…` e 6 `gen_random_uuid()`) e comparei com `deriveOrderCode` — **10/10 idênticos**, incluindo o pedido criado no runtime (`0780d5cd-… → PWVV7K` nas duas implementações).
+
+---
+
+## C2-5. Segurança por introspecção real no Postgres (ORD-24 + coluna `code`)
+
+`DB_URL` de `supabase status`; `psql` dentro do container `supabase_db_catalogo-digital`. O comentário da migration ("grant de tabela vale para colunas futuras") **não** foi aceito como prova — foi verificado.
+
+| Requisito | Estado real verificado | Result |
+|---|---|---|
+| `anon` sem **nenhum** privilégio de **coluna** em `orders` (incl. `code`) | `has_column_privilege('anon','public.orders',<cada coluna>, {select,insert,update,references})` → **0 linhas verdadeiras**. Controle positivo: `has_column_privilege('anon','public.stores','slug','select') = t` | ✅ |
+| `anon` sem privilégio de **tabela** em `orders`/`order_items` | 2 tabelas × 8 privilégios → **0 linhas**. `relacl` = `{postgres=arwdDxtm/postgres, service_role=…, authenticated=r/postgres}` — `anon` ausente das duas | ✅ |
+| `anon` barrado na prática (não só no catálogo) | PostgREST com `apikey`+`Authorization` = chave `anon`: `GET /orders?select=code,customer_name` → **HTTP 401** `permission denied for table orders`; `POST /orders` com `code` → **HTTP 401** | ✅ |
+| `code` herdou o grant de tabela para quem precisa | `information_schema.column_privileges`: `authenticated` → `code:SELECT`; `service_role` → `code:INSERT`, `code:SELECT`, `code:REFERENCES`. **A premissa da migration se confirma empiricamente** | ✅ |
+| `authenticated` **não** pode escrever `code` | `has_column_privilege('authenticated','public.orders','code','update') = f`. As únicas linhas `UPDATE` não-`postgres` em `orders` continuam sendo `authenticated / status` | ✅ |
+| `service_role` sem `UPDATE` em `orders` | `has_table_privilege(...,'update') = f`; `has_column_privilege(...,'code','update') = f`. `relacl` = `service_role=ardDxtm/postgres` (a=INSERT, r=SELECT, d=DELETE) | ✅ |
+| `order_items` sem `d`/`w` para `service_role` | `relacl` = `service_role=arDxtm/postgres` | ✅ |
+| `code` é `NOT NULL` e o backfill cobriu tudo | `information_schema.columns` → `is_nullable = NO`; as 2 linhas pré-existentes têm `code` preenchido (`HS0L52`, `MIXICD`) e batem com a regra de derivação | ✅ |
+| Índice de busca criado | `orders_store_code_idx` = `btree (store_id, code)` — prefixo `store_id` mantém a busca dentro da loja | ✅ |
+| RLS e policies inalteradas | `relrowsecurity = t` nas duas; 3 policies, todas `{authenticated}` (`orders: own store read`/SELECT, `orders: own store status update`/UPDATE, `order_items: own store read`/SELECT) | ✅ |
+
+### Bloco SQL do passo `Check table privileges` do workflow
+
+Extraí o `do $$ … $$` de `.github/workflows/supabase-migrations-check.yml` e rodei contra o banco real:
+
+| Estado | Exit | Saída |
+|---|---|---|
+| Atual | **0** | `NOTICE: grants ok: service_role com DML na captura, anon sem nada` |
+| Após revogar `insert on orders` do `service_role` (§C2-6e) | — | reprovaria: `has_table_privilege(...,'insert')` volta `f` (verificado direto) |
+| Após `grant select (code) on public.orders to anon` (mutação de coluna) | **0** ❌ | **a guarda não pega** — ver §C2-9 achado 1 |
+
+---
+
+## C2-6. Verificação runtime end-to-end
+
+Dev server `next dev` em `localhost:3000`; loja `atelie-mira` (ativa, `pro`, WhatsApp configurado, `message_template` **nulo** → exercita o formato padrão de ORD-33.4). Banco começou com `orders = 2` (linhas pré-existentes da loja `maria-das-roupas`, **não** criadas por mim).
+
+Instrumentação: `window.open` e `window.fetch` embrulhados por hooks que **registram** as chamadas; o objeto devolvido por `window.open` é um duplo que grava a atribuição de `location.href` (mesmo formato do `FakeTab` da suíte). Tudo o mais — Server Action, validação, Supabase, Postgres — é real.
+
+### (a) Sem nome o botão está bloqueado, com a mensagem certa
+
+| Verificação | Resultado |
+|---|---|
+| Input renderizado | ✅ `aria-label="Seu nome"`, `placeholder="Seu nome"`, `maxLength=60`, `required=true` (ORD-31.1) |
+| Campo vazio | ✅ botão "Enviar pedido via WhatsApp →" com `disabled = true` |
+| Mensagem de bloqueio | ✅ **"Informe seu nome para continuar"** visível na sacola |
+| Nome de **1 caractere** (`"A"`) | ✅ ainda `disabled = true`, aviso ainda visível (ORD-31.3, limite de 2) |
+| Nome válido com espaços (`"   Ana Ciclo2   "`) | ✅ `disabled = false`, aviso desaparece |
+
+### (b) Com nome, a mensagem do WhatsApp leva nome **e** código
+
+Sacola: `Vestido midi linho areia` (M/Areia, qty 2), total exibido **R$ 579,80**.
+
+```
+t=128351 ms  open("", "_blank")            ← síncrono no clique, ANTES de qualquer rede
+t=128377 ms  fetch POST /atelie-mira       ← Server Action (26 ms depois)
+t=128535 ms  tab.location.href = "https://wa.me/5511999990000?text=..."
+```
+
+Mensagem decodificada (formato padrão, `message_template` nulo):
+
+```
+Olá! Gostaria de fazer um pedido:
+
+Cliente: Ana Ciclo2
+Pedido: PWVV7K
+
+01. Vestido midi linho areia
+    Quantidade: 2x | Valor unitário: R$ 289,90
+    Tamanho: M
+    Cor: Areia
+    Subtotal: R$ 579,80
+
+━━━━━━━━━━━━━━━━━
+*Total: R$ 579,80*
+━━━━━━━━━━━━━━━━━
+```
+
+✅ nome **com `trim()` aplicado** (`"   Ana Ciclo2   "` → `Cliente: Ana Ciclo2`), código presente, e a ordem `open → fetch → href` é evidência direta de AD-008 no browser real.
+
+### (c) A linha em `orders` tem o **mesmo** código e o nome preenchido
+
+```
+ code   | customer_name | client_order_id                      | status   | items_count | total_cents
+ PWVV7K | Ana Ciclo2    | 0780d5cd-6890-40f6-9f7f-70d83a7eb80d | pendente | 2           | 57980
+```
+
+| Verificação | Resultado |
+|---|---|
+| `orders.code` **idêntico** ao da mensagem | ✅ `PWVV7K` = `Pedido: PWVV7K` |
+| `code` = derivação do `client_order_id` nas **duas** implementações | ✅ `deriveOrderCode("0780d5cd-…")` = `PWVV7K` **e** a expressão SQL do backfill = `PWVV7K` |
+| `customer_name` preenchido e trimado | ✅ `Ana Ciclo2`, não `null` |
+| Total recalculado do banco | ✅ `57980` = `28990 × 2` (`products.price_cents`) |
+| `order_items` | ✅ 1 linha, `unit_price_cents=28990`, `qty=2`, `size='M'`, `color='Areia'` |
+
+### (d) Colar o código na busca devolve exatamente aquele pedido
+
+A tela autenticada do painel **não** pôde ser aberta no browser (login exige senha — ação que não executo). Verifiquei então a parte substantiva contra o **Postgres real via PostgREST**, com JWT `authenticated` do dono da loja, reproduzindo exatamente a query que `getStoreOrders` monta (`select` com `order_items(...)` embutido, `store_id=eq.`, `or=(code.ilike…,customer_name.ilike…)`, `order=created_at.desc`, `Range: 0-19`, `Prefer: count=exact`):
+
+| Termo buscado | Resultado | AC |
+|---|---|---|
+| `PWVV7K` (código colado da mensagem) | ✅ **1 linha, exatamente aquele pedido** (`Content-Range: 0-0/1`), com `order_items` embutido | ORD-35.10 |
+| `pwvv` (parcial, caixa baixa) | ✅ 1 linha — `ilike` é case-insensitive e casa parcial | ORD-35.10 |
+| `ana ciclo` (parte do nome) | ✅ 1 linha | ORD-35.10 |
+| `ZZZZZZ` | ✅ 0 linhas, `Content-Range: */0`, sem erro | ORD-35.11 (dado) |
+| `HS0L52` (pedido de **outra** loja), com `.eq(store_id)` | ✅ 0 linhas | isolamento |
+| `HS0L52` **sem** `.eq(store_id)` — RLS sozinha | ✅ 0 linhas — a policy por dono barra mesmo sem o filtro explícito | ORD-24 |
+| chave `anon` pura | ✅ **HTTP 401** `permission denied for table orders` | ORD-24 |
+
+### (e) A mensagem sai com nome e código mesmo quando a gravação falha
+
+Falha induzida em estado **revertido**: `revoke insert on public.orders from service_role` (um único grant, restaurado depois). Sacola alterada (qty 4) para gerar `client_order_id`/código novos.
+
+```
+registrarPedido: erro ao gravar o pedido — permission denied for table orders
+POST /atelie-mira 200 in 84ms
+ └─ ƒ registrarPedido({"clientOrderId":"0e80e9a0-…","code":"6OJ0T1", …}) in 61ms
+```
+
+```
+t=289323  open("", "_blank")
+t=289343  fetch POST /atelie-mira
+t=289438  href = ".../?text=… Cliente: Bea Falha \n Pedido: 6OJ0T1 …"
+```
+
+| Verificação | Resultado |
+|---|---|
+| Mensagem **com nome e código** apesar da falha | ✅ `Cliente: Bea Falha` + `Pedido: 6OJ0T1` (ORD-32.3 / AD-008) |
+| WhatsApp abriu | ✅ `href` atribuído normalmente |
+| Nenhum erro exibido ao cliente | ✅ nada de "erro"/"falha" no DOM; erro só no log do servidor (ORD-03) |
+| Nada gravado | ✅ `orders` da loja continuou só com `PWVV7K` |
+| Grant restaurado | ✅ `relacl` de `orders` **bit a bit idêntico** ao estado inicial (`diff` vazio); guarda de CI volta a exit 0 |
+
+### Estado final do banco
+
+`orders = 2`, `order_items = 2` — **exatamente o que encontrei ao começar** (as 2 linhas de `maria-das-roupas`, `HS0L52`/`MIXICD`, que **não** criei e por isso não removi). O pedido que criei (`PWVV7K`, loja `atelie-mira`) foi deletado. Privilégios idênticos ao inicial (verificado por `diff` de `relacl`). Nenhuma migration nova, nenhum `supabase db reset`, `.env.local` intocado, dev server parado, árvore git limpa.
+
+### O que **não** pôde ser verificado
+
+- **A tela `/painel/pedidos` numa sessão autenticada real** (Free bloqueado, Starter listando, campo de busca, estado vazio de busca, código nas linhas). Exige login com senha, que não está entre as ações que executo — mesma limitação do ciclo 1. Compensado por: query real contra o Postgres com JWT do dono (§C2-6d), testes de `PedidosPage`/`PedidosClient`, e as mutações M8/M12 mortas. **Não** é observação do HTML de uma resposta autenticada.
+- **O debounce de 400 ms com navegação real do Next** (`router.replace`) — coberto só por teste com fake timers e `useRouter` mockado.
+- **A migration aplicada do zero** (`supabase start` num banco vazio) — a `20260728100000` já estava aplicada; validei a **regra** do backfill contra 10 vetores, não a execução do `update` sobre uma tabela populada de produção.
+- **O workflow do GitHub Actions no runner** — segue sem PR nesta branch; validei localmente a lógica SQL do passo de privilégios (e encontrei a limitação do §C2-9 achado 1).
+- **Concorrência real de dois clientes** — não exercitada (limitação herdada do ciclo 1).
+
+---
+
+## C2-7. Discrimination Sensor
+
+Profundidade: **P0-full** (caminho de receita/dados, 12 mutações > 5). Mutações aplicadas sobre backup do arquivo real (`shutil.copy2` → mutação → `vitest` → `shutil.move` de volta no `finally`). `git status` limpo antes e depois; nenhum `.sensorbak` remanescente; suíte reconfirmada em **657** no fim. As 8 mutações obrigatórias do pedido estão todas presentes (M1–M8).
+
+| # | File:line | Mutação | AC visada | Killed? |
+|---|---|---|---|---|
+| **M1** | `app/[slug]/use-catalogo.ts:155` | move `window.open("", "_blank")` para **depois** do `await Promise.race(...)` | AD-008 / ORD-32.3 / ORD-01 | ✅ **Killed** (1 failed / 31 passed) — `use-catalogo.test.ts:246` |
+| **M2** | `lib/orders.ts:70` | `deriveOrderCode` passa a derivar de `Math.random()` em vez do `client_order_id` | ORD-32.2 | ✅ **Killed** (9 failed / 58 passed) |
+| **M3** | `app/[slug]/use-catalogo.ts:91` | remove `nameComplete` do `canCheckout` | ORD-31.3 | ✅ **Killed** (3 failed / 29 passed) |
+| **M4** | `lib/validation/pedido.ts:31` | zod aceita nome de **1** caractere (`>= 1`) | ORD-31.4 | ✅ **Killed** (2 failed / 49 passed) |
+| **M5** | `app/painel/configuracoes/use-configuracoes.ts:12` | `MSG_DEFAULT` diverge de `buildWhatsAppMessage` (troca a ordem de `{nome}`/`{pedido}`) | ORD-33.5 — o cadeado de paridade | ✅ **Killed** (2 failed / 13 passed) |
+| **M6** | `app/actions/pedidos.ts:101` | remove `code` do payload persistido | ORD-32.1 | ✅ **Killed** (1 failed / 29 passed) |
+| **M7** | `lib/server/pedidos.ts:75-76` | remove o `.or(searchFilter(term))` da listagem | ORD-35.10 | ✅ **Killed** (4 failed / 24 passed) |
+| **M8** | `app/painel/pedidos/page.tsx:18` | inverte o gate de plano (`!hasOrderHistory` → `hasOrderHistory`) | ORD-35.12 / ORD-28 | ✅ **Killed** (11 failed / 1 passed) |
+| M9 | `lib/server/pedidos.ts:32` | busca deixa de casar código (só `customer_name.ilike`) | ORD-35.10 | ✅ **Killed** (5 failed / 23 passed) |
+| M10 | `lib/orders.ts:69` | `sanitizeCustomerName` volta ao critério antigo (`trimmed === ""`) | ORD-31.2 / 31.3 | ✅ **Killed** (3 failed / 94 passed) |
+| M11 | `lib/server/pedidos.ts:64` | filtro deixa de ser aplicado na **contagem** (paginação não recalculada) | ORD-35.10 | ✅ **Killed** (1 failed / 27 passed) |
+| M12 | `app/painel/pedidos/PedidosClient.tsx:69` | `isSearching = false` — estado vazio de busca deixa de ser distinto | ORD-35.11 | ✅ **Killed** (3 failed / 26 passed) |
+
+**Sensor total: 12 mutações, 12 mortas, 0 sobreviventes.**
+
+Mutação extra, **de estado do banco** (não de código), fora da contagem porque não é sobre a suíte:
+
+| # | Mutação | Guarda | Resultado |
+|---|---|---|---|
+| DB-1 | `grant select (code) on public.orders to anon` (dentro de transação com `rollback`) | bloco SQL do workflow | ❌ **Sobreviveu** — `has_table_privilege` = `f` enquanto `has_column_privilege` = `t`, e a guarda saiu **0**. Ver §C2-9 achado 1 |
+
+---
+
+## C2-8. Code Quality
+
+| Princípio | Status |
+|---|---|
+| Código mínimo, sem features além do pedido | ✅ `deriveOrderCode`, 2 formatadores de linha, `usePedidosBusca`, 3º parâmetro em `getStoreOrders`, 1 migration |
+| Sem abstração para uso único | ✅ `orderSearchTerm`/`searchFilter` são funções locais do módulo; `usePedidosBusca` copia o padrão de `use-produtos-filtros.ts` (citado no docstring) |
+| Mudanças cirúrgicas | ✅ 29 arquivos, todos no caminho da feature; nada de refactor oportunista |
+| Não "melhorou" código alheio | ✅ |
+| Segue padrões existentes | ✅ `{nome}`/`{pedido}` resolvem para linha rotulada inteira, igual a `{pagamento}`/`{entrega}`; busca no servidor com debounce + URL, igual a produtos |
+| Um senior aprovaria? | ✅ com as 3 ressalvas de §C2-9 registradas como follow-up |
+| Testes mapeiam ACs e não são shallow | ✅ o teste de paridade `MSG_DEFAULT` × `buildWhatsAppMessage` (5 cenários, igualdade exata) é o melhor exemplo — trava o risco que a spec nomeia em `spec.md:45` |
+| Spec-anchored: valor asserido = outcome da spec | ✅ 17/17 (1 gap de precisão **da spec**, §C2-9 achado 2) |
+| Coverage Expectation por camada | ✅ `lib/orders.ts` (deriveOrderCode: shape, determinismo, vetores SQL, hífens, caixa, 50 uuids aleatórios), `lib/server/pedidos.ts` (happy + trim + sanitização + vazio + sem argumento + sem resultado + paginação filtrada), `PedidosPage` (Free com busca, starter, pro, página+busca), `PedidosClient` (lista, detalhe, debounce, limpar, refletir, paginação, 2 estados vazios) |
+| Todo teste mapeia para AC/edge case | ✅ nenhum teste órfão; os 84 testes novos citam ORD-31..35 no título ou no describe |
+| Guidelines documentadas seguidas | ✅ `AGENTS.md` (os 3 cuidados críticos de grant), `docs/CONVENTIONS.md`. O comentário da migration antecipa a pergunta do grant e a resposta se confirma na introspecção (§C2-5) |
+
+**Edge cases da spec afetados pelo ciclo 2**: nome >60 → truncado (`orders.test.ts:88`, `registrar-pedido.test.ts:528`) ✅; variação sem `{nome}`/`{pedido}` no template → sem linha sobrando (`utils.test.ts:397`) ✅; template customizado preservado (`ConfiguracoesMensagem.test.tsx:67`) ✅.
+
+---
+
+## C2-9. Achados não bloqueantes (nenhum reprova o ciclo)
+
+**1. A guarda de CI de privilégios é cega a `grant` por coluna para `anon`.** O bloco do workflow usa só `has_table_privilege`. Comprovei no banco real (em transação com `rollback`): com `grant select (code) on public.orders to anon` aplicado, `has_table_privilege('anon','public.orders','select')` devolve `f`, `has_column_privilege('anon','public.orders','code','select')` devolve `t`, e a guarda **sai 0 com `NOTICE: anon sem nada`**. O ciclo 1 só exercitou a mutação de tabela (M16), então a lacuna passou. O risco é concreto e específico deste projeto: `docs/CONVENTIONS.md` e `AGENTS.md` ensinam justamente o padrão "coluna pública nova em `stores` → `grant select (coluna) to anon`", e alguém aplicando esse padrão por analogia a `orders.code` abriria o histórico ao `anon` sem o CI reclamar. Correção sugerida (fora do escopo read-only): trocar o segundo bloco por `information_schema.column_privileges` / `has_column_privilege` sobre todas as colunas. **Estado atual continua correto** — não existe nenhum grant de coluna para `anon` hoje.
+
+**2. Spec-precision gap: os rótulos das linhas novas da mensagem não estão fixados na spec.** ORD-31.5 e ORD-32.1 pedem que a mensagem "contenha o nome" e "contenha o código"; a implementação escolheu `"Cliente: <nome>"` e `"Pedido: <código>"`, e os testes travam essas strings exatas (`utils.test.ts:142-163`, `mensagem-padrao.test.ts:53-61`). O teste é mais preciso que a spec, então não há risco de asserção frouxa — o risco é o inverso: o texto que o lojista lê no WhatsApp virou decisão implícita do agente, exatamente como o formato de `formatCents` no ciclo 1 (fechado como decisão de produto em `spec.md:61` e registrado como L-005). Sugestão: registrar os dois rótulos em Assumptions.
+
+**3. Nits sem impacto em AC.**
+- `orderSearchTerm` (`lib/server/pedidos.ts:29`) descarta `,()%*\` mas **não** `_`, que é curinga de um caractere no `LIKE`. Confirmado em PostgREST real: buscar `h_0l52` encontra `HS0L52`. Efeito é só busca ligeiramente mais larga — sem injeção (o filtro segue somado a `.eq("store_id")` + RLS) e sem erro (testei `.`, `:`, `"` → HTTP 200, 0 linhas).
+- O servidor valida o **formato** de `code` mas não confere que ele é `deriveOrderCode(clientOrderId)` (escolha documentada em `lib/validation/pedido.ts:32-33`). Um payload forjado pode gravar qualquer código de 6 caracteres. A spec não exige a checagem e o `code` não é valor monetário nem chave de acesso — o impacto máximo é poluir a busca do lojista com códigos repetidos. Se quiser fechar, é uma linha na Server Action.
+- `orders.customer_name` continua **nullable** no schema, enquanto ORD-31.4 diz "nunca é `null`". Correto assim: o invariante é garantido na aplicação (zod + `sanitizeCustomerName`) e a coluna tem de aceitar `null` pelas linhas legadas, que a UI já mostra como "Sem nome" (ORD-12.1). Não é gap.
+
+---
+
+## C2-10. Requirement Traceability — Ciclo 2
+
+| Requirement | Antes | Ciclo 2 |
+|---|---|---|
+| ORD-31 | Implementing | ✅ **Verified** (17 ACs, teste + runtime; M3/M4/M10 mortos) |
+| ORD-32 | Implementing | ✅ **Verified** (teste + runtime + paridade TS↔SQL em 10 vetores; M1/M2/M6 mortos) |
+| ORD-33 | Implementing | ✅ **Verified** (paridade exata em 5 cenários; M5 morto) |
+| ORD-34 | Implementing | ✅ **Verified** (chips, preview, template preservado, colapso de linha) |
+| ORD-35 | Implementing | ✅ **Verified** (teste + query real no Postgres; M7/M9/M11/M12/M8 mortos) |
+| ORD-01/03/04/24/28/29 | ✅ Verified (ciclo 1) | ✅ **Verified — sem regressão** (§C2-3) |
+
+---
+
+## C2-11. Lessons
+
+Signal desta rodada: **0 ACs falhando, 0 mutantes de código sobreviventes**, mas **1 spec-precision gap** (achado 2) e **1 mutação de estado de banco sobrevivente** (DB-1, achado 1). Pela regra de [lessons.md](../../../.claude/skills/tlc-spec-driven/references/lessons.md), signal ⇒ lição. Registradas 2, sem duplicar L-001..005:
+
+| ID | Lição | Signal / grounding |
+|---|---|---|
+| L-006 | Uma asserção de privilégio para `anon` precisa cobrir grants por coluna, não só `has_table_privilege` — um grant de coluna deixa o teste de tabela em `false`. | `surviving_mutant` — DB-1 (`.github/workflows/supabase-migrations-check.yml:64`) |
+| L-007 | Fixe na spec o texto exato de qualquer rótulo que o usuário final lê, antes de assertar a string na suíte. | `spec_precision_gap` — ORD-31.5 / ORD-32.1 |
+
+As 5 lições do ciclo 1 foram revisadas e **seguem válidas**, nenhuma penalizada (nenhuma recorrência):
+
+| ID | Status nesta rodada |
+|---|---|
+| L-001 (grant explícito de DML ao `service_role`) | ✅ confirmada por contraste — a migration nova **não** precisou de grant novo, e a introspecção provou por quê (grant de tabela alcança coluna nova). A lição continua certa para *tabela* nova |
+| L-002 (não deixar módulo de query coberto só por consumidores que o mockam) | ✅ aplicada — a busca nasceu com 9 testes diretos em `server-pedidos.test.ts`, e M7/M9/M11 morreram lá |
+| L-003 (migration que muda grants/RLS precisa de asserção contra o banco real) | ✅ confirmada, e **estendida** por L-006 |
+| L-004 (introspectar `pg_default_acl` antes de assumir default privileges) | ✅ confirmada — a premissa "grant de tabela vale para coluna futura" foi verificada, não assumida |
+| L-005 (fixar na spec a string exata esperada por uma AC) | ✅ confirmada, e **generalizada** por L-007 |
+
+---
+
+## C2-12. Summary — Ciclo 2
+
+**Overall**: ✅ **Ready**
+
+**Spec-anchored check**: **17/17** sub-ACs de ORD-31..35 com o outcome da spec asserido · **1** spec-precision gap não bloqueante · 12 confirmadas também em runtime
+**Regressão ciclo 1**: ORD-01/03/04/24/28/29 **sem regressão** — inclusive a garantia mais frágil (aba pré-aberta antes de qualquer `await`), agora comprovada por timestamps num browser real
+**Auditoria de testes alterados**: **11/11** justificadas por AC do ciclo 2, **zero** enfraquecidas; as 3 inversões reais correspondem às 3 ACs que a spec revoga em `spec.md:92`
+**Gate**: 657 passed · tsc limpo · lint 17 = baseline exato · build ok
+**Sensor**: **12 mutações de código, 12 mortas, 0 sobreviventes** (as 8 obrigatórias inclusas) + 1 mutação de banco que expôs a lacuna da guarda de CI
+**Segurança**: `anon` com **zero** privilégio de tabela **e de coluna** em `orders`/`order_items` (com controle positivo e prova via HTTP 401 no PostgREST); `code` herdou o grant de tabela exatamente para `authenticated`(SELECT) e `service_role`(INSERT/SELECT), sem `UPDATE` para nenhum dos dois
+**Runtime**: confirmado — checkout real gravou `code = PWVV7K` idêntico ao da mensagem, `customer_name = 'Ana Ciclo2'` trimado; o mesmo código sai na mensagem **com a gravação falhando**; colar o código na query real do Postgres devolve exatamente aquele pedido
+
+**O que funciona**: o nome virou pré-requisito de verdade — bloqueio no cliente com a string da spec, rejeição no servidor sem gravar nada, e as duas pontas discriminadas. O código do pedido nasce no cliente antes de qualquer ida ao servidor, e isso não é promessa de comentário: os timestamps de `open`/`fetch`/`href` num browser real mostram a aba abrindo 26 ms antes do POST, e com o `insert` revogado a mensagem ainda saiu completa. A paridade entre as duas fontes do formato padrão, que a spec aponta como risco, tem um cadeado de igualdade exata em 5 cenários. A busca casa código e nome, case-insensitive, dentro da loja, com a paginação recalculada — verificado contra o Postgres real, inclusive o isolamento por RLS sozinha.
+
+**Problemas encontrados**: nenhum bloqueante. Um achado que vale ação: a guarda de CI de privilégios não pega um `grant` por coluna para `anon` — a proteção mais importante do projeto tem um ponto cego numa direção que a própria documentação do repo ensina a usar em `stores`.
+
+**Next steps**: promover ORD-31..35 a `Verified` (feito). Follow-ups fora deste ciclo: (1) trocar `has_table_privilege` por checagem de coluna na guarda de CI; (2) registrar em Assumptions os rótulos `Cliente:`/`Pedido:` da mensagem; (3) opcional — descartar `_` em `orderSearchTerm` e cruzar `code` com `client_order_id` na Server Action.
+
+---
+
+## Adendo ao Ciclo 2 — derivação do código movida para o servidor (28/07/2026)
+
+**Origem:** nit registrado na seção de achados do ciclo 2 — o servidor validava o *formato* do `code` mas não conferia que ele derivava do `client_order_id`.
+
+**Mudança:** o payload deixou de carregar o código. `orderPayloadSchema` não tem mais o campo (um `code` enviado pelo cliente é descartado pelo zod), e `registrarPedido` chama `deriveOrderCode(clientOrderId)` para gravar. Como a derivação é determinística e é a mesma função que o cliente usa para montar a mensagem, mensagem e banco coincidem por construção — sem confiar em input. `spec.md` ORD-32.1 foi reescrita antes do código.
+
+**Natureza desta verificação:** auto-verificação do autor da mudança, **não** uma passada independente do Verifier. Registrada aqui com a evidência bruta para que a próxima validação possa auditá-la.
+
+### Evidência de runtime (browser real, `/atelie-mira`, dev server local)
+
+| O que | Observado |
+|---|---|
+| Aba pré-aberta (AD-008) | `window.open("", "_blank")` capturado — sem `await` antes |
+| Nome obrigatório (ORD-31.1/31.3) | `input[aria-label="Seu nome"]` com `required` e `maxLength=60`; botão `disabled`; texto "Informe seu nome para continuar" presente. Após preencher: botão habilitado, aviso desaparece |
+| `trim()` do nome (ORD-31.2) | Digitado `"  Ana Nit  "` → mensagem e banco com `Ana Nit` |
+| Payload sem código (ORD-32.1) | Corpo do POST capturado: `{"slug":"atelie-mira","clientOrderId":"93e8b1bd-…","customerName":"Ana Nit","payment":null,"delivery":null,"address":null,"items":[…]}` — **nenhuma chave `code`** |
+| Mensagem × banco | Mensagem: `Pedido: RF2IKY`; linha gravada: `code = RF2IKY` para o mesmo `client_order_id` |
+| Derivação conferida | `deriveOrderCode("93e8b1bd-232b-4dea-a80e-094dcf038ef5")` = `RF2IKY` |
+| Preço do banco (ORD-02, sem regressão) | `order_items.unit_price_cents = products.price_cents` = `28990` |
+
+### Teste adversário (replay da Server Action com código adulterado)
+
+Repliquei a request real com `clientOrderId` novo e `code: "ZZZZZZ"` injetado no corpo. Resposta 200; a linha gravada ficou com `code = T2EI99`, que é exatamente `deriveOrderCode("11111111-aaaa-4aaa-8aaa-999999999999")`. `select count(*) from orders where code = 'ZZZZZZ'` → **0**. Nada vindo do cliente alcança a coluna.
+
+### Gates
+
+`npx vitest run` → 658 verdes · `npx tsc --noEmit` → limpo · `npm run lint` → 17 = baseline · `npm run build` → ok.
+
+### Testes alterados neste adendo (todos justificados pela ORD-32.1 reescrita)
+
+| Teste | Antes | Agora |
+|---|---|---|
+| `pedido-validation.test.ts` — "rejeita código fora do formato" | exigia `code` válido no payload | descarta qualquer `code` do cliente sem rejeitar o pedido; asserção `not.toHaveProperty("code")` |
+| `registrar-pedido.test.ts` — "grava o código recebido do cliente" | gravava o que o cliente mandou | grava o derivado, comparado com o **literal** `MMUAMM` (mata também mutação em `deriveOrderCode`) |
+| `registrar-pedido.test.ts` — "rejeita código fora do formato / ausente" | 2 testes de rejeição | 2 testes novos: código adulterado é ignorado (`not.toBe("ZZZZZZ")`) e payload sem código grava normalmente |
+| `use-catalogo.test.ts` — payload exato + "envia o código derivado" | asseverava `code` no payload | assevera `not.toHaveProperty("code")` no payload **e** `Pedido: <derivado>` na mensagem |
+
+### Estado do banco
+
+Os 2 pedidos que criei (`RF2IKY`, `T2EI99`) foram deletados; restaram as 2 linhas pré-existentes de `maria-das-roupas`. Nenhum `db reset`, `.env.local` intocado.

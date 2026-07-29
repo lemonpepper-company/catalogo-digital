@@ -8,8 +8,90 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'supabase/config.toml'
+      # O próprio workflow entra na lista: sem isso, um PR que só mexe nestes
+      # guards não os executa, e a mudança vai para a main sem nunca ter rodado.
+      - '.github/workflows/supabase-migrations-check.yml'
 
 jobs:
+  # Guard rápido (sem Docker): pega os dois erros de timestamp que já quebraram
+  # deploy neste projeto, antes de gastar 2 minutos subindo o Supabase.
+  #
+  # 1. Colisão: dois arquivos com o mesmo `version`. `schema_migrations.version`
+  #    é chave primária, então o segundo insert falha e o `supabase start`/`db
+  #    push` morre no meio. Aconteceu em 2026-07-29 entre a migration de
+  #    domínio próprio e a de captura de pedidos, ambas 20260728100000.
+  #
+  # 2. Ordem invertida: migration nova com timestamp ANTERIOR a alguma já
+  #    presente na base. Em banco novo isso passa (o CI aplica em ordem de
+  #    timestamp), mas em produção o `db push` aplica em ordem de MERGE e
+  #    recusava a run inteira sem aplicar nada — enquanto a Vercel já tinha
+  #    subido o app esperando o schema novo. Mitigado com `--include-all` no
+  #    deploy, mas a divergência entre "ordem do CI" e "ordem de produção"
+  #    continua: só some se toda migration nova for a mais recente de todas.
+  timestamps:
+    name: Migration timestamps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for duplicate and out-of-order versions
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin "$BASE_REF"
+
+          versions_in_tree() {
+            find supabase/migrations -maxdepth 1 -name '*.sql' -exec basename {} \; \
+              | sed 's/_.*//' | sort
+          }
+          versions_in_base() {
+            git ls-tree -r --name-only "origin/$BASE_REF" -- supabase/migrations/ \
+              | grep '\.sql$' | xargs -r -n1 basename | sed 's/_.*//' | sort
+          }
+
+          duplicadas=$(versions_in_tree | uniq -d)
+          if [ -n "$duplicadas" ]; then
+            echo "::error::Duas migrations com o mesmo version: $(echo "$duplicadas" | tr '\n' ' ')"
+            echo "schema_migrations.version é chave primária — renomeie uma delas para um timestamp livre."
+            exit 1
+          fi
+
+          base=$(versions_in_base)
+          if [ -z "$base" ]; then
+            echo "Base $BASE_REF sem migrations — nada a comparar."
+            exit 0
+          fi
+
+          maior_da_base=$(echo "$base" | tail -1)
+          novas=$(comm -13 <(echo "$base") <(versions_in_tree) || true)
+
+          if [ -z "$novas" ]; then
+            echo "Nenhuma migration nova neste PR (a mais recente da base é $maior_da_base)."
+            exit 0
+          fi
+
+          fora_de_ordem=""
+          for v in $novas; do
+            # Comparação numérica, não de string: `[ a \< b ]` não é portável
+            # (falha no zsh) e string compare só coincide com ordem numérica
+            # enquanto todos os versions tiverem o mesmo número de dígitos.
+            if [ "$v" -le "$maior_da_base" ]; then
+              fora_de_ordem="$fora_de_ordem $v"
+            fi
+          done
+
+          if [ -n "$fora_de_ordem" ]; then
+            echo "::error::Migration nova com timestamp anterior ao da base:$fora_de_ordem"
+            echo "A mais recente em $BASE_REF é $maior_da_base — renomeie a sua para um timestamp maior."
+            exit 1
+          fi
+
+          echo "OK: novas =$(echo "$novas" | tr '\n' ' ')| todas depois de $maior_da_base, sem duplicata."
+
   validate:
     runs-on: ubuntu-latest
     steps:
@@ -61,19 +143,41 @@ jobs:
               raise exception 'service_role sem privilegio necessario: %', faltando;
             end if;
 
-            -- anon não pode ter NENHUM privilégio em orders/order_items (ORD-24)
+            -- anon não pode ter NENHUM privilégio em orders/order_items (ORD-24),
+            -- nem de tabela nem POR COLUNA. A checagem é coluna a coluna de
+            -- propósito: `has_table_privilege` devolve false quando existe apenas
+            -- `grant select (coluna) to anon`, e esse é exatamente o padrão que
+            -- AGENTS.md ensina para colunas públicas de `stores` — aplicá-lo por
+            -- analogia a `orders` abriria o histórico sem este guard reclamar.
+            -- (Ponto cego encontrado pela validação do ciclo 2.)
+            select string_agg(
+                     format('%s.%s:%s', c.table_name, c.column_name, p.priv),
+                     ', ' order by c.table_name, c.column_name, p.priv)
+              into vazando
+              from information_schema.columns c
+              cross join (values ('select'), ('insert'), ('update'), ('references')) as p(priv)
+             where c.table_schema = 'public'
+               and c.table_name in ('orders', 'order_items')
+               and has_column_privilege('anon',
+                     format('public.%I', c.table_name), c.column_name, p.priv);
+
+            if vazando is not null then
+              raise exception 'anon com privilegio de coluna em orders/order_items: %', vazando;
+            end if;
+
+            -- Privilégios que não existem por coluna (delete/truncate/trigger/maintain)
+            -- continuam checados no nível da tabela.
             select string_agg(format('%s:%s', t.tbl, p.priv), ', ' order by t.tbl, p.priv)
               into vazando
               from (values ('public.orders'), ('public.order_items')) as t(tbl),
-                   (values ('select'), ('insert'), ('update'), ('delete'),
-                           ('truncate'), ('references'), ('trigger'), ('maintain')) as p(priv)
+                   (values ('delete'), ('truncate'), ('trigger'), ('maintain')) as p(priv)
              where has_table_privilege('anon', t.tbl, p.priv);
 
             if vazando is not null then
-              raise exception 'anon com privilegio em orders/order_items: %', vazando;
+              raise exception 'anon com privilegio de tabela em orders/order_items: %', vazando;
             end if;
 
-            raise notice 'grants ok: service_role com DML na captura, anon sem nada';
+            raise notice 'grants ok: service_role com DML na captura, anon sem nada (tabela e coluna)';
           end $$;
           SQL
 

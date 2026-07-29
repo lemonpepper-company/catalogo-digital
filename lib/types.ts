@@ -97,6 +97,7 @@ export interface StoreOrderItem {
 
 export interface StoreOrder {
   id: string;
+  code: string;
   createdAt: string;
   customerName: string | null;
   paymentMethod: string | null;
@@ -133,6 +134,8 @@ export interface StoreSettings {
   instagram: string | null;
   paymentMethods: string[];
   deliveryMethods: string[];
+  customDomain: string | null;
+  customDomainVerified: boolean;
   fontPairing: string;
   backgroundPalette: string;
   cornerStyle: string;

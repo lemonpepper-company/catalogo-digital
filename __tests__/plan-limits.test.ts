@@ -36,6 +36,7 @@ describe("getPlanLimits", () => {
       advancedTheme: false,
       gridDensity: false,
       csvImport: false,
+      customDomain: false,
     });
   });
 
@@ -50,6 +51,7 @@ describe("getPlanLimits", () => {
       advancedTheme: false,
       gridDensity: true,
       csvImport: false,
+      customDomain: false,
     });
   });
 
@@ -64,6 +66,7 @@ describe("getPlanLimits", () => {
       advancedTheme: true,
       gridDensity: true,
       csvImport: true,
+      customDomain: true,
     });
   });
 
@@ -79,6 +82,7 @@ describe("getPlanLimits", () => {
       advancedTheme: false,
       gridDensity: false,
       csvImport: false,
+      customDomain: false,
     });
   });
 
@@ -94,6 +98,7 @@ describe("getPlanLimits", () => {
       advancedTheme: false,
       gridDensity: false,
       csvImport: false,
+      customDomain: false,
     });
   });
 });
@@ -173,5 +178,21 @@ describe("getPlanLimits — importação CSV", () => {
   it("pro com trial_ends_at expirado perde a importação CSV (cai para Free)", () => {
     const past = new Date(Date.now() - 86400000).toISOString();
     expect(getPlanLimits("pro", past).csvImport).toBe(false);
+  });
+});
+
+describe("getPlanLimits — domínio próprio", () => {
+  it("free e starter não têm domínio próprio", () => {
+    expect(getPlanLimits("free", null).customDomain).toBe(false);
+    expect(getPlanLimits("starter", null).customDomain).toBe(false);
+  });
+
+  it("pro tem domínio próprio", () => {
+    expect(getPlanLimits("pro", null).customDomain).toBe(true);
+  });
+
+  it("pro com trial_ends_at expirado perde o domínio próprio (cai para Free)", () => {
+    const past = new Date(Date.now() - 86400000).toISOString();
+    expect(getPlanLimits("pro", past).customDomain).toBe(false);
   });
 });

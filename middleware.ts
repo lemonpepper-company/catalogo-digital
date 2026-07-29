@@ -1,8 +1,42 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { createAnonClient } from '@/lib/supabase/server'
+import { isOwnHost } from '@/lib/domain-routing'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  // custom_domain é gravado sempre em minúsculo (domainSchema em
+  // lib/validation/painel.ts) e a comparação no Postgres é case-sensitive —
+  // normaliza o Host para não perder o match com header em caixa alta.
+  const hostname = request.headers.get('host')?.split(':')[0]?.toLowerCase() ?? ''
+
+  if (pathname === '/' && !isOwnHost(hostname, process.env.NEXT_PUBLIC_SITE_URL)) {
+    const anon = createAnonClient()
+    const { data: store, error } = await anon
+      .from('stores')
+      .select('slug, custom_domain_verified')
+      .eq('custom_domain', hostname)
+      .maybeSingle()
+
+    if (error) {
+      console.error('[middleware] falha ao buscar domínio próprio:', error)
+    }
+
+    // Três desfechos possíveis:
+    // 1. Nenhuma loja usa esse domínio → host desconhecido, segue o fluxo
+    //    normal (a rota "/" é a landing de marketing, sempre 200).
+    // 2. Loja com domínio verificado → rewrite transparente para a vitrine.
+    // 3. Loja com domínio ainda não verificado → rewrite transparente para a
+    //    página de espera, para não exibir a landing da Vtrine no domínio do
+    //    lojista durante a janela de verificação.
+    if (store) {
+      const url = request.nextUrl.clone()
+      url.pathname = store.custom_domain_verified
+        ? `/${store.slug}`
+        : '/dominio-pendente'
+      return NextResponse.rewrite(url)
+    }
+  }
 
   const needsAuth = pathname === '/login' || pathname.startsWith('/painel')
 

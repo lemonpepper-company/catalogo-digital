@@ -44,6 +44,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: ORD-18 — DashboardClient.test.tsx:62 asserts 'R$ 1234,50'; spec only says 'formatada em reais' (spec-authoring)
 - last seen: 2026-07-28T03:48:47Z
 
+### L-006 — A privilege assertion for anon must cover column-level grants, not only has_table_privilege — a column grant leaves the table-level check false.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `supabase-migrations` · harmful: 0
+- features: captura-de-pedidos
+- evidence: .github/workflows/supabase-migrations-check.yml:64 (mutacao DB-1) (supabase-migrations)
+- last seen: 2026-07-29T01:56:33Z
+
+### L-007 — Pin in the spec the exact text of any label an end user reads before asserting that string in the suite.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `spec-authoring` · harmful: 0
+- features: captura-de-pedidos
+- evidence: ORD-31.5 / ORD-32.1 (spec-authoring)
+- last seen: 2026-07-29T01:56:33Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

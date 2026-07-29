@@ -7,6 +7,13 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export const MAX_ORDER_LINES = 20;
 export const MAX_QTY = 99;
 export const CUSTOMER_NAME_MAX = 60;
+export const CUSTOMER_NAME_MIN = 2;
+
+export const ORDER_CODE_LENGTH = 6;
+export const ORDER_CODE_PATTERN = /^[A-Z0-9]{6}$/;
+
+const ORDER_CODE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const ORDER_CODE_HEX_PER_CHAR = 5;
 
 export function isOrderStatus(value: unknown): value is OrderStatus {
   return (ORDER_STATUSES as readonly unknown[]).includes(value);
@@ -44,6 +51,7 @@ export interface OrderItemRow {
 
 export interface OrderRow {
   id: string;
+  code: string;
   created_at: string;
   customer_name: string | null;
   payment_method: string | null;
@@ -55,10 +63,41 @@ export interface OrderRow {
   order_items?: OrderItemRow[] | null;
 }
 
+/**
+ * O nome do cliente é obrigatório (ORD-31): menos de 2 caracteres depois do
+ * trim() não é nome — devolve null e quem chama rejeita o pedido. Acima de 60 é
+ * truncado, nunca rejeitado (edge case da spec).
+ */
 export function sanitizeCustomerName(raw: string | null | undefined): string | null {
   const trimmed = (raw ?? "").trim();
-  if (trimmed === "") return null;
+  if (trimmed.length < CUSTOMER_NAME_MIN) return null;
   return trimmed.slice(0, CUSTOMER_NAME_MAX);
+}
+
+export function isValidCustomerName(raw: string | null | undefined): boolean {
+  return sanitizeCustomerName(raw) !== null;
+}
+
+/**
+ * Código curto do pedido derivado do `client_order_id` (ORD-32): 6 blocos de 5
+ * dígitos hex do uuid, cada bloco reduzido mod 36 no alfabeto [0-9A-Z]. É puro e
+ * determinístico de propósito — o código entra na mensagem do WhatsApp antes de
+ * qualquer ida ao servidor, então não pode depender da resposta da gravação
+ * (AD-008), e reenviar a mesma sacola precisa reproduzir o mesmo código.
+ *
+ * A mesma regra está reescrita em SQL no backfill de
+ * `supabase/migrations/20260728100000_orders_code.sql`.
+ */
+export function deriveOrderCode(clientOrderId: string): string {
+  const hex = clientOrderId.replace(/[^0-9a-fA-F]/g, "").toLowerCase();
+  let code = "";
+  for (let i = 0; i < ORDER_CODE_LENGTH; i++) {
+    const block = hex.slice(i * ORDER_CODE_HEX_PER_CHAR, (i + 1) * ORDER_CODE_HEX_PER_CHAR);
+    const value = parseInt(block, 16);
+    const index = (Number.isNaN(value) ? 0 : value) % ORDER_CODE_ALPHABET.length;
+    code += ORDER_CODE_ALPHABET[index];
+  }
+  return code;
 }
 
 /**
@@ -105,6 +144,7 @@ function mapOrderItemRow(row: OrderItemRow): StoreOrderItem {
 export function mapOrderRow(row: OrderRow): StoreOrder {
   return {
     id: row.id,
+    code: row.code,
     createdAt: row.created_at,
     customerName: row.customer_name,
     paymentMethod: row.payment_method,

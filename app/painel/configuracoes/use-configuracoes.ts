@@ -5,10 +5,16 @@ import { updateStoreSettings } from "@/app/actions/store";
 import { useLojaFields } from "@/components/loja/use-loja-fields";
 import type { StoreSettings, ToastState } from "@/lib/types";
 
-export const MSG_DEFAULT = `{saudacao}\n\n{itens}\n\n{pagamento}\n\n{entrega}\n\n━━━━━━━━━━━━━━━━━\n*Total: {total}*\n━━━━━━━━━━━━━━━━━`;
+// Formato padrão do textarea e do "Restaurar padrão". Precisa render exatamente o
+// mesmo texto que `buildWhatsAppMessage` produz para uma loja com
+// `message_template` nulo — são duas fontes do mesmo formato, sincronizadas na
+// mão, e `__tests__/mensagem-padrao.test.ts` trava a paridade (ORD-33.5).
+export const MSG_DEFAULT = `{saudacao}\n\n{nome}\n{pedido}\n\n{itens}\n\n{pagamento}\n\n{entrega}\n\n━━━━━━━━━━━━━━━━━\n*Total: {total}*\n━━━━━━━━━━━━━━━━━`;
 
 export const MSG_VARS = [
   { token: "{saudacao}", desc: "saudação inicial" },
+  { token: "{nome}", desc: "nome informado pelo cliente" },
+  { token: "{pedido}", desc: "código do pedido" },
   { token: "{itens}", desc: "lista de itens da sacola" },
   { token: "{total}", desc: "valor total do pedido" },
   { token: "{pagamento}", desc: "forma de pagamento escolhida" },

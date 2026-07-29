@@ -83,13 +83,15 @@ SaaS de assinatura para lojistas de varejo — foco inicial em moda — que perm
 | Sacola de produtos | Cliente adiciona múltiplos produtos com variações e quantidades | ✅ Implementado |
 | Drawer da sacola | Slide-in lateral com lista de itens, controles de quantidade e total | ✅ Implementado |
 | Mensagem WhatsApp formatada | Lista numerada com produto, variação, qtd, subtotal por item, total em destaque | ✅ Implementado |
-| Template customizável | Lojista edita o template da mensagem usando variáveis (`{saudacao}`, `{itens}`, `{total}`) | ✅ Implementado |
+| Template customizável | Lojista edita o template da mensagem usando variáveis (`{saudacao}`, `{nome}`, `{pedido}`, `{itens}`, `{total}`, `{pagamento}`, `{entrega}`) | ✅ Implementado |
 | Preview do template | Preview em tempo real com dados mockados na tela de configurações | ✅ Implementado |
 | Variáveis disponíveis | Chips clicáveis para inserir variáveis no template | ✅ Implementado |
 | Normalização do WhatsApp | Número normalizado com código do país (+55) no momento do checkout | ✅ Implementado |
-| Nome do cliente na sacola | Campo opcional "Seu nome (opcional)" (60 caracteres), que não entra no template da mensagem | ✅ Implementado |
+| Nome do cliente na sacola | Campo **obrigatório** "Seu nome" (mín. 2 e máx. 60 caracteres após `trim()`): sem ele o envio fica bloqueado no cliente e o servidor rejeita o payload. O nome viaja na mensagem do WhatsApp | ✅ Implementado |
+| Código do pedido na mensagem | Código de 6 caracteres `[A-Z0-9]` derivado do `client_order_id` **no cliente** (nunca depende da resposta do servidor), gravado em `orders.code` e presente na mensagem do WhatsApp | ✅ Implementado |
 | Captura do pedido no banco | O pedido é gravado em `orders`/`order_items` antes do redirect: aba do WhatsApp pré-aberta no clique, timeout de 2500 ms e falha silenciosa (a venda nunca é bloqueada). Preço e total recalculados no servidor a partir de `products.price_cents`; idempotência por `client_order_id`. **Grava em qualquer plano, inclusive Free** | ✅ Implementado |
-| Histórico de pedidos no painel | `/painel/pedidos` — lista paginada (20/página) + detalhe com itens em snapshot (sobrevive à exclusão do produto), pagamento, entrega e total | ✅ Implementado |
+| Histórico de pedidos no painel | `/painel/pedidos` — lista paginada (20/página) com o código de cada pedido + detalhe com itens em snapshot (sobrevive à exclusão do produto), pagamento, entrega e total | ✅ Implementado |
+| Busca no histórico | Campo único que filtra por código **ou** nome do cliente, no servidor (`?q=`), case-insensitive e dentro da loja, com a paginação recalculada sobre o resultado filtrado | ✅ Implementado |
 | Status da venda | `pendente` (padrão da captura) / `confirmado` / `cancelado`, com qualquer transição permitida; só os confirmados somam no faturamento do painel | ✅ Implementado |
 | Cards de ROI no dashboard | "Pedidos no mês" (não cancelados), "Vendas confirmadas no mês" (R$) e "Aguardando confirmação", com corte do mês no fuso `America/Sao_Paulo` | ✅ Implementado |
 

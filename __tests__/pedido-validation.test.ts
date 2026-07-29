@@ -9,6 +9,7 @@ function minimalPayload(over: Record<string, unknown> = {}) {
   return {
     slug: "loja-da-ana",
     clientOrderId: UUID,
+    customerName: "Ana",
     items: [{ productId: PRODUCT_UUID, size: null, color: null, qty: 1 }],
     ...over,
   };
@@ -24,16 +25,17 @@ function items(count: number) {
 }
 
 describe("orderPayloadSchema — payloads aceitos", () => {
-  it("aceita o payload mínimo: 1 item, sem nome, pagamento ou entrega", () => {
+  it("aceita o payload mínimo: 1 item, nome e código, sem pagamento ou entrega", () => {
     const result = orderPayloadSchema.safeParse(minimalPayload());
     expect(result.success).toBe(true);
   });
 
-  it("aceita o payload completo com nome, pagamento, entrega, endereço e variação", () => {
+  it("aceita o payload completo com nome, código, pagamento, entrega, endereço e variação", () => {
     const result = orderPayloadSchema.safeParse({
       slug: "loja-da-ana",
       clientOrderId: UUID,
       customerName: "Ana",
+      code: "HS0L52",
       payment: "pix",
       delivery: "entrega",
       address: "Rua A, 10",
@@ -62,16 +64,30 @@ describe("orderPayloadSchema — payloads aceitos", () => {
     expect(result.success).toBe(true);
   });
 
-  it("aceita null nos campos opcionais (campo em branco não invalida o pedido)", () => {
+  it("aceita null em pagamento, entrega e endereço (campo em branco não invalida o pedido)", () => {
     const result = orderPayloadSchema.safeParse(
       minimalPayload({
-        customerName: null,
         payment: null,
         delivery: null,
         address: null,
       })
     );
     expect(result.success).toBe(true);
+  });
+
+  it("aceita nome de exatamente 2 caracteres e nome com espaços em volta", () => {
+    expect(orderPayloadSchema.safeParse(minimalPayload({ customerName: "Jô" })).success).toBe(
+      true
+    );
+    expect(
+      orderPayloadSchema.safeParse(minimalPayload({ customerName: "  Ana Maria  " })).success
+    ).toBe(true);
+  });
+
+  it("aceita código de 6 caracteres com letras e dígitos", () => {
+    for (const code of ["HS0L52", "MIXICD", "000000", "ZZZZZZ", "A1B2C3"]) {
+      expect(orderPayloadSchema.safeParse(minimalPayload({ code })).success).toBe(true);
+    }
   });
 
   it("aceita exatamente 20 linhas de item e qty 99 (limites inclusivos)", () => {
@@ -159,6 +175,28 @@ describe("orderPayloadSchema — payloads rejeitados", () => {
       minimalPayload({ delivery: "drone" })
     );
     expect(result.success).toBe(false);
+  });
+
+  it("rejeita nome ausente, null, vazio, só espaços ou com 1 caractere (ORD-31.4)", () => {
+    const { customerName: _omit, ...withoutName } = minimalPayload();
+    expect(orderPayloadSchema.safeParse(withoutName).success).toBe(false);
+    for (const customerName of [null, undefined, "", "   ", "A", "  A  "]) {
+      expect(
+        orderPayloadSchema.safeParse(minimalPayload({ customerName })).success
+      ).toBe(false);
+    }
+  });
+
+  // ORD-32.1 (revisada): o payload NÃO carrega código — o servidor deriva do
+  // client_order_id. Um código enviado pelo cliente é descartado pelo schema, em
+  // vez de rejeitar o pedido: nada vindo do cliente pode alcançar orders.code.
+  it("descarta qualquer código enviado pelo cliente, sem rejeitar o pedido (ORD-32.1)", () => {
+    for (const code of ["HS0L52", "hs0l52", "", null, "'; drop table orders; --"]) {
+      const result = orderPayloadSchema.safeParse(minimalPayload({ code }));
+      expect(result.success).toBe(true);
+      if (!result.success) throw new Error("payload deveria ser válido");
+      expect(result.data).not.toHaveProperty("code");
+    }
   });
 
   it("expõe a mensagem do erro em .error.issues[0].message (Zod v4)", () => {

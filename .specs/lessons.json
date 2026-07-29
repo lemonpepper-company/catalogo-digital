@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 6,
+  "next_id": 8,
   "lessons": [
     {
       "id": "L-001",
@@ -94,6 +94,42 @@
       ],
       "created": "2026-07-28T03:48:47Z",
       "last_seen": "2026-07-28T03:48:47Z"
+    },
+    {
+      "id": "L-006",
+      "key": "surviving_mutant::a privilege assertion for anon must cover column level grants not only has table privilege a column grant leaves the table level check false",
+      "text": "A privilege assertion for anon must cover column-level grants, not only has_table_privilege — a column grant leaves the table-level check false.",
+      "signal": "surviving_mutant",
+      "scope": "supabase-migrations",
+      "status": "candidate",
+      "features": [
+        "captura-de-pedidos"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        ".github/workflows/supabase-migrations-check.yml:64 (mutacao DB-1) (supabase-migrations)"
+      ],
+      "created": "2026-07-29T01:56:33Z",
+      "last_seen": "2026-07-29T01:56:33Z"
+    },
+    {
+      "id": "L-007",
+      "key": "spec_precision_gap::pin in the spec the exact text of any label an end user reads before asserting that string in the suite",
+      "text": "Pin in the spec the exact text of any label an end user reads before asserting that string in the suite.",
+      "signal": "spec_precision_gap",
+      "scope": "spec-authoring",
+      "status": "candidate",
+      "features": [
+        "captura-de-pedidos"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "ORD-31.5 / ORD-32.1 (spec-authoring)"
+      ],
+      "created": "2026-07-29T01:56:33Z",
+      "last_seen": "2026-07-29T01:56:33Z"
     }
   ]
 }

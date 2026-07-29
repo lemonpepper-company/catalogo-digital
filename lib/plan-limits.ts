@@ -10,6 +10,7 @@ export interface PlanLimits {
   advancedTheme: boolean;
   gridDensity: boolean;
   csvImport: boolean;
+  customDomain: boolean;
 }
 
 const FREE_LIMITS: PlanLimits = {
@@ -22,6 +23,7 @@ const FREE_LIMITS: PlanLimits = {
   advancedTheme: false,
   gridDensity: false,
   csvImport: false,
+  customDomain: false,
 };
 
 const STARTER_LIMITS: PlanLimits = {
@@ -34,6 +36,7 @@ const STARTER_LIMITS: PlanLimits = {
   advancedTheme: false,
   gridDensity: true,
   csvImport: false,
+  customDomain: false,
 };
 
 const PRO_LIMITS: PlanLimits = {
@@ -46,6 +49,7 @@ const PRO_LIMITS: PlanLimits = {
   advancedTheme: true,
   gridDensity: true,
   csvImport: true,
+  customDomain: true,
 };
 
 function isPaidAccessExpired(trialEndsAt: string | null): boolean {

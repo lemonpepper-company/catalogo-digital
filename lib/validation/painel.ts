@@ -44,6 +44,17 @@ export const personalizacaoSchema = z.object({
   gridDensity: z.enum(["padrao", "compacto"]),
 });
 
+// Hostname puro: sem protocolo, sem path, sem porta. Ex: "boutiquedaana.com.br".
+export const domainSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(
+    /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/,
+    "Domínio inválido — use o formato exemplo.com.br, sem http:// e sem barras"
+  )
+  .nullable();
+
 export function canDeleteCategory(productCount: number): boolean {
   return productCount === 0;
 }
