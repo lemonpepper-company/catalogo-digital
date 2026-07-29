@@ -191,6 +191,15 @@ describe("registrarPedido — gravação do pedido (ORD-01)", () => {
     });
   });
 
+  it("grava o código recebido do cliente em orders.code (ORD-32.1)", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarPedido = await loadAction();
+
+    await registrarPedido(validPayload({ code: "HS0L52" }));
+
+    expect(upsertRow(made).code).toBe("HS0L52");
+  });
+
   it("grava 1 linha em order_items por item resolvido, com o snapshot de nome e preço", async () => {
     const made = setupSupabase({
       ...happyPlan(),
@@ -489,6 +498,27 @@ describe("registrarPedido — nome do cliente (ORD-10, ORD-31)", () => {
     expect(from).not.toHaveBeenCalled();
   });
 
+  it("rejeita nome com 1 caractere sem gravar nada (ORD-31.4)", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarPedido = await loadAction();
+
+    const result = await registrarPedido(validPayload({ customerName: "A" }));
+
+    expect(result).toEqual({ ok: false });
+    expect(writeCalls(made)).toHaveLength(0);
+  });
+
+  it("rejeita nome ausente sem gravar nada (ORD-31.4)", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarPedido = await loadAction();
+    const { customerName: _omit, ...payload } = validPayload();
+
+    const result = await registrarPedido(payload);
+
+    expect(result).toEqual({ ok: false });
+    expect(writeCalls(made)).toHaveLength(0);
+  });
+
   it("trunca o nome em 60 caracteres", async () => {
     const made = setupSupabase(happyPlan());
     const registrarPedido = await loadAction();
@@ -496,6 +526,30 @@ describe("registrarPedido — nome do cliente (ORD-10, ORD-31)", () => {
     await registrarPedido(validPayload({ customerName: "A".repeat(70) }));
 
     expect(upsertRow(made).customer_name).toBe("A".repeat(60));
+  });
+});
+
+describe("registrarPedido — código do pedido (ORD-32)", () => {
+  it("rejeita código fora do formato de 6 caracteres sem gravar nada", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarPedido = await loadAction();
+
+    const result = await registrarPedido(validPayload({ code: "hs0l5" }));
+
+    expect(result).toEqual({ ok: false });
+    expect(writeCalls(made)).toHaveLength(0);
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("rejeita código ausente sem gravar nada", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarPedido = await loadAction();
+    const { code: _omit, ...payload } = validPayload();
+
+    const result = await registrarPedido(payload);
+
+    expect(result).toEqual({ ok: false });
+    expect(writeCalls(made)).toHaveLength(0);
   });
 });
 

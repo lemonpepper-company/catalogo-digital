@@ -30,7 +30,8 @@ export async function registrarPedido(payload: unknown): Promise<RegistrarPedido
       return { ok: false };
     }
 
-    const { slug, clientOrderId, customerName, payment, delivery, address, items } = parsed.data;
+    const { slug, clientOrderId, code, customerName, payment, delivery, address, items } =
+      parsed.data;
     const supabase = createAdminClient();
 
     const { data: store, error: storeError } = await supabase
@@ -97,6 +98,10 @@ export async function registrarPedido(payload: unknown): Promise<RegistrarPedido
         {
           store_id: store.id,
           client_order_id: clientOrderId,
+          code,
+          // Nunca null: `orderPayloadSchema` já rejeitou nome com menos de 2
+          // caracteres após trim(), então aqui só resta trim + corte em 60
+          // (ORD-31.4).
           customer_name: sanitizeCustomerName(customerName),
           payment_method: payment ?? null,
           delivery_method: delivery ?? null,
