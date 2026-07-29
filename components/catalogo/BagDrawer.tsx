@@ -5,6 +5,7 @@ import { X, ShoppingBag, Trash2, MessageCircle } from "lucide-react";
 import type { CartItem } from "@/lib/types";
 import { formatMoney, parsePrice } from "@/lib/utils";
 import { PAYMENT_METHODS, DELIVERY_METHODS } from "@/lib/data";
+import { CUSTOMER_NAME_MAX } from "@/lib/orders";
 
 interface BagDrawerProps {
   open: boolean;
@@ -249,9 +250,10 @@ export function BagDrawer({
               type="text"
               value={customerName}
               onChange={(e) => onCustomerNameChange?.(e.target.value)}
-              maxLength={60}
-              placeholder="Seu nome (opcional)"
-              aria-label="Seu nome (opcional)"
+              maxLength={CUSTOMER_NAME_MAX}
+              required
+              placeholder="Seu nome"
+              aria-label="Seu nome"
               className="w-full h-11 px-3.5 bg-white border border-sand rounded-input font-body text-[14px] text-obsidian placeholder:text-inactive outline-none focus:border-obsidian transition-colors"
             />
 

@@ -61,19 +61,41 @@ jobs:
               raise exception 'service_role sem privilegio necessario: %', faltando;
             end if;
 
-            -- anon não pode ter NENHUM privilégio em orders/order_items (ORD-24)
+            -- anon não pode ter NENHUM privilégio em orders/order_items (ORD-24),
+            -- nem de tabela nem POR COLUNA. A checagem é coluna a coluna de
+            -- propósito: `has_table_privilege` devolve false quando existe apenas
+            -- `grant select (coluna) to anon`, e esse é exatamente o padrão que
+            -- AGENTS.md ensina para colunas públicas de `stores` — aplicá-lo por
+            -- analogia a `orders` abriria o histórico sem este guard reclamar.
+            -- (Ponto cego encontrado pela validação do ciclo 2.)
+            select string_agg(
+                     format('%s.%s:%s', c.table_name, c.column_name, p.priv),
+                     ', ' order by c.table_name, c.column_name, p.priv)
+              into vazando
+              from information_schema.columns c
+              cross join (values ('select'), ('insert'), ('update'), ('references')) as p(priv)
+             where c.table_schema = 'public'
+               and c.table_name in ('orders', 'order_items')
+               and has_column_privilege('anon',
+                     format('public.%I', c.table_name), c.column_name, p.priv);
+
+            if vazando is not null then
+              raise exception 'anon com privilegio de coluna em orders/order_items: %', vazando;
+            end if;
+
+            -- Privilégios que não existem por coluna (delete/truncate/trigger/maintain)
+            -- continuam checados no nível da tabela.
             select string_agg(format('%s:%s', t.tbl, p.priv), ', ' order by t.tbl, p.priv)
               into vazando
               from (values ('public.orders'), ('public.order_items')) as t(tbl),
-                   (values ('select'), ('insert'), ('update'), ('delete'),
-                           ('truncate'), ('references'), ('trigger'), ('maintain')) as p(priv)
+                   (values ('delete'), ('truncate'), ('trigger'), ('maintain')) as p(priv)
              where has_table_privilege('anon', t.tbl, p.priv);
 
             if vazando is not null then
-              raise exception 'anon com privilegio em orders/order_items: %', vazando;
+              raise exception 'anon com privilegio de tabela em orders/order_items: %', vazando;
             end if;
 
-            raise notice 'grants ok: service_role com DML na captura, anon sem nada';
+            raise notice 'grants ok: service_role com DML na captura, anon sem nada (tabela e coluna)';
           end $$;
           SQL
 

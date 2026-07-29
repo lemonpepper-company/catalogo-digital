@@ -3,7 +3,12 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { renderWhatsAppMessage, normalizeWhatsapp } from "@/lib/utils";
 import { filterCatalog } from "@/lib/catalog";
-import { newClientOrderId } from "@/lib/orders";
+import {
+  deriveOrderCode,
+  isValidCustomerName,
+  newClientOrderId,
+  sanitizeCustomerName,
+} from "@/lib/orders";
 import { registrarPedido } from "@/app/actions/pedidos";
 import type { CartItem, Product, Store } from "@/lib/types";
 
@@ -82,11 +87,16 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
   const deliveryComplete =
     deliveryMethods.length === 0 ||
     (!!selectedDelivery && (selectedDelivery !== "entrega" || address.trim() !== ""));
-  const canCheckout = hasWhatsapp && paymentComplete && deliveryComplete;
+  const nameComplete = isValidCustomerName(customerName);
+  const canCheckout = hasWhatsapp && nameComplete && paymentComplete && deliveryComplete;
+  // Um aviso por vez. O nome vem primeiro porque é o único bloqueio que a AC
+  // exige incondicionalmente quando o campo está vazio (ORD-31.3).
   const checkoutBlockedReason =
-    hasWhatsapp && !canCheckout
-      ? "Selecione forma de pagamento e entrega para continuar."
-      : null;
+    !hasWhatsapp || canCheckout
+      ? null
+      : !nameComplete
+        ? "Informe seu nome para continuar"
+        : "Selecione forma de pagamento e entrega para continuar.";
 
   const handleAdd = useCallback(
     (product: Product, size: string | null, color: string | null, qty: number) => {
@@ -123,10 +133,21 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
       flash("Esta loja ainda não configurou o WhatsApp.");
       return;
     }
+    // Nome e código entram na mensagem antes de qualquer ida ao servidor: o
+    // código é derivado do clientOrderId no próprio cliente, então a mensagem
+    // continua completa mesmo se a gravação falhar ou estourar o timeout
+    // (ORD-32.1, ORD-32.3). O código não vai no payload — o servidor deriva o
+    // mesmo valor da mesma função, então nada aqui precisa ser confiado.
+    const clientOrderId = clientOrderIdFor(cartSignature(cart));
+    const code = deriveOrderCode(clientOrderId);
+    const sanitizedName = sanitizeCustomerName(customerName);
+
     const msg = renderWhatsAppMessage(store.messageTemplate, cart, {
       payment: selectedPayment,
       delivery: selectedDelivery,
       address,
+      customerName: sanitizedName,
+      code,
     });
     const url = `https://wa.me/${normalizeWhatsapp(store.whatsapp)}?text=${encodeURIComponent(msg)}`;
 
@@ -135,14 +156,12 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     const tab = window.open("", "_blank");
     flash("Abrindo o WhatsApp…");
 
-    const clientOrderId = clientOrderIdFor(cartSignature(cart));
-
     try {
       await Promise.race([
         registrarPedido({
           slug: store.slug,
           clientOrderId,
-          customerName: customerName.trim() || null,
+          customerName: sanitizedName,
           payment: selectedPayment,
           delivery: selectedDelivery,
           address: address.trim() || null,

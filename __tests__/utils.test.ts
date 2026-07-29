@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parsePrice, formatMoney, buildWhatsAppMessage, renderWhatsAppMessage, normalizeWhatsapp, formatItemsBlock, WHATSAPP_GREETING, cn, parseReaisToCents, formatCents, formatPriceInput, formatPaymentLine, formatDeliveryLine } from "@/lib/utils";
+import { parsePrice, formatMoney, buildWhatsAppMessage, renderWhatsAppMessage, normalizeWhatsapp, formatItemsBlock, WHATSAPP_GREETING, cn, parseReaisToCents, formatCents, formatPriceInput, formatPaymentLine, formatDeliveryLine, formatCustomerNameLine, formatOrderCodeLine } from "@/lib/utils";
 
 describe("parsePrice", () => {
   it("parses a Brazilian real price string", () => {
@@ -118,10 +118,11 @@ describe("buildWhatsAppMessage", () => {
 });
 
 describe("buildWhatsAppMessage — formato padrão (§8)", () => {
-  it("mantém o formato exato do Escopo §8", () => {
-    const items = [
-      { product: { name: "Produto Exemplo", price: "R$ 50,00" }, size: "M", color: "Preto", qty: 2 },
-    ];
+  const items = [
+    { product: { name: "Produto Exemplo", price: "R$ 50,00" }, size: "M", color: "Preto", qty: 2 },
+  ];
+
+  it("mantém o formato exato do Escopo §8 quando não há nome nem código", () => {
     const expected = [
       "Olá! Gostaria de fazer um pedido:",
       "",
@@ -136,6 +137,61 @@ describe("buildWhatsAppMessage — formato padrão (§8)", () => {
       "━━━━━━━━━━━━━━━━━",
     ].join("\n");
     expect(buildWhatsAppMessage(items)).toBe(expected);
+  });
+
+  it("inclui nome do cliente e código do pedido no formato padrão (ORD-33.4)", () => {
+    const expected = [
+      "Olá! Gostaria de fazer um pedido:",
+      "",
+      "Cliente: Ana",
+      "Pedido: HS0L52",
+      "",
+      "01. Produto Exemplo",
+      `    Quantidade: 2x | Valor unitário: ${formatMoney(50)}`,
+      "    Tamanho: M",
+      "    Cor: Preto",
+      `    Subtotal: ${formatMoney(100)}`,
+      "",
+      "━━━━━━━━━━━━━━━━━",
+      `*Total: ${formatMoney(100)}*`,
+      "━━━━━━━━━━━━━━━━━",
+    ].join("\n");
+    expect(buildWhatsAppMessage(items, { customerName: "Ana", code: "HS0L52" })).toBe(
+      expected
+    );
+  });
+
+  it("não deixa linha em branco sobrando quando só o código vem (ORD-34.8)", () => {
+    const msg = buildWhatsAppMessage(items, { code: "HS0L52" });
+    expect(msg).toContain("Olá! Gostaria de fazer um pedido:\n\nPedido: HS0L52\n\n01.");
+    expect(msg).not.toMatch(/\n{3,}/);
+  });
+
+  it("não deixa linha em branco sobrando quando só o nome vem (ORD-34.8)", () => {
+    const msg = buildWhatsAppMessage(items, { customerName: "Ana" });
+    expect(msg).toContain("Olá! Gostaria de fazer um pedido:\n\nCliente: Ana\n\n01.");
+    expect(msg).not.toMatch(/\n{3,}/);
+  });
+});
+
+describe("formatCustomerNameLine e formatOrderCodeLine (ORD-33, ORD-34)", () => {
+  it("formata a linha rotulada do nome, com trim", () => {
+    expect(formatCustomerNameLine("Ana")).toBe("Cliente: Ana");
+    expect(formatCustomerNameLine("  Ana Maria  ")).toBe("Cliente: Ana Maria");
+  });
+
+  it("formata a linha rotulada do código, com trim", () => {
+    expect(formatOrderCodeLine("HS0L52")).toBe("Pedido: HS0L52");
+    expect(formatOrderCodeLine("  HS0L52 ")).toBe("Pedido: HS0L52");
+  });
+
+  it("devolve vazio para nome/código ausentes, vazios ou só espaços", () => {
+    expect(formatCustomerNameLine(null)).toBe("");
+    expect(formatCustomerNameLine(undefined)).toBe("");
+    expect(formatCustomerNameLine("   ")).toBe("");
+    expect(formatOrderCodeLine(null)).toBe("");
+    expect(formatOrderCodeLine(undefined)).toBe("");
+    expect(formatOrderCodeLine("   ")).toBe("");
   });
 });
 
@@ -317,6 +373,37 @@ describe("buildWhatsAppMessage — pagamento e entrega (novo)", () => {
     expect(msg).not.toMatch(/\n{3,}/);
     expect(msg).not.toContain("Forma de pagamento:");
     expect(msg).not.toContain("Entrega:");
+  });
+});
+
+describe("renderWhatsAppMessage — nome e código (ORD-34)", () => {
+  const items = [
+    { product: { name: "Blusa", price: "R$ 80,00" }, size: null, color: null, qty: 1 },
+  ];
+
+  it("substitui {nome} e {pedido} pelas linhas rotuladas (ORD-34.7)", () => {
+    const msg = renderWhatsAppMessage("{nome}\n{pedido}", items, {
+      customerName: "Ana",
+      code: "HS0L52",
+    });
+    expect(msg).toBe("Cliente: Ana\nPedido: HS0L52");
+  });
+
+  it("substitui todas as ocorrências de {nome} e {pedido}", () => {
+    const msg = renderWhatsAppMessage("{pedido} / {pedido}", items, { code: "HS0L52" });
+    expect(msg).toBe("Pedido: HS0L52 / Pedido: HS0L52");
+  });
+
+  it("colapsa as linhas em branco quando nome e código ficam vazios (ORD-34.8)", () => {
+    const msg = renderWhatsAppMessage("Início\n\n{nome}\n{pedido}\n\nFim", items);
+    expect(msg).toBe("Início\n\nFim");
+  });
+
+  it("preserva o template customizado que não usa as variáveis novas (ORD-34.6)", () => {
+    const custom = "Oi! Quero:\n{itens}\nTotal {total}";
+    expect(
+      renderWhatsAppMessage(custom, items, { customerName: "Ana", code: "HS0L52" })
+    ).toBe(`Oi! Quero:\n${formatItemsBlock(items)}\nTotal ${formatMoney(80)}`);
   });
 });
 

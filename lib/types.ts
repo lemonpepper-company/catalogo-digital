@@ -97,6 +97,7 @@ export interface StoreOrderItem {
 
 export interface StoreOrder {
   id: string;
+  code: string;
   createdAt: string;
   customerName: string | null;
   paymentMethod: string | null;

@@ -126,10 +126,14 @@ function itemRows(made: MadeChain[]): Record<string, unknown>[] {
   return callsOf(made, "order_items", "insert")[0][0] as Record<string, unknown>[];
 }
 
+/** Código derivado de CLIENT_ORDER_ID — literal de propósito (ORD-32.1). */
+const DERIVED_CODE = "MMUAMM";
+
 function validPayload(overrides: Record<string, unknown> = {}) {
   return {
     slug: "ateliemira",
     clientOrderId: CLIENT_ORDER_ID,
+    customerName: "Ana",
     items: [{ productId: P1, size: "M", color: "Areia", qty: 2 }],
     ...overrides,
   };
@@ -185,6 +189,15 @@ describe("registrarPedido — gravação do pedido (ORD-01)", () => {
       items_count: 2,
       total_cents: 39800,
     });
+  });
+
+  it("grava em orders.code o código derivado do client_order_id (ORD-32.1)", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarPedido = await loadAction();
+
+    await registrarPedido(validPayload());
+
+    expect(upsertRow(made).code).toBe(DERIVED_CODE);
   });
 
   it("grava 1 linha em order_items por item resolvido, com o snapshot de nome e preço", async () => {
@@ -464,7 +477,7 @@ describe("registrarPedido — teto anti-abuso (ORD-08)", () => {
   });
 });
 
-describe("registrarPedido — nome do cliente (ORD-10)", () => {
+describe("registrarPedido — nome do cliente (ORD-10, ORD-31)", () => {
   it("aplica trim no nome informado", async () => {
     const made = setupSupabase(happyPlan());
     const registrarPedido = await loadAction();
@@ -474,13 +487,36 @@ describe("registrarPedido — nome do cliente (ORD-10)", () => {
     expect(upsertRow(made).customer_name).toBe("Ana Maria");
   });
 
-  it("grava null quando o nome vem em branco", async () => {
+  it("rejeita nome em branco sem gravar nada (ORD-31.4)", async () => {
     const made = setupSupabase(happyPlan());
     const registrarPedido = await loadAction();
 
-    await registrarPedido(validPayload({ customerName: "   " }));
+    const result = await registrarPedido(validPayload({ customerName: "   " }));
 
-    expect(upsertRow(made).customer_name).toBeNull();
+    expect(result).toEqual({ ok: false });
+    expect(writeCalls(made)).toHaveLength(0);
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("rejeita nome com 1 caractere sem gravar nada (ORD-31.4)", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarPedido = await loadAction();
+
+    const result = await registrarPedido(validPayload({ customerName: "A" }));
+
+    expect(result).toEqual({ ok: false });
+    expect(writeCalls(made)).toHaveLength(0);
+  });
+
+  it("rejeita nome ausente sem gravar nada (ORD-31.4)", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarPedido = await loadAction();
+    const { customerName: _omit, ...payload } = validPayload();
+
+    const result = await registrarPedido(payload);
+
+    expect(result).toEqual({ ok: false });
+    expect(writeCalls(made)).toHaveLength(0);
   });
 
   it("trunca o nome em 60 caracteres", async () => {
@@ -490,6 +526,31 @@ describe("registrarPedido — nome do cliente (ORD-10)", () => {
     await registrarPedido(validPayload({ customerName: "A".repeat(70) }));
 
     expect(upsertRow(made).customer_name).toBe("A".repeat(60));
+  });
+});
+
+describe("registrarPedido — código do pedido (ORD-32)", () => {
+  // ORD-32.1 (revisada): o código gravado é sempre derivado do client_order_id no
+  // servidor. Um cliente adulterado que mande outro código não contamina o campo.
+  it("ignora o código enviado no payload e grava o derivado do client_order_id", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarPedido = await loadAction();
+
+    const result = await registrarPedido(validPayload({ code: "ZZZZZZ" }));
+
+    expect(result).toEqual({ ok: true });
+    expect(upsertRow(made).code).toBe(DERIVED_CODE);
+    expect(upsertRow(made).code).not.toBe("ZZZZZZ");
+  });
+
+  it("grava normalmente quando o payload não traz código nenhum", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarPedido = await loadAction();
+
+    const result = await registrarPedido(validPayload());
+
+    expect(result).toEqual({ ok: true });
+    expect(upsertRow(made).code).toBe(DERIVED_CODE);
   });
 });
 

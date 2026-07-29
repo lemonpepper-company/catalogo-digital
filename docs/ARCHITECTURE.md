@@ -57,10 +57,10 @@ stores     (id, owner_id → profiles, name, slug unique, plan, trial_ends_at (n
 categories (id, store_id → stores, name, position, created_at)
 products   (id, store_id → stores, name, price_cents, description, category_id → categories,
             sizes[], sold_sizes[], colors jsonb, images[], stock, is_active, is_new, created_at)
-orders     (id, store_id → stores (cascade), client_order_id, customer_name, payment_method,
-            delivery_method, delivery_address, items_count, total_cents,
+orders     (id, store_id → stores (cascade), client_order_id, code, customer_name,
+            payment_method, delivery_method, delivery_address, items_count, total_cents,
             status ('pendente'|'confirmado'|'cancelado'), created_at,
-            unique (store_id, client_order_id))
+            unique (store_id, client_order_id), index (store_id, code))
 order_items(id, order_id → orders (cascade), product_id → products (set null),
             product_name, unit_price_cents, qty (1..99), size, color, created_at)
 ```
@@ -109,25 +109,25 @@ Emails de confirmação ficam em **Mailpit**: `http://localhost:54324`
 | `lib/utils.ts` | `parsePrice`, `formatMoney`, `buildWhatsAppMessage`, `renderWhatsAppMessage`, `formatPaymentLine`, `formatDeliveryLine`, `formatCents` |
 | `lib/auth/slugify.ts` | `slugify()` e `isValidSlug()` com testes |
 | `lib/plan-limits.ts` | `getPlanLimits()`, `getEffectivePlan()` — limites por plano (Free/Starter/Pro), capability `hasOrderHistory` e rebaixamento automático quando o acesso pago liberado manualmente expira |
-| `lib/orders.ts` | Módulo puro do pedido: `ORDER_STATUSES`/`isOrderStatus`, `sanitizeCustomerName`, `resolveOrderItems` (preço sempre do banco), `mapOrderRow`, `newClientOrderId` |
+| `lib/orders.ts` | Módulo puro do pedido: `ORDER_STATUSES`/`isOrderStatus`, `sanitizeCustomerName`/`isValidCustomerName` (nome obrigatório, mín. 2 / máx. 60 após `trim()`), `deriveOrderCode` (código de 6 caracteres derivado do `client_order_id`), `resolveOrderItems` (preço sempre do banco), `mapOrderRow`, `newClientOrderId` |
 | `lib/order-metrics.ts` | Módulo puro das métricas de ROI: `monthStartInSaoPaulo()` (corte do mês no fuso `America/Sao_Paulo`) e `computeOrderMetrics()` |
 | `lib/supabase/client.ts` | `createBrowserClient` para componentes client-side |
 | `lib/supabase/server.ts` | `createServerClient` para Server Components e Actions |
 | `lib/supabase/admin.ts` | `createAdminClient()` — client com service role, `import "server-only"`; único caminho de escrita em `orders`/`order_items` |
 | `lib/server/store.ts` | `getCurrentStore()`, `mapProduct()` — busca a loja do usuário autenticado |
 | `lib/server/catalog.ts` | `getPublicCatalog()` — busca catálogo público por slug (com RLS anon) |
-| `lib/server/pedidos.ts` | `getStoreOrders()` (histórico paginado, 20/página, itens aninhados) e `getOrderMetrics()` — leituras do painel via RLS |
+| `lib/server/pedidos.ts` | `getStoreOrders()` (histórico paginado, 20/página, itens aninhados, busca opcional por código **ou** nome via `ilike` com a contagem usando o mesmo filtro) e `getOrderMetrics()` — leituras do painel via RLS |
 | `lib/server/upload.ts` | `uploadPhotos()`, `uploadToBucket()`, `publicUrlToPath()` — Supabase Storage |
 | `lib/image-compress.ts` | Compressão de imagens no cliente antes do upload |
 | `lib/validation/painel.ts` | Schemas Zod para produtos, categorias, configurações da loja |
-| `lib/validation/pedido.ts` | `orderPayloadSchema` — validação do payload público de captura (uuid, ≤20 itens, qty 1..99, enums de pagamento/entrega) |
+| `lib/validation/pedido.ts` | `orderPayloadSchema` — validação do payload público de captura (uuid, nome obrigatório com ≥2 caracteres, `code` no formato `[A-Z0-9]{6}`, ≤20 itens, qty 1..99, enums de pagamento/entrega) |
 | `middleware.ts` | Proteção de rotas e redirecionamentos por estado de auth |
 | `app/actions/auth.ts` | Server Actions: `signUp`, `signIn`, `signInWithGoogle`, `createStore`, `requestPasswordReset`, `resetPassword`, `resendConfirmation`, `signOut`. `createStore` agora coleta o perfil completo (WhatsApp obrigatório, logo, monograma, Instagram, descrição, cor de destaque, formas de pagamento/entrega) durante a etapa 2 do cadastro |
 | `app/actions/produtos.ts` | Server Actions: `createProduct`, `updateProduct`, `deleteProduct`, `toggleProductActive` |
 | `app/actions/categorias.ts` | Server Actions: `createCategory`, `updateCategory`, `deleteCategory` |
 | `app/actions/store.ts` | Server Actions: `updateStoreSettings` |
 | `app/actions/pedidos.ts` | Server Actions: `registrarPedido` (pública, grava o pedido antes do redirect ao WhatsApp — nunca lança, nunca consulta plano) e `updateOrderStatus` (painel, exige `hasOrderHistory`) |
-| `app/painel/pedidos/` | Histórico de pedidos: `page.tsx` (gate de plano antes da query), `PedidosClient.tsx` (lista + `Modal` de detalhe + troca de status), `use-pedidos.ts`, `loading.tsx` |
+| `app/painel/pedidos/` | Histórico de pedidos: `page.tsx` (gate de plano antes da query, lê `page` e `q` de `searchParams`), `PedidosClient.tsx` (lista com código + busca + `Modal` de detalhe + troca de status), `use-pedidos.ts`, `use-pedidos-busca.ts` (debounce do termo para a URL), `loading.tsx` |
 | `app/auth/callback/route.ts` | Route Handler OAuth/PKCE: cria `profiles` após confirmação; sem loja, redireciona para `/cadastro?step=loja` |
 | `app/api/slug/check/route.ts` | Endpoint público de verificação de slug disponível |
 | `app/globals.css` | Tokens CSS como custom properties |
@@ -175,8 +175,8 @@ A função `getPublicCatalog(slug)` em `lib/server/catalog.ts` encapsula toda a 
 - **Painel do lojista** (`/painel`): totalmente conectado ao Supabase — dashboard, produtos (CRUD + upload de fotos), pedidos (histórico paginado + detalhe + status), categorias (CRUD + limites de plano), configurações da loja
 - **Catálogo público** (`/[slug]`): dados reais do Supabase via RLS anon — grid de produtos, detalhe, sacola (drawer), checkout WhatsApp com template customizável, header com descrição e links de WhatsApp/Instagram, página de loja expirada. A cor de destaque (`accentColor`) configurada pela loja é injetada como `--color-primary` na raiz da página e reflete no monograma, na busca ativa e nos botões de CTA (adicionar à sacola, comprar, enviar pedido)
 - **Checkout**: pagamento e forma de entrega configuráveis por loja (`stores.payment_methods`/`delivery_methods`); o cliente escolhe entre as opções habilitadas antes de enviar o pedido — grupos sem nenhuma opção configurada não aparecem na sacola
-- **Captura de pedidos**: o checkout pré-abre a aba do WhatsApp no clique, chama `registrarPedido` com timeout de 2500 ms e só então aponta a aba para o `wa.me` — falha ou lentidão na gravação nunca bloqueia a venda (erro só no log do servidor). A sacola tem um campo opcional "Seu nome (opcional)" (60 caracteres) que não entra no template da mensagem. Preço e total são recalculados no servidor a partir de `products.price_cents` (nenhum valor monetário do cliente é aceito), com idempotência por `client_order_id` e teto anti-abuso de 20 pedidos/60 s por loja. **A gravação acontece em qualquer plano, inclusive Free** — só a visualização é paga
-- **Histórico e ROI no painel**: `/painel/pedidos` lista os pedidos da loja (20/página) com detalhe em `Modal` (itens em snapshot, pagamento, entrega, total) e troca de status (`pendente`/`confirmado`/`cancelado`, qualquer transição); o dashboard mostra "Pedidos no mês", "Vendas confirmadas no mês" e "Aguardando confirmação". Ambas as telas são gated por `getPlanLimits(...).hasOrderHistory`: no plano efetivo Free o gate roda **antes da query** e a tela mostra `RecursoBloqueado` sem nenhum dado real. O item "Pedidos" aparece na navegação em todos os planos (é o que gera o upgrade)
+- **Captura de pedidos**: o checkout pré-abre a aba do WhatsApp no clique, chama `registrarPedido` com timeout de 2500 ms e só então aponta a aba para o `wa.me` — falha ou lentidão na gravação nunca bloqueia a venda (erro só no log do servidor). A sacola tem o campo **obrigatório** "Seu nome" (mín. 2 e máx. 60 caracteres após `trim()`): sem ele o botão de envio fica desabilitado e o servidor rejeita o payload, então `orders.customer_name` nunca é nulo em pedido novo. Nome e código do pedido viajam na mensagem do WhatsApp (variáveis `{nome}` e `{pedido}`) — o código tem 6 caracteres e é **derivado do `client_order_id` no cliente**, para que a mensagem nunca dependa da resposta do servidor. Preço e total são recalculados no servidor a partir de `products.price_cents` (nenhum valor monetário do cliente é aceito), com idempotência por `client_order_id` e teto anti-abuso de 20 pedidos/60 s por loja. **A gravação acontece em qualquer plano, inclusive Free** — só a visualização é paga
+- **Histórico e ROI no painel**: `/painel/pedidos` lista os pedidos da loja (20/página) exibindo o código de cada um, com busca server-side por código ou nome do cliente (`?q=`, case-insensitive, dentro da loja, paginação recalculada sobre o filtro e estado vazio próprio), detalhe em `Modal` (itens em snapshot, pagamento, entrega, total) e troca de status (`pendente`/`confirmado`/`cancelado`, qualquer transição); o dashboard mostra "Pedidos no mês", "Vendas confirmadas no mês" e "Aguardando confirmação". Ambas as telas são gated por `getPlanLimits(...).hasOrderHistory`: no plano efetivo Free o gate roda **antes da query** e a tela mostra `RecursoBloqueado` sem nenhum dado real. O item "Pedidos" aparece na navegação em todos os planos (é o que gera o upgrade)
 - **Limites de plano**: `getPlanLimits()` aplicado em Server Actions de produtos e categorias — Free (8 produtos/1 categoria/1 foto), Starter (30/5/3) e Pro (ilimitado/ilimitado/5). Um Starter/Pro liberado manualmente cai para os limites do Free automaticamente quando `trial_ends_at` vence (`getEffectivePlan()`, calculado a cada checagem, sem job)
 - **Storage**: bucket `product-images` com upload, compressão no cliente e remoção de imagens antigas ao editar
 

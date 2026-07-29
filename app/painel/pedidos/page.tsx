@@ -8,7 +8,7 @@ import { PedidosClient } from "./PedidosClient";
 export default async function PedidosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }) {
   const store = await getCurrentStore();
   if (!store) redirect("/login");
@@ -24,13 +24,21 @@ export default async function PedidosPage({
     );
   }
 
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, q } = await searchParams;
+  const query = q ?? "";
   const { orders, total, page, totalPages } = await getStoreOrders(
     store.id,
-    Number(pageParam ?? "1")
+    Number(pageParam ?? "1"),
+    query
   );
 
   return (
-    <PedidosClient orders={orders} total={total} page={page} totalPages={totalPages} />
+    <PedidosClient
+      orders={orders}
+      total={total}
+      page={page}
+      totalPages={totalPages}
+      query={query}
+    />
   );
 }

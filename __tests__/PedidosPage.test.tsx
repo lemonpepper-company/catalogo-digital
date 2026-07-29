@@ -16,6 +16,7 @@ vi.mock("@/lib/server/pedidos", () => ({
 }));
 vi.mock("next/navigation", () => ({
   redirect: (path: string) => redirect(path),
+  useRouter: () => ({ replace: vi.fn() }),
 }));
 
 const STORE_ID = "11111111-1111-4111-8111-111111111111";
@@ -52,6 +53,7 @@ function makeStore(plan: Plan, trialEndsAt: string | null = null): StoreSettings
 function makeOrder(): StoreOrder {
   return {
     id: "o1",
+    code: "HS0L52",
     createdAt: "2026-07-27T15:30:00.000Z",
     customerName: "Ana",
     paymentMethod: "pix",
@@ -72,10 +74,13 @@ function makeOrder(): StoreOrder {
   };
 }
 
-async function renderPage(pageParam?: string) {
+async function renderPage(pageParam?: string, q?: string) {
   const { default: PedidosPage } = await import("@/app/painel/pedidos/page");
   const ui = await PedidosPage({
-    searchParams: Promise.resolve(pageParam ? { page: pageParam } : {}),
+    searchParams: Promise.resolve({
+      ...(pageParam ? { page: pageParam } : {}),
+      ...(q === undefined ? {} : { q }),
+    }),
   });
   return render(ui);
 }
@@ -112,6 +117,52 @@ describe("/painel/pedidos — gate de plano (ORD-28)", () => {
     expect(container.textContent).not.toContain("R$");
     expect(screen.queryByRole("button", { name: /Ver detalhe do pedido/ })).toBeNull();
   });
+
+  it("no plano Free com busca preenchida nenhuma query roda (ORD-35.12)", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("free"));
+
+    const { container } = await renderPage(undefined, "HS0L52");
+
+    expect(getStoreOrders).not.toHaveBeenCalled();
+    expect(screen.getByText("Disponível a partir do plano Starter")).toBeTruthy();
+    expect(container.textContent).not.toContain("Ana");
+    expect(container.textContent).not.toContain("HS0L52");
+    expect(
+      screen.queryByLabelText("Buscar por código ou nome do cliente")
+    ).toBeNull();
+  });
+});
+
+describe("/painel/pedidos — busca vinda da URL (ORD-35.10)", () => {
+  it("repassa searchParams.q para a leitura do histórico", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("starter"));
+
+    await renderPage(undefined, "hs0l");
+
+    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 1, "hs0l");
+  });
+
+  it("combina busca e página na mesma leitura", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("pro"));
+    getStoreOrders.mockResolvedValue({
+      orders: [makeOrder()],
+      total: 30,
+      page: 2,
+      totalPages: 2,
+    });
+
+    await renderPage("2", "ana");
+
+    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 2, "ana");
+  });
+
+  it("mostra o código do pedido na lista renderizada pela página", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("starter"));
+
+    await renderPage();
+
+    expect(screen.getByText("HS0L52")).toBeTruthy();
+  });
 });
 
 describe("/painel/pedidos — planos pagos (ORD-30)", () => {
@@ -120,7 +171,7 @@ describe("/painel/pedidos — planos pagos (ORD-30)", () => {
 
     await renderPage();
 
-    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 1);
+    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 1, "");
     expect(screen.getByText("Ana")).toBeTruthy();
     expect(screen.getByText("R$ 398,00")).toBeTruthy();
   });
@@ -156,7 +207,7 @@ describe("/painel/pedidos — planos pagos (ORD-30)", () => {
 
     await renderPage("2");
 
-    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 2);
+    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 2, "");
   });
 });
 
@@ -182,7 +233,7 @@ describe("/painel/pedidos — histórico do período Free ao virar pago (ORD-30.
 
     // Mesma query de sempre — só `store_id` e a página; nada específico de plano.
     expect(getStoreOrders).toHaveBeenCalledTimes(1);
-    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 1);
+    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 1, "");
     expect(liberado.getByText("Ana")).toBeTruthy();
     expect(liberado.getByText("R$ 398,00")).toBeTruthy();
   });

@@ -5,6 +5,11 @@ import {
   MAX_ORDER_LINES,
   MAX_QTY,
   CUSTOMER_NAME_MAX,
+  CUSTOMER_NAME_MIN,
+  ORDER_CODE_LENGTH,
+  ORDER_CODE_PATTERN,
+  deriveOrderCode,
+  isValidCustomerName,
   sanitizeCustomerName,
   resolveOrderItems,
   mapOrderRow,
@@ -32,6 +37,11 @@ describe("constantes de pedido", () => {
     expect(MAX_QTY).toBe(99);
     expect(CUSTOMER_NAME_MAX).toBe(60);
   });
+
+  it("expõe o mínimo de 2 caracteres do nome e os 6 caracteres do código", () => {
+    expect(CUSTOMER_NAME_MIN).toBe(2);
+    expect(ORDER_CODE_LENGTH).toBe(6);
+  });
 });
 
 describe("isOrderStatus", () => {
@@ -51,7 +61,7 @@ describe("isOrderStatus", () => {
   });
 });
 
-describe("sanitizeCustomerName", () => {
+describe("sanitizeCustomerName (ORD-31)", () => {
   it("aplica trim no valor informado", () => {
     expect(sanitizeCustomerName("  Ana  ")).toBe("Ana");
   });
@@ -63,6 +73,16 @@ describe("sanitizeCustomerName", () => {
     expect(sanitizeCustomerName(undefined)).toBeNull();
   });
 
+  it("devolve null para nome com menos de 2 caracteres após o trim", () => {
+    expect(sanitizeCustomerName("A")).toBeNull();
+    expect(sanitizeCustomerName("   A   ")).toBeNull();
+  });
+
+  it("aceita nome de exatamente 2 caracteres após o trim", () => {
+    expect(sanitizeCustomerName("Jô")).toBe("Jô");
+    expect(sanitizeCustomerName("  An  ")).toBe("An");
+  });
+
   it("trunca em 60 caracteres sem rejeitar o valor", () => {
     const long = "a".repeat(70);
     expect(sanitizeCustomerName(long)).toBe("a".repeat(60));
@@ -72,6 +92,65 @@ describe("sanitizeCustomerName", () => {
   it("mantém nome de exatamente 60 caracteres intacto", () => {
     const exact = "b".repeat(60);
     expect(sanitizeCustomerName(exact)).toBe(exact);
+  });
+});
+
+describe("isValidCustomerName (ORD-31)", () => {
+  it("é false para vazio, só espaços, 1 caractere, null e undefined", () => {
+    expect(isValidCustomerName("")).toBe(false);
+    expect(isValidCustomerName("   ")).toBe(false);
+    expect(isValidCustomerName("A")).toBe(false);
+    expect(isValidCustomerName(" A ")).toBe(false);
+    expect(isValidCustomerName(null)).toBe(false);
+    expect(isValidCustomerName(undefined)).toBe(false);
+  });
+
+  it("é true a partir de 2 caracteres após o trim, inclusive acima de 60", () => {
+    expect(isValidCustomerName("An")).toBe(true);
+    expect(isValidCustomerName("  Ana Maria  ")).toBe(true);
+    expect(isValidCustomerName("a".repeat(70))).toBe(true);
+  });
+});
+
+describe("deriveOrderCode (ORD-32)", () => {
+  const UUID_A = "df1b1f26-6865-4484-bcb1-f96411dcdee4";
+  const UUID_B = "99f8ef01-1a0d-4e56-b586-5a2dc156e56c";
+
+  it("devolve 6 caracteres em [A-Z0-9]", () => {
+    const code = deriveOrderCode(UUID_A);
+    expect(code).toHaveLength(6);
+    expect(code).toMatch(ORDER_CODE_PATTERN);
+  });
+
+  it("é determinístico: o mesmo client_order_id sempre gera o mesmo código", () => {
+    expect(deriveOrderCode(UUID_A)).toBe(deriveOrderCode(UUID_A));
+    expect(deriveOrderCode(UUID_B)).toBe(deriveOrderCode(UUID_B));
+  });
+
+  // Vetores conferidos contra o backfill SQL de
+  // supabase/migrations/20260728100000_orders_code.sql rodando no banco local:
+  // travar o valor aqui impede que as duas implementações da mesma regra divirjam.
+  it("reproduz os vetores usados no backfill da migration", () => {
+    expect(deriveOrderCode(UUID_A)).toBe("HS0L52");
+    expect(deriveOrderCode(UUID_B)).toBe("MIXICD");
+  });
+
+  it("gera códigos distintos para client_order_ids distintos", () => {
+    expect(deriveOrderCode(UUID_A)).not.toBe(deriveOrderCode(UUID_B));
+  });
+
+  it("ignora os hifens do uuid (mesmo código com e sem separadores)", () => {
+    expect(deriveOrderCode(UUID_A.replaceAll("-", ""))).toBe(deriveOrderCode(UUID_A));
+  });
+
+  it("é insensível à caixa do hexadecimal de entrada", () => {
+    expect(deriveOrderCode(UUID_A.toUpperCase())).toBe(deriveOrderCode(UUID_A));
+  });
+
+  it("gera 6 caracteres válidos para qualquer uuid recém-criado", () => {
+    for (let i = 0; i < 50; i++) {
+      expect(deriveOrderCode(newClientOrderId())).toMatch(ORDER_CODE_PATTERN);
+    }
   });
 });
 
@@ -187,6 +266,7 @@ describe("resolveOrderItems", () => {
 describe("mapOrderRow", () => {
   const row: OrderRow = {
     id: "o1",
+    code: "HS0L52",
     created_at: "2026-07-20T13:45:00.000Z",
     customer_name: "Ana",
     payment_method: "pix",
@@ -217,6 +297,7 @@ describe("mapOrderRow", () => {
     const order = mapOrderRow(row);
     expect(order).toEqual({
       id: "o1",
+      code: "HS0L52",
       createdAt: "2026-07-20T13:45:00.000Z",
       customerName: "Ana",
       paymentMethod: "pix",
