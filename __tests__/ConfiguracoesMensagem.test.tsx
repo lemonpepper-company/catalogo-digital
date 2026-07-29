@@ -93,3 +93,28 @@ describe("Configurações — variáveis {nome} e {pedido} (ORD-34)", () => {
     expect(templateTextarea().value).toBe(MSG_DEFAULT);
   });
 });
+
+describe("Configurações — preview do WhatsApp reflete pagamento/entrega reais", () => {
+  it("não deixa linha vazia no preview quando pagamento e entrega não estão configurados", () => {
+    render(<ConfiguracoesClient settings={makeSettings(null)} limits={proLimits} />);
+
+    const preview = document.querySelector(
+      ".bg-linen.border.border-sand\\/50.rounded-card.p-4"
+    ) as HTMLElement;
+    expect(preview.textContent).not.toMatch(/\n{3,}/);
+  });
+
+  it("mostra a forma de pagamento real quando configurada", () => {
+    const settings = { ...makeSettings(null), paymentMethods: ["pix"] };
+    render(<ConfiguracoesClient settings={settings} limits={proLimits} />);
+
+    expect(screen.getByText(/Forma de pagamento: Pix/)).toBeTruthy();
+  });
+
+  it("mostra a forma de entrega real quando configurada", () => {
+    const settings = { ...makeSettings(null), deliveryMethods: ["retirada"] };
+    render(<ConfiguracoesClient settings={settings} limits={proLimits} />);
+
+    expect(screen.getByText(/Entrega: Retirar no local/)).toBeTruthy();
+  });
+});

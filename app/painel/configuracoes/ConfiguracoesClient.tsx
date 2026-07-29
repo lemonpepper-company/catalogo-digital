@@ -13,6 +13,7 @@ import type { StoreSettings } from "@/lib/types";
 import type { PlanLimits } from "@/lib/plan-limits";
 import { useConfiguracoes, MSG_VARS } from "./use-configuracoes";
 import { useDominio } from "./use-dominio";
+import { formatPaymentLine, formatDeliveryLine, collapseBlankLines } from "@/lib/utils";
 
 const MSG_MOCK = {
   saudacao: "Olá! Gostaria de fazer um pedido:",
@@ -21,19 +22,24 @@ const MSG_MOCK = {
   itens:
     "01. Produto Exemplo\n    Quantidade: 2x | Valor unitário: R$ 50,00\n    Tamanho: M\n    Cor: Preto\n    Subtotal: R$ 100,00",
   total: "R$ 100,00",
-  pagamento: "Forma de pagamento: Pix",
-  entrega: "Entrega: Retirar no local",
 };
 
-function renderTemplate(tpl: string) {
-  return tpl
+function renderTemplate(
+  tpl: string,
+  paymentMethods: string[],
+  deliveryMethods: string[]
+) {
+  const pagamento = formatPaymentLine(paymentMethods[0] ?? null);
+  const entrega = formatDeliveryLine(deliveryMethods[0] ?? null, null);
+  const rendered = tpl
     .replace(/\{saudacao\}/g, MSG_MOCK.saudacao)
     .replace(/\{nome\}/g, MSG_MOCK.nome)
     .replace(/\{pedido\}/g, MSG_MOCK.pedido)
     .replace(/\{itens\}/g, MSG_MOCK.itens)
     .replace(/\{total\}/g, MSG_MOCK.total)
-    .replace(/\{pagamento\}/g, MSG_MOCK.pagamento)
-    .replace(/\{entrega\}/g, MSG_MOCK.entrega);
+    .replace(/\{pagamento\}/g, pagamento)
+    .replace(/\{entrega\}/g, entrega);
+  return collapseBlankLines(rendered);
 }
 
 function WhatsPreviewText({ text }: { text: string }) {
@@ -167,7 +173,9 @@ export function ConfiguracoesClient({
               Pré-visualização
             </span>
             <div className="bg-linen border border-sand/50 rounded-card p-4 font-mono text-[12.5px] leading-relaxed text-graphite whitespace-pre-wrap break-words">
-              <WhatsPreviewText text={renderTemplate(f.msgTpl)} />
+              <WhatsPreviewText
+                text={renderTemplate(f.msgTpl, f.paymentMethods, f.deliveryMethods)}
+              />
             </div>
           </div>
         </div>
