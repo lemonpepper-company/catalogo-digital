@@ -15,4 +15,5 @@ export const RESERVED_SLUGS = new Set([
   'vender-pelo-whatsapp',
   'vitrine-online-sem-carrinho',
   'alternativa-linktree-para-vender',
+  'dominio-pendente',
 ])
