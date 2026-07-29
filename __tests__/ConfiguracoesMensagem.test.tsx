@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ConfiguracoesClient } from "@/app/painel/configuracoes/ConfiguracoesClient";
 import { MSG_DEFAULT } from "@/app/painel/configuracoes/use-configuracoes";
+import { getPlanLimits } from "@/lib/plan-limits";
 import type { StoreSettings } from "@/lib/types";
 
 vi.mock("@/app/actions/store", () => ({
@@ -34,8 +35,13 @@ function makeSettings(messageTemplate: string | null): StoreSettings {
     cornerStyle: "padrao",
     secondaryColor: null,
     gridDensity: "padrao",
+    customDomain: null,
+    customDomainVerified: false,
   };
 }
+
+// trialEndsAt=null → acesso indeterminado (ver getEffectivePlan).
+const proLimits = getPlanLimits("pro", null);
 
 function templateTextarea(): HTMLTextAreaElement {
   return document.querySelector("textarea") as HTMLTextAreaElement;
@@ -43,14 +49,14 @@ function templateTextarea(): HTMLTextAreaElement {
 
 describe("Configurações — variáveis {nome} e {pedido} (ORD-34)", () => {
   it("oferece {nome} e {pedido} como chips clicáveis (ORD-34.7)", () => {
-    render(<ConfiguracoesClient settings={makeSettings(null)} />);
+    render(<ConfiguracoesClient settings={makeSettings(null)} limits={proLimits} />);
 
     expect(screen.getByRole("button", { name: "+ {nome}" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "+ {pedido}" })).toBeTruthy();
   });
 
   it("insere o token no template ao clicar no chip (ORD-34.7)", () => {
-    render(<ConfiguracoesClient settings={makeSettings("Oi!")} />);
+    render(<ConfiguracoesClient settings={makeSettings("Oi!")} limits={proLimits} />);
 
     fireEvent.click(screen.getByRole("button", { name: "+ {pedido}" }));
 
@@ -58,7 +64,7 @@ describe("Configurações — variáveis {nome} e {pedido} (ORD-34)", () => {
   });
 
   it("renderiza {nome} e {pedido} no preview (ORD-34.7)", () => {
-    render(<ConfiguracoesClient settings={makeSettings("{nome}\n{pedido}")} />);
+    render(<ConfiguracoesClient settings={makeSettings("{nome}\n{pedido}")} limits={proLimits} />);
 
     expect(screen.getByText(/Cliente: Ana/)).toBeTruthy();
     expect(screen.getByText(/Pedido: A1B2C3/)).toBeTruthy();
@@ -66,13 +72,13 @@ describe("Configurações — variáveis {nome} e {pedido} (ORD-34)", () => {
 
   it("preserva o template customizado da loja, sem reescrita nem anexo (ORD-34.6)", () => {
     const custom = "Oi! Quero:\n{itens}\nTotal {total}";
-    render(<ConfiguracoesClient settings={makeSettings(custom)} />);
+    render(<ConfiguracoesClient settings={makeSettings(custom)} limits={proLimits} />);
 
     expect(templateTextarea().value).toBe(custom);
   });
 
   it('"Restaurar padrão" traz o formato com {nome} e {pedido} (ORD-33.5)', () => {
-    render(<ConfiguracoesClient settings={makeSettings("Oi!")} />);
+    render(<ConfiguracoesClient settings={makeSettings("Oi!")} limits={proLimits} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Restaurar padrão" }));
 
@@ -82,7 +88,7 @@ describe("Configurações — variáveis {nome} e {pedido} (ORD-34)", () => {
   });
 
   it("loja com template nulo abre o textarea no formato padrão (ORD-33.4)", () => {
-    render(<ConfiguracoesClient settings={makeSettings(null)} />);
+    render(<ConfiguracoesClient settings={makeSettings(null)} limits={proLimits} />);
 
     expect(templateTextarea().value).toBe(MSG_DEFAULT);
   });
