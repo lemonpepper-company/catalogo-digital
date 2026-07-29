@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Sidebar } from "@/components/painel/Sidebar";
+import { VTRINE_WHATSAPP_NUMBER } from "@/lib/contact";
 
 let pathname = "/painel";
 
@@ -98,5 +99,19 @@ describe("Sidebar — item Pedidos (ORD-16)", () => {
     expect(
       screen.getByRole("link", { name: "Dashboard" }).getAttribute("aria-current")
     ).toBe("page");
+  });
+});
+
+describe("Sidebar — link de suporte", () => {
+  it("mostra um link de Suporte apontando para o WhatsApp da Vtrine", () => {
+    render(
+      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} slug="ateliemira" />
+    );
+    const link = screen.getByRole("link", { name: /suporte/i });
+    expect(link.getAttribute("href")).toBe(
+      `https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+        "Olá! Preciso de suporte com minha loja na Vtrine Digital."
+      )}`
+    );
   });
 });
