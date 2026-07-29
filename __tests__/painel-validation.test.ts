@@ -269,6 +269,12 @@ describe("domainSchema", () => {
     if (r.success) expect(r.data).toBe("boutique.com.br");
   });
 
+  it("remove o prefixo www. — apex é o valor canônico salvo", () => {
+    const r = domainSchema.safeParse("www.boutiquedaana.com.br");
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data).toBe("boutiquedaana.com.br");
+  });
+
   it("aceita null", () => {
     expect(domainSchema.safeParse(null).success).toBe(true);
   });
