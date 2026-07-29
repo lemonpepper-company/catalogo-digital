@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Plus, Pencil, Trash2, Package, Search, Star } from "lucide-react";
@@ -11,8 +12,10 @@ import { Toast } from "@/components/ui/Toast";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { ImportarProdutosModal } from "@/components/painel/ImportarProdutosModal";
 import { cn, formatCents } from "@/lib/utils";
 import type { StoreProduct } from "@/lib/types";
+import type { PlanLimits } from "@/lib/plan-limits";
 import { useProdutos } from "./use-produtos";
 import { useProdutosFiltros } from "./use-produtos-filtros";
 import { Pagination } from "@/components/ui/Pagination";
@@ -22,6 +25,7 @@ import { NO_CATEGORY_VALUE, STATUS_OPTIONS } from "@/lib/product-filters";
 interface ProdutosClientProps {
   products: StoreProduct[];
   maxProducts: number;
+  limits: PlanLimits;
   counts: ProductCounts;
   page: number;
   totalPages: number;
@@ -34,6 +38,7 @@ interface ProdutosClientProps {
 export function ProdutosClient({
   products,
   maxProducts,
+  limits,
   counts,
   page,
   totalPages,
@@ -42,6 +47,7 @@ export function ProdutosClient({
   initialCategoria,
   initialStatus,
 }: ProdutosClientProps) {
+  const [importOpen, setImportOpen] = useState(false);
   const {
     confirm,
     setConfirm,
@@ -94,20 +100,40 @@ export function ProdutosClient({
             {Number.isFinite(maxProducts) ? ` · limite ${maxProducts}` : ""}
           </p>
         </div>
-        {limitReached ? (
-          <span className="inline-flex items-center justify-center min-h-11 px-6 py-2.5 rounded-btn bg-linen text-graphite font-display font-medium text-[15px] cursor-not-allowed text-center">
-            Limite atingido — faça upgrade
-          </span>
-        ) : (
-          <Link
-            href="/painel/produtos/novo"
-            className="inline-flex items-center justify-center gap-2 min-h-11 px-6 py-2.5 rounded-btn bg-obsidian text-white font-display font-medium text-[15px] hover:bg-[#1f1f1f] transition-colors"
-          >
-            <Plus size={18} />
-            Novo produto
-          </Link>
-        )}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          {limits.csvImport ? (
+            <Button variant="ghost" onClick={() => setImportOpen(true)}>
+              Importar planilha
+            </Button>
+          ) : (
+            <a
+              href="https://wa.me/5535999931678?text=Ol%C3%A1!%20Quero%20saber%20mais%20sobre%20importa%C3%A7%C3%A3o%20de%20produtos."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-body text-[13px] text-graphite underline text-center sm:text-left"
+            >
+              Importação em massa — disponível no Pro
+            </a>
+          )}
+          {limitReached ? (
+            <span className="inline-flex items-center justify-center min-h-11 px-6 py-2.5 rounded-btn bg-linen text-graphite font-display font-medium text-[15px] cursor-not-allowed text-center">
+              Limite atingido — faça upgrade
+            </span>
+          ) : (
+            <Link
+              href="/painel/produtos/novo"
+              className="inline-flex items-center justify-center gap-2 min-h-11 px-6 py-2.5 rounded-btn bg-obsidian text-white font-display font-medium text-[15px] hover:bg-[#1f1f1f] transition-colors"
+            >
+              <Plus size={18} />
+              Novo produto
+            </Link>
+          )}
+        </div>
       </div>
+
+      {importOpen && (
+        <ImportarProdutosModal onClose={() => setImportOpen(false)} />
+      )}
 
       {isStoreEmpty ? (
         <Card className="py-12 text-center">

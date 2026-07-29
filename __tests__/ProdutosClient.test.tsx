@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { ProdutosClient } from "@/app/painel/produtos/ProdutosClient";
 import type { StoreProduct } from "@/lib/types";
+import type { PlanLimits } from "@/lib/plan-limits";
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -40,6 +41,17 @@ function makeProduct(overrides: Partial<StoreProduct> = {}): StoreProduct {
 
 const baseCounts = { active: 4, soldOut: 1, inactive: 1, total: 45 };
 
+const baseLimits: PlanLimits = {
+  maxProducts: Infinity,
+  maxCategories: Infinity,
+  maxPhotos: 5,
+  maxFeaturedProducts: Infinity,
+  themeOptions: true,
+  advancedTheme: true,
+  gridDensity: true,
+  csvImport: true,
+};
+
 const noFilters = { initialQ: "", initialCategoria: "", initialStatus: "" };
 
 describe("ProdutosClient — contadores e paginação", () => {
@@ -48,6 +60,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={2}
         totalPages={3}
@@ -63,6 +76,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={1}
         totalPages={3}
@@ -79,6 +93,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={2}
         totalPages={3}
@@ -94,6 +109,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={2}
         totalPages={3}
@@ -119,6 +135,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={2}
         totalPages={3}
@@ -147,6 +164,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={1}
         totalPages={1}
@@ -162,6 +180,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={1}
         totalPages={1}
@@ -181,6 +200,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={1}
         totalPages={1}
@@ -199,6 +219,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={{ active: 0, soldOut: 0, inactive: 0, total: 0 }}
         page={1}
         totalPages={1}
@@ -215,6 +236,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={1}
         totalPages={1}
@@ -234,6 +256,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={1}
         totalPages={1}
