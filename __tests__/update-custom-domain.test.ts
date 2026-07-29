@@ -7,7 +7,14 @@ const update = vi.fn();
 const getCurrentStore = vi.fn();
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(() => Promise.resolve({ auth: { getUser }, from })),
+  createClient: vi.fn(() => Promise.resolve({ auth: { getUser } })),
+}));
+
+// updateCustomDomain grava custom_domain/custom_domain_verified com o client
+// admin (service_role) — authenticated não tem mais grant de update nessas
+// colunas (ver supabase/migrations/20260728110000_*).
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: vi.fn(() => ({ from })),
 }));
 
 vi.mock("@/lib/server/store", () => ({
