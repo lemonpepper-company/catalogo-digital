@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
+import { UpsellHint } from "@/components/painel/UpsellHint";
 import type { StoreCategory } from "@/lib/types";
 import { useCategorias } from "./use-categorias";
 
@@ -49,9 +50,10 @@ export function CategoriasClient({
         </div>
         {!creating &&
           (limitReached ? (
-            <span className="font-body text-[13px] text-graphite">
-              Limite de {maxCategories} atingido — faça upgrade
-            </span>
+            <UpsellHint
+              label="Limite de categorias do plano atingido — fale conosco para aumentar"
+              whatsappMessage="Olá! Quero aumentar o limite de categorias da minha loja."
+            />
           ) : (
             <Button
               variant="primary"
