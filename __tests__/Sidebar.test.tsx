@@ -1,10 +1,16 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Sidebar } from "@/components/painel/Sidebar";
 
+let pathname = "/painel";
+
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/painel",
+  usePathname: () => pathname,
 }));
+
+beforeEach(() => {
+  pathname = "/painel";
+});
 
 describe("Sidebar", () => {
   it("renders the logo image when logoUrl is present", () => {
@@ -43,5 +49,54 @@ describe("Sidebar", () => {
       <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} slug="ateliemira" />
     );
     expect(screen.getByText("Personalização")).toBeTruthy();
+  });
+});
+
+describe("Sidebar — item Pedidos (ORD-16)", () => {
+  it("mostra o link Pedidos logo depois de Produtos", () => {
+    render(
+      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} slug="ateliemira" />
+    );
+
+    const pedidos = screen.getByRole("link", { name: "Pedidos" });
+    expect(pedidos.getAttribute("href")).toBe("/painel/pedidos");
+
+    const nav = screen.getByRole("navigation");
+    const labels = Array.from(nav.querySelectorAll("a")).map((a) => a.textContent);
+    expect(labels).toEqual([
+      "Dashboard",
+      "Produtos",
+      "Pedidos",
+      "Categorias",
+      "Personalização",
+      "Configurações",
+    ]);
+  });
+
+  it("marca Pedidos como ativo em /painel/pedidos", () => {
+    pathname = "/painel/pedidos";
+    render(
+      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} slug="ateliemira" />
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Pedidos" }).getAttribute("aria-current")
+    ).toBe("page");
+    expect(
+      screen.getByRole("link", { name: "Dashboard" }).getAttribute("aria-current")
+    ).toBeNull();
+  });
+
+  it("mantém Pedidos inativo no dashboard", () => {
+    render(
+      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} slug="ateliemira" />
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Pedidos" }).getAttribute("aria-current")
+    ).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Dashboard" }).getAttribute("aria-current")
+    ).toBe("page");
   });
 });

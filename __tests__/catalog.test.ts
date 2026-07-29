@@ -117,6 +117,16 @@ describe("mapPublicStore", () => {
   it("mapeia cover_url nulo para null", () => {
     expect(mapPublicStore({ ...storeRow, cover_url: null }, [], "pro").coverUrl).toBeNull();
   });
+  it("expõe o slug da loja explicitamente", () => {
+    expect(mapPublicStore({ ...storeRow, slug: "loja-da-ana" }, [], "pro").slug).toBe(
+      "loja-da-ana"
+    );
+  });
+  it("mantém slug e catalogUrl independentes, ambos vindos de row.slug", () => {
+    const store = mapPublicStore({ ...storeRow, slug: "atelie-mira" }, [], "pro");
+    expect(store.slug).toBe("atelie-mira");
+    expect(store.catalogUrl).toBe("atelie-mira");
+  });
 });
 
 describe("computePills (CAT-02)", () => {

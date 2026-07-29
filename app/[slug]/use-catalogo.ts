@@ -1,11 +1,18 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { renderWhatsAppMessage, normalizeWhatsapp } from "@/lib/utils";
 import { filterCatalog } from "@/lib/catalog";
+import { newClientOrderId } from "@/lib/orders";
+import { registrarPedido } from "@/app/actions/pedidos";
 import type { CartItem, Product, Store } from "@/lib/types";
 
 export const CATALOG_BATCH_SIZE = 24;
+export const ORDER_CAPTURE_TIMEOUT_MS = 2500;
+
+function cartSignature(cart: CartItem[]): string {
+  return cart.map((it) => `${it.key}x${it.qty}`).join("|");
+}
 
 interface UseCatalogoArgs {
   store: Store;
@@ -24,6 +31,20 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [selectedDelivery, setSelectedDelivery] = useState<string | null>(null);
   const [address, setAddress] = useState("");
+  const [customerName, setCustomerName] = useState("");
+
+  // Chave de idempotência por conteúdo da sacola: reenviar a mesma sacola
+  // reaproveita o id, qualquer mudança gera um novo (ORD-05). Fica em ref para
+  // não gerar valor aleatório durante o render.
+  const orderKeyRef = useRef<{ signature: string; id: string } | null>(null);
+
+  const clientOrderIdFor = useCallback((signature: string) => {
+    const current = orderKeyRef.current;
+    if (current && current.signature === signature) return current.id;
+    const id = newClientOrderId();
+    orderKeyRef.current = { signature, id };
+    return id;
+  }, []);
 
   const flash = useCallback((msg: string) => {
     setToast(msg);
@@ -97,7 +118,7 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     setCart((prev) => prev.filter((it) => it.key !== key));
   }, []);
 
-  const handleCheckout = useCallback(() => {
+  const handleCheckout = useCallback(async () => {
     if (!store.whatsapp) {
       flash("Esta loja ainda não configurou o WhatsApp.");
       return;
@@ -107,12 +128,52 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
       delivery: selectedDelivery,
       address,
     });
+    const url = `https://wa.me/${normalizeWhatsapp(store.whatsapp)}?text=${encodeURIComponent(msg)}`;
+
+    // A aba é aberta sincronamente no gesto do clique — é o que escapa do
+    // bloqueador de pop-up, já que a URL só é atribuída depois do await (ORD-01).
+    const tab = window.open("", "_blank");
     flash("Abrindo o WhatsApp…");
-    window.open(
-      `https://wa.me/${normalizeWhatsapp(store.whatsapp)}?text=${encodeURIComponent(msg)}`,
-      "_blank"
-    );
-  }, [cart, store.whatsapp, store.messageTemplate, selectedPayment, selectedDelivery, address, flash]);
+
+    const clientOrderId = clientOrderIdFor(cartSignature(cart));
+
+    try {
+      await Promise.race([
+        registrarPedido({
+          slug: store.slug,
+          clientOrderId,
+          customerName: customerName.trim() || null,
+          payment: selectedPayment,
+          delivery: selectedDelivery,
+          address: address.trim() || null,
+          items: cart.map((it) => ({
+            productId: it.product.id,
+            size: it.size,
+            color: it.color,
+            qty: it.qty,
+          })),
+        }),
+        new Promise<void>((resolve) => setTimeout(resolve, ORDER_CAPTURE_TIMEOUT_MS)),
+      ]);
+    } catch {
+      // A captura nunca bloqueia a venda: falha fica só no log do servidor e
+      // nada é exibido ao cliente (ORD-03).
+    }
+
+    if (tab) tab.location.href = url;
+    else window.location.href = url;
+  }, [
+    cart,
+    store.whatsapp,
+    store.messageTemplate,
+    store.slug,
+    selectedPayment,
+    selectedDelivery,
+    address,
+    customerName,
+    clientOrderIdFor,
+    flash,
+  ]);
 
   return {
     activeCategory,
@@ -141,6 +202,8 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     setSelectedDelivery,
     address,
     setAddress,
+    customerName,
+    setCustomerName,
     canCheckout,
     checkoutBlockedReason,
     handleAdd,

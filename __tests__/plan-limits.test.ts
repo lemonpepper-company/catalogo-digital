@@ -30,6 +30,7 @@ describe("getPlanLimits", () => {
       maxProducts: 8,
       maxCategories: 1,
       maxPhotos: 1,
+      hasOrderHistory: false,
       maxFeaturedProducts: 0,
       themeOptions: false,
       advancedTheme: false,
@@ -43,6 +44,7 @@ describe("getPlanLimits", () => {
       maxProducts: 30,
       maxCategories: 5,
       maxPhotos: 3,
+      hasOrderHistory: true,
       maxFeaturedProducts: 3,
       themeOptions: true,
       advancedTheme: false,
@@ -56,6 +58,7 @@ describe("getPlanLimits", () => {
       maxProducts: Infinity,
       maxCategories: Infinity,
       maxPhotos: 5,
+      hasOrderHistory: true,
       maxFeaturedProducts: Infinity,
       themeOptions: true,
       advancedTheme: true,
@@ -70,6 +73,7 @@ describe("getPlanLimits", () => {
       maxProducts: 8,
       maxCategories: 1,
       maxPhotos: 1,
+      hasOrderHistory: false,
       maxFeaturedProducts: 0,
       themeOptions: false,
       advancedTheme: false,
@@ -84,12 +88,42 @@ describe("getPlanLimits", () => {
       maxProducts: 8,
       maxCategories: 1,
       maxPhotos: 1,
+      hasOrderHistory: false,
       maxFeaturedProducts: 0,
       themeOptions: false,
       advancedTheme: false,
       gridDensity: false,
       csvImport: false,
     });
+  });
+});
+
+describe("getPlanLimits — hasOrderHistory", () => {
+  it("free não tem acesso ao histórico de pedidos", () => {
+    expect(getPlanLimits("free", null).hasOrderHistory).toBe(false);
+  });
+
+  it("starter tem acesso ao histórico de pedidos", () => {
+    expect(getPlanLimits("starter", null).hasOrderHistory).toBe(true);
+  });
+
+  it("pro tem acesso ao histórico de pedidos", () => {
+    expect(getPlanLimits("pro", null).hasOrderHistory).toBe(true);
+  });
+
+  it("starter com trial_ends_at vencido perde o acesso ao histórico", () => {
+    const past = new Date(Date.now() - 86400000).toISOString();
+    expect(getPlanLimits("starter", past).hasOrderHistory).toBe(false);
+  });
+
+  it("pro com trial_ends_at vencido perde o acesso ao histórico", () => {
+    const past = new Date(Date.now() - 86400000).toISOString();
+    expect(getPlanLimits("pro", past).hasOrderHistory).toBe(false);
+  });
+
+  it("starter com trial_ends_at no futuro mantém o acesso ao histórico", () => {
+    const future = new Date(Date.now() + 86400000).toISOString();
+    expect(getPlanLimits("starter", future).hasOrderHistory).toBe(true);
   });
 });
 

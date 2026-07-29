@@ -8,11 +8,20 @@
 - **AD-004** — GA/Pixel e persistência de sacola em localStorage ficam fora deste ciclo. (feature: catalogo-publico)
 - **AD-005** — `stores` já tem leitura pública (`init_auth.sql:27`); migration nova só adiciona policies de `products` e `categories`. Filtro `is_active and stock>0` no próprio RLS. (feature: catalogo-publico)
 - **AD-006** — Componentes de UI do catálogo (`StoreHeader`/`ProductCard`/`ProductDetail`/`BagDrawer`) mantêm contrato; dados do banco são mapeados para os view-models `Store`/`Product`/`CartItem` existentes. (feature: catalogo-publico)
+- **AD-007** — Escrita de pedidos usa `SUPABASE_SERVICE_ROLE_KEY` **server-only** (`lib/supabase/admin.ts`, com `import "server-only"`). `orders`/`order_items` nunca recebem GRANT nem policy para o papel `anon` — é o inverso do cuidado com colunas públicas de `stores`. (feature: captura-de-pedidos)
+- **AD-008** — A captura do pedido nunca bloqueia a venda: aba do WhatsApp é pré-aberta no clique e a gravação corre num `Promise.race` com timeout de 2500 ms; falha/timeout → abre o WhatsApp e loga o erro no servidor. (feature: captura-de-pedidos)
+- **AD-009** — Valor do pedido é sempre recalculado a partir de `products.price_cents` no servidor; nenhum campo monetário do cliente é aceito. Itens são gravados com snapshot (`product_name`, `unit_price_cents`) e `product_id` com `on delete set null`. (feature: captura-de-pedidos)
+- **AD-010** — Status da venda tem três estados (`pendente` default, `confirmado`, `cancelado`) com transição livre entre eles (correção sempre possível); faturamento do dashboard conta só `confirmado`, e `cancelado` sai também da contagem de pedidos do mês. (feature: captura-de-pedidos)
+- **AD-011** — Histórico de pedidos e cards de ROI são recurso de **Starter/Pro**: plano efetivo `free` vê estado bloqueado (sem número real, sem query executada), com CTA de WhatsApp no padrão do banner de `app/painel/layout.tsx`. A **captura grava em qualquer plano** — ao subir de plano o histórico já está pronto. Gate via nova capability `hasOrderHistory` em `lib/plan-limits.ts`. (feature: captura-de-pedidos)
 
 ## Handoff snapshot
 
-- **Branch:** `feature/catalogo-publico` (5 commits: fceca3e→2b7b037)
-- **Fase atual:** Concluído. Todas as tasks T1–T5 implementadas, commitadas e verificadas.
-- **Validação:** ✅ PASS — 120 testes verdes, build OK, sensor de discriminação (3/3 mutações mortas), runtime end-to-end confirmado (`/atelie-mira` 200, slug inexistente 404, loja inativa → expiração, esgotado/inativo ocultos). Ver `.specs/features/catalogo-publico/validation.md`.
-- **Ambiente:** stack Supabase local iniciado (`supabase start`) + seed demo aplicado (loja `atelie-mira`).
-- **Próximo passo:** revisar/abrir PR. Backlog: injeção GA/Pixel, persistência de sacola, cheque de trial quando houver pagamento.
+- **Branch:** `feature/captura-de-pedidos` (criada a partir de `main` em cafaeab)
+- **Fase atual:** ✅ **Concluída e validada.** Execute (T1–T17) + iteração 1 de fix tasks (F1–F4) + **Verifier iteração 2 = PASS** (`2b3b75e`). Relatório: `.specs/features/captura-de-pedidos/validation.md` — 30/30 ACs com outcome batendo, 0 spec-precision gaps, sensor 10/10 mutações mortas, ORD-24 aprovada por introspecção real no Postgres. Próximo passo: revisar e abrir PR.
+- **Gates atuais:** 47 arquivos / **524 testes** verdes (baseline inicial era 323); lint em **17 erros = baseline** pré-existente (dívida separada, ver chip de tarefa); `npm run build` ok.
+- **Blocker do FAIL resolvido:** `service_role` sem DML — corrigido em `supabase/migrations/20260728000000_orders_service_role_grants.sql`, aplicado no banco local com `npx supabase migration up` (nenhum `db reset`). Checkout real gravou 1 pedido + itens com total do banco; reenvio da mesma sacola manteve 1 pedido; dados de teste removidos (`orders`/`order_items` em 0).
+- **Guarda de regressão nova:** passo `Check table privileges` em `.github/workflows/supabase-migrations-check.yml` — falha se o `service_role` perder privilégio ou o `anon` ganhar qualquer um em `orders`/`order_items`. Verificado que falha no estado anterior à migration.
+- **Mutantes M10–M14** (`lib/server/pedidos.ts`), antes 5/5 sobreviventes: agora **5/5 mortos** por `__tests__/server-pedidos.test.ts`.
+- **Ambiente:** `SUPABASE_SERVICE_ROLE_KEY` já no `.env.local` (usuário, 27/07/2026). ⏳ **Ainda falta cadastrar na Vercel** (valor de produção: Supabase Dashboard → Project Settings → API keys → `service_role`) — sem ela em produção a captura não grava, só loga.
+- **Não verificado pela validação (limites de ambiente):** painel autenticado em navegador real (exige senha do usuário), paginação com 21+ pedidos semeados, concorrência de dois clientes simultâneos, e o workflow do GitHub Actions executando de fato (dispara em `pull_request`; só a lógica SQL do passo novo foi validada localmente).
+- **Feature anterior (catalogo-publico):** concluída e validada — ver `.specs/features/catalogo-publico/validation.md`.

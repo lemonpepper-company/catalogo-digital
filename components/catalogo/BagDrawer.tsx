@@ -19,6 +19,8 @@ interface BagDrawerProps {
   onSelectDelivery?: (method: string) => void;
   address?: string;
   onAddressChange?: (value: string) => void;
+  customerName?: string;
+  onCustomerNameChange?: (value: string) => void;
   onClose: () => void;
   onQty: (key: string, qty: number) => void;
   onRemove: (key: string) => void;
@@ -38,6 +40,8 @@ export function BagDrawer({
   onSelectDelivery,
   address = "",
   onAddressChange,
+  customerName = "",
+  onCustomerNameChange,
   onClose,
   onQty,
   onRemove,
@@ -240,6 +244,16 @@ export function BagDrawer({
                 )}
               </div>
             )}
+
+            <input
+              type="text"
+              value={customerName}
+              onChange={(e) => onCustomerNameChange?.(e.target.value)}
+              maxLength={60}
+              placeholder="Seu nome (opcional)"
+              aria-label="Seu nome (opcional)"
+              className="w-full h-11 px-3.5 bg-white border border-sand rounded-input font-body text-[14px] text-obsidian placeholder:text-inactive outline-none focus:border-obsidian transition-colors"
+            />
 
             {(() => {
               const message =

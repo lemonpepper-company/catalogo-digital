@@ -74,6 +74,7 @@ export function mapPublicStore(
   const limits = getPlanLimits(effectivePlan, null);
   return {
     name: row.name,
+    slug: row.slug,
     monogram: row.monogram?.trim() || initialsFromName(row.name),
     logoUrl: row.logo_url,
     coverUrl: row.cover_url,

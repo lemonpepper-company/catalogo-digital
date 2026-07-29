@@ -286,11 +286,14 @@ export async function toggleProductFeatured(
   const limits = getPlanLimits(store.plan, store.trialEndsAt);
 
   if (next) {
-    const { count } = await supabase
+    const { count, error: countError } = await supabase
       .from("products")
       .select("id", { count: "exact", head: true })
       .eq("store_id", store.id)
       .eq("is_featured", true);
+    if (countError) {
+      return { error: "Erro ao verificar limite de produtos em destaque." };
+    }
     if ((count ?? 0) >= limits.maxFeaturedProducts) {
       return {
         error: "Limite de produtos em destaque do seu plano atingido. Fale conosco para aumentar o limite.",

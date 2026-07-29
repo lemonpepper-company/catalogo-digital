@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "promote_threshold": 2,
+  "window_days": 45,
+  "quarantine_threshold": 2,
+  "next_id": 6,
+  "lessons": [
+    {
+      "id": "L-001",
+      "key": "ac_gap::when a table is written by the service role grant that role its dml explicitly in the same migration new tables in public inherit no dml for anon authenticated or service role",
+      "text": "When a table is written by the service role, grant that role its DML explicitly in the same migration — new tables in public inherit no DML for anon, authenticated or service_role.",
+      "signal": "ac_gap",
+      "scope": "supabase-migrations",
+      "status": "candidate",
+      "features": [
+        "captura-de-pedidos"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "ORD-01/ORD-27 — runtime: 'permission denied for table stores'; orders=0 after real checkout; supabase/migrations/20260727000000_orders.sql:73-81 (supabase-migrations)"
+      ],
+      "created": "2026-07-28T03:48:46Z",
+      "last_seen": "2026-07-28T03:48:46Z"
+    },
+    {
+      "id": "L-002",
+      "key": "surviving_mutant::never leave a server query module covered only through consumers that mock it assert its filters ordering range and period directly",
+      "text": "Never leave a server query module covered only through consumers that mock it — assert its filters, ordering, range and period directly.",
+      "signal": "surviving_mutant",
+      "scope": "server-data-layer",
+      "status": "candidate",
+      "features": [
+        "captura-de-pedidos"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "M10-M14 survived full suite — lib/server/pedidos.ts has no test; PedidosPage.test.tsx:14 and DashboardPage.test.tsx:13 mock the module (server-data-layer)"
+      ],
+      "created": "2026-07-28T03:48:47Z",
+      "last_seen": "2026-07-28T03:48:47Z"
+    },
+    {
+      "id": "L-003",
+      "key": "ac_gap::back every migration that changes grants rls or policies with a privilege assertion against the real database mocked supabase clients cannot observe permission errors",
+      "text": "Back every migration that changes grants, RLS or policies with a privilege assertion against the real database — mocked Supabase clients cannot observe permission errors.",
+      "signal": "ac_gap",
+      "scope": "supabase-migrations",
+      "status": "candidate",
+      "features": [
+        "captura-de-pedidos"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "ORD-01/ORD-24 — every order test mocks @/lib/supabase/admin; grant defect invisible to 500 green tests (supabase-migrations)"
+      ],
+      "created": "2026-07-28T03:48:47Z",
+      "last_seen": "2026-07-28T03:48:47Z"
+    },
+    {
+      "id": "L-004",
+      "key": "spec_deviation::verify an assumption about database default privileges by introspecting pg default acl before writing revokes or grants based on it",
+      "text": "Verify an assumption about database default privileges by introspecting pg_default_acl before writing revokes or grants based on it.",
+      "signal": "spec_deviation",
+      "scope": "supabase-migrations",
+      "status": "candidate",
+      "features": [
+        "captura-de-pedidos"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "supabase/migrations/20260727000000_orders.sql:66-72 SPEC_DEVIATION claims default privileges grant everything to anon/authenticated; pg_default_acl shows only Dxtm (supabase-migrations)"
+      ],
+      "created": "2026-07-28T03:48:47Z",
+      "last_seen": "2026-07-28T03:48:47Z"
+    },
+    {
+      "id": "L-005",
+      "key": "spec_precision_gap::pin the exact currency string an ac expects in the spec including thousands separator before asserting a formatted money value",
+      "text": "Pin the exact currency string an AC expects in the spec, including thousands separator, before asserting a formatted money value.",
+      "signal": "spec_precision_gap",
+      "scope": "spec-authoring",
+      "status": "candidate",
+      "features": [
+        "captura-de-pedidos"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "ORD-18 — DashboardClient.test.tsx:62 asserts 'R$ 1234,50'; spec only says 'formatada em reais' (spec-authoring)"
+      ],
+      "created": "2026-07-28T03:48:47Z",
+      "last_seen": "2026-07-28T03:48:47Z"
+    }
+  ]
+}

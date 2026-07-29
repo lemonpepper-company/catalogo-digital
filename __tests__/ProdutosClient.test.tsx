@@ -50,6 +50,7 @@ const baseLimits: PlanLimits = {
   advancedTheme: true,
   gridDensity: true,
   csvImport: true,
+  hasOrderHistory: true,
 };
 
 const noFilters = { initialQ: "", initialCategoria: "", initialStatus: "" };

@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { formatCents } from "@/lib/utils";
+import type { OrderMetrics } from "@/lib/order-metrics";
 import type { StoreProduct } from "@/lib/types";
 
-export function useDashboard(products: StoreProduct[], catalogUrl: string) {
+export function useDashboard(
+  products: StoreProduct[],
+  catalogUrl: string,
+  metrics: OrderMetrics | null
+) {
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -23,6 +29,18 @@ export function useDashboard(products: StoreProduct[], catalogUrl: string) {
   const soldOutProducts = products.filter((p) => p.stock === 0);
   const recent = products.slice(0, 4);
 
+  // `null` = plano sem histórico de pedidos: nenhum número real existe aqui.
+  const orderStats = metrics
+    ? [
+        { value: metrics.ordersThisMonth, label: "Pedidos no mês" },
+        {
+          value: formatCents(metrics.confirmedCentsThisMonth),
+          label: "Vendas confirmadas no mês",
+        },
+        { value: metrics.pendingCount, label: "Aguardando confirmação" },
+      ]
+    : null;
+
   return {
     copied,
     toast,
@@ -31,5 +49,6 @@ export function useDashboard(products: StoreProduct[], catalogUrl: string) {
     soldOutProducts,
     recent,
     total: products.length,
+    orderStats,
   };
 }

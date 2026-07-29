@@ -5,6 +5,7 @@ import { resolveTheme } from "./theme-options";
 
 export const STORE: Store = {
   name: "Ateliê Mira",
+  slug: "ateliemira",
   monogram: "AM",
   whatsapp: "5511999990000",
   categories: ["Todos", "Vestidos", "Blusas", "Calças", "Saias"],
