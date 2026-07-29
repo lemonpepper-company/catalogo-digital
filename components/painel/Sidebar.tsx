@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOut } from "@/app/actions/auth";
-import { VTRINE_WHATSAPP_NUMBER } from "@/lib/contact";
+import { vtrineWhatsAppHref, SUPPORT_WHATSAPP_MESSAGE } from "@/lib/contact";
 
 interface SidebarProps {
   name: string;
@@ -146,9 +146,7 @@ export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
         )}
 
         <a
-          href={`https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
-            "Olá! Preciso de suporte com minha loja na Vtrine Digital."
-          )}`}
+          href={vtrineWhatsAppHref(SUPPORT_WHATSAPP_MESSAGE)}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-3 w-full px-3.5 py-[11px] rounded-btn font-body text-[15px] text-graphite hover:bg-surface-hover transition-all duration-200"

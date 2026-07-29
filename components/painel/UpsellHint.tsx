@@ -1,4 +1,4 @@
-import { VTRINE_WHATSAPP_NUMBER } from "@/lib/contact";
+import { vtrineWhatsAppHref } from "@/lib/contact";
 
 interface UpsellHintProps {
   label: string;
@@ -6,9 +6,7 @@ interface UpsellHintProps {
 }
 
 export function UpsellHint({ label, whatsappMessage }: UpsellHintProps) {
-  const href = `https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
-    whatsappMessage
-  )}`;
+  const href = vtrineWhatsAppHref(whatsappMessage);
 
   return (
     <a
