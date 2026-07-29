@@ -28,6 +28,8 @@ type StoreRow = {
   instagram: string | null;
   payment_methods: string[] | null;
   delivery_methods: string[] | null;
+  custom_domain: string | null;
+  custom_domain_verified: boolean;
   font_pairing: string;
   background_palette: string;
   corner_style: string;
@@ -70,6 +72,8 @@ export function mapStore(row: StoreRow): StoreSettings {
     instagram: row.instagram,
     paymentMethods: row.payment_methods ?? [],
     deliveryMethods: row.delivery_methods ?? [],
+    customDomain: row.custom_domain,
+    customDomainVerified: row.custom_domain_verified,
     fontPairing: row.font_pairing,
     backgroundPalette: row.background_palette,
     cornerStyle: row.corner_style,
@@ -107,7 +111,7 @@ export const getCurrentStore = cache(async (): Promise<StoreSettings | null> => 
   const { data } = await supabase
     .from("stores")
     .select(
-      "id, name, slug, plan, trial_ends_at, whatsapp, accent_color, cover_url, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods, font_pairing, background_palette, corner_style, secondary_color, grid_density"
+      "id, name, slug, plan, trial_ends_at, whatsapp, accent_color, cover_url, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods, custom_domain, custom_domain_verified, font_pairing, background_palette, corner_style, secondary_color, grid_density"
     )
     .eq("owner_id", user.id)
     .maybeSingle();

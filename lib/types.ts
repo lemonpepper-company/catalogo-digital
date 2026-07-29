@@ -134,6 +134,8 @@ export interface StoreSettings {
   instagram: string | null;
   paymentMethods: string[];
   deliveryMethods: string[];
+  customDomain: string | null;
+  customDomainVerified: boolean;
   fontPairing: string;
   backgroundPalette: string;
   cornerStyle: string;

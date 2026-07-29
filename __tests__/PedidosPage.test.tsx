@@ -45,6 +45,8 @@ function makeStore(plan: Plan, trialEndsAt: string | null = null): StoreSettings
     cornerStyle: "padrao",
     secondaryColor: null,
     gridDensity: "padrao",
+    customDomain: null,
+    customDomainVerified: false,
   };
 }
 
