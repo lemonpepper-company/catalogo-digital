@@ -194,3 +194,16 @@ describe("CatalogoClient — capa da loja", () => {
     expect(screen.queryByAltText(/Capa da loja/)).toBeNull();
   });
 });
+
+describe("CatalogoClient — modal de produto com blur no desktop", () => {
+  it("o overlay usa fundo translúcido com blur, não cinza sólido", () => {
+    const products = makeProducts(1, "Vestidos");
+    const { container } = render(<CatalogoClient store={store} products={products} />);
+
+    fireEvent.click(screen.getByText(products[0].name));
+
+    const overlay = container.querySelector(".fixed.inset-0.z-20") as HTMLElement;
+    expect(overlay.className).toContain("md:backdrop-blur-md");
+    expect(overlay.className).not.toContain("md:bg-black/50");
+  });
+});
