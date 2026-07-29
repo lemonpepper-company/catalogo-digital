@@ -137,7 +137,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
   if (openProduct) {
     return (
       <div
-        className="fixed inset-0 z-20 bg-ivory md:flex md:items-center md:justify-center md:bg-black/50 md:p-6"
+        className="fixed inset-0 z-20 bg-ivory md:flex md:items-center md:justify-center md:bg-black/20 md:backdrop-blur-md md:p-6"
         style={themeStyle}
         onClick={(e) => {
           if (e.target === e.currentTarget) setOpenProduct(null);

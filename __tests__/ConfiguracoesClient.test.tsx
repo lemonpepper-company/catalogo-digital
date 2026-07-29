@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { ConfiguracoesClient } from "@/app/painel/configuracoes/ConfiguracoesClient";
 import { getPlanLimits } from "@/lib/plan-limits";
+import { VTRINE_WHATSAPP_NUMBER } from "@/lib/contact";
 import type { StoreSettings } from "@/lib/types";
 
 // Isolate the client from the server action + browser-only image compression.
@@ -144,5 +145,17 @@ describe("ConfiguracoesClient — Domínio próprio (novo)", () => {
   it("o botão de salvar diz 'Salvar domínio', nunca 'Verificar'", () => {
     render(<ConfiguracoesClient settings={baseSettings} limits={proLimits} />);
     expect(screen.getByRole("button", { name: "Salvar domínio" })).toBeTruthy();
+  });
+});
+
+describe("ConfiguracoesClient — link de suporte", () => {
+  it("mostra um link de suporte no final da página", () => {
+    render(<ConfiguracoesClient settings={baseSettings} limits={proLimits} />);
+    const link = screen.getByRole("link", { name: /suporte/i });
+    expect(link.getAttribute("href")).toBe(
+      `https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+        "Olá! Preciso de suporte com minha loja na Vtrine Digital."
+      )}`
+    );
   });
 });

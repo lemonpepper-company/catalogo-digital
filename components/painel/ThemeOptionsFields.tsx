@@ -1,9 +1,12 @@
 "use client";
 
+import { Fragment } from "react";
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FONT_PAIRINGS, BACKGROUND_PALETTES, CORNER_STYLES } from "@/lib/theme-options";
-import { VTRINE_WHATSAPP_NUMBER } from "@/lib/contact";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { UpsellHint } from "@/components/painel/UpsellHint";
+import { PLAN_GATE_LABEL } from "@/lib/contact";
 
 interface Option {
   key: string;
@@ -33,9 +36,8 @@ function OptionRow({
           const isDefault = opt.key === "padrao";
           const locked = !unlocked && !isDefault;
           const selected = value === opt.key;
-          return (
+          const button = (
             <button
-              key={opt.key}
               type="button"
               disabled={locked}
               onClick={() => !locked && onChange(opt.key)}
@@ -51,6 +53,13 @@ function OptionRow({
               {renderPreview?.(opt.key)}
               {opt.label}
             </button>
+          );
+          return locked ? (
+            <Tooltip key={opt.key} label={PLAN_GATE_LABEL.starter}>
+              {button}
+            </Tooltip>
+          ) : (
+            <Fragment key={opt.key}>{button}</Fragment>
           );
         })}
       </div>
@@ -77,10 +86,6 @@ export function ThemeOptionsFields({
   onCornerStyleChange,
   unlocked,
 }: ThemeOptionsFieldsProps) {
-  const upgradeHref = `https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
-    "Olá! Quero saber mais sobre desbloquear as opções de tema."
-  )}`;
-
   return (
     <>
       <OptionRow
@@ -120,14 +125,10 @@ export function ThemeOptionsFields({
         unlocked={unlocked}
       />
       {!unlocked && (
-        <a
-          href={upgradeHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-body text-[13px] text-graphite underline"
-        >
-          Disponível no Starter — fale conosco
-        </a>
+        <UpsellHint
+          label={`${PLAN_GATE_LABEL.starter} — fale conosco`}
+          whatsappMessage="Olá! Quero saber mais sobre desbloquear as opções de tema."
+        />
       )}
     </>
   );

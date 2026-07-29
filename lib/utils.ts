@@ -55,7 +55,7 @@ export function formatDeliveryLine(delivery?: string | null, address?: string | 
 
 // {pagamento}/{entrega} podem resolver para string vazia quando a loja não
 // configurou aquele grupo — colapsa as quebras de linha extras que sobram.
-function collapseBlankLines(message: string): string {
+export function collapseBlankLines(message: string): string {
   return message.replace(/\n{3,}/g, "\n\n").trim();
 }
 

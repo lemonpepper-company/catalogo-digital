@@ -10,10 +10,12 @@ import {
   Palette,
   Settings,
   ExternalLink,
+  HelpCircle,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOut } from "@/app/actions/auth";
+import { vtrineWhatsAppHref, SUPPORT_WHATSAPP_MESSAGE } from "@/lib/contact";
 
 interface SidebarProps {
   name: string;
@@ -142,6 +144,16 @@ export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
             </a>
           </div>
         )}
+
+        <a
+          href={vtrineWhatsAppHref(SUPPORT_WHATSAPP_MESSAGE)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 w-full px-3.5 py-[11px] rounded-btn font-body text-[15px] text-graphite hover:bg-surface-hover transition-all duration-200"
+        >
+          <HelpCircle size={19} />
+          Suporte
+        </a>
 
         <form action={signOut}>
           <button
