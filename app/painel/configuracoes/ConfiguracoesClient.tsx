@@ -233,7 +233,7 @@ export function ConfiguracoesClient({
         </Card>
       </form>
 
-      <div className="pb-6 flex justify-center">
+      <div className="pb-6 flex justify-center lg:hidden">
         <a
           href={vtrineWhatsAppHref(SUPPORT_WHATSAPP_MESSAGE)}
           target="_blank"

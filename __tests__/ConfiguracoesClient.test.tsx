@@ -158,4 +158,10 @@ describe("ConfiguracoesClient — link de suporte", () => {
       )}`
     );
   });
+
+  it("fica escondido no desktop (lg:hidden) — a Sidebar já mostra o mesmo link", () => {
+    render(<ConfiguracoesClient settings={baseSettings} limits={proLimits} />);
+    const link = screen.getByRole("link", { name: /suporte/i });
+    expect(link.closest("div")?.className).toContain("lg:hidden");
+  });
 });
