@@ -200,14 +200,19 @@ export async function updateCustomDomain(
   // authenticated (ver supabase/migrations/20260728110000_*) — a propriedade
   // da loja já foi confirmada acima via getCurrentStore() (RLS), então este
   // update roda com o client admin, restrito a este id específico.
-  const admin = createAdminClient();
-  const { error } = await admin
-    .from("stores")
-    .update({
-      custom_domain: nextDomain,
-      ...(domainChanged ? { custom_domain_verified: false } : {}),
-    })
-    .eq("id", store.id);
+  let error;
+  try {
+    const admin = createAdminClient();
+    ({ error } = await admin
+      .from("stores")
+      .update({
+        custom_domain: nextDomain,
+        ...(domainChanged ? { custom_domain_verified: false } : {}),
+      })
+      .eq("id", store.id));
+  } catch {
+    return { error: "Erro ao salvar o domínio." };
+  }
 
   if (error) {
     if (error.code === "23505") {
