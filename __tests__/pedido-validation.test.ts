@@ -10,7 +10,6 @@ function minimalPayload(over: Record<string, unknown> = {}) {
     slug: "loja-da-ana",
     clientOrderId: UUID,
     customerName: "Ana",
-    code: "HS0L52",
     items: [{ productId: PRODUCT_UUID, size: null, color: null, qty: 1 }],
     ...over,
   };
@@ -188,11 +187,15 @@ describe("orderPayloadSchema — payloads rejeitados", () => {
     }
   });
 
-  it("rejeita código fora do formato de 6 caracteres [A-Z0-9] (ORD-32.1)", () => {
-    const { code: _omit, ...withoutCode } = minimalPayload();
-    expect(orderPayloadSchema.safeParse(withoutCode).success).toBe(false);
-    for (const code of [null, "", "hs0l52", "HS0L5", "HS0L522", "HS0L5-", "HS 0L5"]) {
-      expect(orderPayloadSchema.safeParse(minimalPayload({ code })).success).toBe(false);
+  // ORD-32.1 (revisada): o payload NÃO carrega código — o servidor deriva do
+  // client_order_id. Um código enviado pelo cliente é descartado pelo schema, em
+  // vez de rejeitar o pedido: nada vindo do cliente pode alcançar orders.code.
+  it("descarta qualquer código enviado pelo cliente, sem rejeitar o pedido (ORD-32.1)", () => {
+    for (const code of ["HS0L52", "hs0l52", "", null, "'; drop table orders; --"]) {
+      const result = orderPayloadSchema.safeParse(minimalPayload({ code }));
+      expect(result.success).toBe(true);
+      if (!result.success) throw new Error("payload deveria ser válido");
+      expect(result.data).not.toHaveProperty("code");
     }
   });
 

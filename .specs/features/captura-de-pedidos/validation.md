@@ -754,3 +754,46 @@ As 5 lições do ciclo 1 foram revisadas e **seguem válidas**, nenhuma penaliza
 **Problemas encontrados**: nenhum bloqueante. Um achado que vale ação: a guarda de CI de privilégios não pega um `grant` por coluna para `anon` — a proteção mais importante do projeto tem um ponto cego numa direção que a própria documentação do repo ensina a usar em `stores`.
 
 **Next steps**: promover ORD-31..35 a `Verified` (feito). Follow-ups fora deste ciclo: (1) trocar `has_table_privilege` por checagem de coluna na guarda de CI; (2) registrar em Assumptions os rótulos `Cliente:`/`Pedido:` da mensagem; (3) opcional — descartar `_` em `orderSearchTerm` e cruzar `code` com `client_order_id` na Server Action.
+
+---
+
+## Adendo ao Ciclo 2 — derivação do código movida para o servidor (28/07/2026)
+
+**Origem:** nit registrado na seção de achados do ciclo 2 — o servidor validava o *formato* do `code` mas não conferia que ele derivava do `client_order_id`.
+
+**Mudança:** o payload deixou de carregar o código. `orderPayloadSchema` não tem mais o campo (um `code` enviado pelo cliente é descartado pelo zod), e `registrarPedido` chama `deriveOrderCode(clientOrderId)` para gravar. Como a derivação é determinística e é a mesma função que o cliente usa para montar a mensagem, mensagem e banco coincidem por construção — sem confiar em input. `spec.md` ORD-32.1 foi reescrita antes do código.
+
+**Natureza desta verificação:** auto-verificação do autor da mudança, **não** uma passada independente do Verifier. Registrada aqui com a evidência bruta para que a próxima validação possa auditá-la.
+
+### Evidência de runtime (browser real, `/atelie-mira`, dev server local)
+
+| O que | Observado |
+|---|---|
+| Aba pré-aberta (AD-008) | `window.open("", "_blank")` capturado — sem `await` antes |
+| Nome obrigatório (ORD-31.1/31.3) | `input[aria-label="Seu nome"]` com `required` e `maxLength=60`; botão `disabled`; texto "Informe seu nome para continuar" presente. Após preencher: botão habilitado, aviso desaparece |
+| `trim()` do nome (ORD-31.2) | Digitado `"  Ana Nit  "` → mensagem e banco com `Ana Nit` |
+| Payload sem código (ORD-32.1) | Corpo do POST capturado: `{"slug":"atelie-mira","clientOrderId":"93e8b1bd-…","customerName":"Ana Nit","payment":null,"delivery":null,"address":null,"items":[…]}` — **nenhuma chave `code`** |
+| Mensagem × banco | Mensagem: `Pedido: RF2IKY`; linha gravada: `code = RF2IKY` para o mesmo `client_order_id` |
+| Derivação conferida | `deriveOrderCode("93e8b1bd-232b-4dea-a80e-094dcf038ef5")` = `RF2IKY` |
+| Preço do banco (ORD-02, sem regressão) | `order_items.unit_price_cents = products.price_cents` = `28990` |
+
+### Teste adversário (replay da Server Action com código adulterado)
+
+Repliquei a request real com `clientOrderId` novo e `code: "ZZZZZZ"` injetado no corpo. Resposta 200; a linha gravada ficou com `code = T2EI99`, que é exatamente `deriveOrderCode("11111111-aaaa-4aaa-8aaa-999999999999")`. `select count(*) from orders where code = 'ZZZZZZ'` → **0**. Nada vindo do cliente alcança a coluna.
+
+### Gates
+
+`npx vitest run` → 658 verdes · `npx tsc --noEmit` → limpo · `npm run lint` → 17 = baseline · `npm run build` → ok.
+
+### Testes alterados neste adendo (todos justificados pela ORD-32.1 reescrita)
+
+| Teste | Antes | Agora |
+|---|---|---|
+| `pedido-validation.test.ts` — "rejeita código fora do formato" | exigia `code` válido no payload | descarta qualquer `code` do cliente sem rejeitar o pedido; asserção `not.toHaveProperty("code")` |
+| `registrar-pedido.test.ts` — "grava o código recebido do cliente" | gravava o que o cliente mandou | grava o derivado, comparado com o **literal** `MMUAMM` (mata também mutação em `deriveOrderCode`) |
+| `registrar-pedido.test.ts` — "rejeita código fora do formato / ausente" | 2 testes de rejeição | 2 testes novos: código adulterado é ignorado (`not.toBe("ZZZZZZ")`) e payload sem código grava normalmente |
+| `use-catalogo.test.ts` — payload exato + "envia o código derivado" | asseverava `code` no payload | assevera `not.toHaveProperty("code")` no payload **e** `Pedido: <derivado>` na mensagem |
+
+### Estado do banco
+
+Os 2 pedidos que criei (`RF2IKY`, `T2EI99`) foram deletados; restaram as 2 linhas pré-existentes de `maria-das-roupas`. Nenhum `db reset`, `.env.local` intocado.

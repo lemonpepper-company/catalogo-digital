@@ -136,7 +136,8 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     // Nome e código entram na mensagem antes de qualquer ida ao servidor: o
     // código é derivado do clientOrderId no próprio cliente, então a mensagem
     // continua completa mesmo se a gravação falhar ou estourar o timeout
-    // (ORD-32.1, ORD-32.3).
+    // (ORD-32.1, ORD-32.3). O código não vai no payload — o servidor deriva o
+    // mesmo valor da mesma função, então nada aqui precisa ser confiado.
     const clientOrderId = clientOrderIdFor(cartSignature(cart));
     const code = deriveOrderCode(clientOrderId);
     const sanitizedName = sanitizeCustomerName(customerName);
@@ -160,7 +161,6 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
         registrarPedido({
           slug: store.slug,
           clientOrderId,
-          code,
           customerName: sanitizedName,
           payment: selectedPayment,
           delivery: selectedDelivery,

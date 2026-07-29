@@ -126,14 +126,14 @@ function itemRows(made: MadeChain[]): Record<string, unknown>[] {
   return callsOf(made, "order_items", "insert")[0][0] as Record<string, unknown>[];
 }
 
-const ORDER_CODE = "MJ7B4K";
+/** Código derivado de CLIENT_ORDER_ID — literal de propósito (ORD-32.1). */
+const DERIVED_CODE = "MMUAMM";
 
 function validPayload(overrides: Record<string, unknown> = {}) {
   return {
     slug: "ateliemira",
     clientOrderId: CLIENT_ORDER_ID,
     customerName: "Ana",
-    code: ORDER_CODE,
     items: [{ productId: P1, size: "M", color: "Areia", qty: 2 }],
     ...overrides,
   };
@@ -191,13 +191,13 @@ describe("registrarPedido — gravação do pedido (ORD-01)", () => {
     });
   });
 
-  it("grava o código recebido do cliente em orders.code (ORD-32.1)", async () => {
+  it("grava em orders.code o código derivado do client_order_id (ORD-32.1)", async () => {
     const made = setupSupabase(happyPlan());
     const registrarPedido = await loadAction();
 
-    await registrarPedido(validPayload({ code: "HS0L52" }));
+    await registrarPedido(validPayload());
 
-    expect(upsertRow(made).code).toBe("HS0L52");
+    expect(upsertRow(made).code).toBe(DERIVED_CODE);
   });
 
   it("grava 1 linha em order_items por item resolvido, com o snapshot de nome e preço", async () => {
@@ -530,26 +530,27 @@ describe("registrarPedido — nome do cliente (ORD-10, ORD-31)", () => {
 });
 
 describe("registrarPedido — código do pedido (ORD-32)", () => {
-  it("rejeita código fora do formato de 6 caracteres sem gravar nada", async () => {
+  // ORD-32.1 (revisada): o código gravado é sempre derivado do client_order_id no
+  // servidor. Um cliente adulterado que mande outro código não contamina o campo.
+  it("ignora o código enviado no payload e grava o derivado do client_order_id", async () => {
     const made = setupSupabase(happyPlan());
     const registrarPedido = await loadAction();
 
-    const result = await registrarPedido(validPayload({ code: "hs0l5" }));
+    const result = await registrarPedido(validPayload({ code: "ZZZZZZ" }));
 
-    expect(result).toEqual({ ok: false });
-    expect(writeCalls(made)).toHaveLength(0);
-    expect(from).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: true });
+    expect(upsertRow(made).code).toBe(DERIVED_CODE);
+    expect(upsertRow(made).code).not.toBe("ZZZZZZ");
   });
 
-  it("rejeita código ausente sem gravar nada", async () => {
+  it("grava normalmente quando o payload não traz código nenhum", async () => {
     const made = setupSupabase(happyPlan());
     const registrarPedido = await loadAction();
-    const { code: _omit, ...payload } = validPayload();
 
-    const result = await registrarPedido(payload);
+    const result = await registrarPedido(validPayload());
 
-    expect(result).toEqual({ ok: false });
-    expect(writeCalls(made)).toHaveLength(0);
+    expect(result).toEqual({ ok: true });
+    expect(upsertRow(made).code).toBe(DERIVED_CODE);
   });
 });
 

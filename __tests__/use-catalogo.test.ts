@@ -272,11 +272,9 @@ describe("useCatalogo — captura do pedido no checkout (ORD-01, ORD-03, ORD-11)
       await result.current.handleCheckout();
     });
 
-    const clientOrderId = capturePayload().clientOrderId as string;
     expect(capturePayload()).toEqual({
       slug: "ateliemira",
       clientOrderId: expect.stringMatching(UUID_RE),
-      code: deriveOrderCode(clientOrderId),
       customerName: "Ana",
       payment: "pix",
       delivery: "entrega",
@@ -285,7 +283,10 @@ describe("useCatalogo — captura do pedido no checkout (ORD-01, ORD-03, ORD-11)
     });
   });
 
-  it("envia o código derivado do clientOrderId, 6 caracteres em [A-Z0-9] (ORD-32.1)", async () => {
+  // ORD-32.1 (revisada): o código vai na MENSAGEM, não no payload — o servidor
+  // deriva o mesmo valor do client_order_id. Nada vindo do cliente alcança
+  // orders.code, e a mensagem segue completa sem depender do servidor.
+  it("põe o código na mensagem e NÃO o envia no payload (ORD-32.1)", async () => {
     const result = setupCheckout();
     act(() => result.current.setCustomerName("Ana"));
 
@@ -294,8 +295,12 @@ describe("useCatalogo — captura do pedido no checkout (ORD-01, ORD-03, ORD-11)
     });
 
     const payload = capturePayload();
-    expect(payload.code).toMatch(ORDER_CODE_PATTERN);
-    expect(payload.code).toBe(deriveOrderCode(payload.clientOrderId as string));
+    expect(payload).not.toHaveProperty("code");
+
+    const expected = deriveOrderCode(payload.clientOrderId as string);
+    expect(expected).toMatch(ORDER_CODE_PATTERN);
+    const message = decodeURIComponent(tab.location.href.split("?text=")[1]);
+    expect(message).toContain(`Pedido: ${expected}`);
   });
 
   it("leva nome e código na mensagem do WhatsApp (ORD-31.5, ORD-32.1)", async () => {
@@ -308,7 +313,9 @@ describe("useCatalogo — captura do pedido no checkout (ORD-01, ORD-03, ORD-11)
 
     const message = decodeURIComponent(tab.location.href.split("?text=")[1]);
     expect(message).toContain("Cliente: Ana");
-    expect(message).toContain(`Pedido: ${capturePayload().code as string}`);
+    expect(message).toContain(
+      `Pedido: ${deriveOrderCode(capturePayload().clientOrderId as string)}`
+    );
   });
 
   it("envia null (nunca string vazia) em nome, pagamento, entrega e endereço não informados", async () => {
@@ -339,7 +346,7 @@ describe("useCatalogo — captura do pedido no checkout (ORD-01, ORD-03, ORD-11)
       delivery: null,
       address: "",
       customerName: "Ana",
-      code: capturePayload().code as string,
+      code: deriveOrderCode(capturePayload().clientOrderId as string),
     });
     expect(tab.location.href).toBe(
       `https://wa.me/${normalizeWhatsapp(baseStore.whatsapp)}?text=${encodeURIComponent(expectedMsg)}`
@@ -508,7 +515,9 @@ describe("useCatalogo — clientOrderId por conteúdo da sacola (ORD-05)", () =>
     await checkout(result);
 
     expect(capturePayload(1).clientOrderId).not.toBe(capturePayload(0).clientOrderId);
-    expect(capturePayload(1).code).not.toBe(capturePayload(0).code);
+    expect(deriveOrderCode(capturePayload(1).clientOrderId as string)).not.toBe(
+      deriveOrderCode(capturePayload(0).clientOrderId as string)
+    );
   });
 
   it("gera um novo clientOrderId depois de adicionar outro item", async () => {

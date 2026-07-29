@@ -1,11 +1,6 @@
 import { z } from "zod";
 import { PAYMENT_METHOD_VALUES, DELIVERY_METHOD_VALUES } from "@/lib/data";
-import {
-  CUSTOMER_NAME_MIN,
-  MAX_ORDER_LINES,
-  MAX_QTY,
-  ORDER_CODE_PATTERN,
-} from "@/lib/orders";
+import { CUSTOMER_NAME_MIN, MAX_ORDER_LINES, MAX_QTY } from "@/lib/orders";
 
 // Nenhum campo monetário: preço e total são recalculados no servidor a partir de
 // products.price_cents. As colunas opcionais aceitam null ("não informado") —
@@ -29,9 +24,6 @@ export const orderPayloadSchema = z.object({
   customerName: z
     .string()
     .refine((value) => value.trim().length >= CUSTOMER_NAME_MIN, "Informe seu nome"),
-  // Código derivado no cliente (ORD-32.1): só o formato é validado — a origem do
-  // valor é o client_order_id, que o servidor já valida como uuid.
-  code: z.string().regex(ORDER_CODE_PATTERN, "Código de pedido inválido"),
   payment: z.enum(PAYMENT_METHOD_VALUES).nullish(),
   delivery: z.enum(DELIVERY_METHOD_VALUES).nullish(),
   address: z.string().nullish(),

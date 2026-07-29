@@ -6,7 +6,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore } from "@/lib/server/store";
 import { getPlanLimits } from "@/lib/plan-limits";
 import { orderPayloadSchema } from "@/lib/validation/pedido";
-import { isOrderStatus, resolveOrderItems, sanitizeCustomerName } from "@/lib/orders";
+import {
+  deriveOrderCode,
+  isOrderStatus,
+  resolveOrderItems,
+  sanitizeCustomerName,
+} from "@/lib/orders";
 import type { ProductPriceRow } from "@/lib/orders";
 
 export type RegistrarPedidoResult = { ok: true } | { ok: false };
@@ -30,8 +35,13 @@ export async function registrarPedido(payload: unknown): Promise<RegistrarPedido
       return { ok: false };
     }
 
-    const { slug, clientOrderId, code, customerName, payment, delivery, address, items } =
+    const { slug, clientOrderId, customerName, payment, delivery, address, items } =
       parsed.data;
+    // O código é derivado aqui, no servidor, a partir do client_order_id já
+    // validado como uuid — o payload não carrega código nenhum (ORD-32.1). Como a
+    // derivação é determinística e é a mesma função que o cliente usou para montar
+    // a mensagem, os dois valores coincidem por construção, sem confiar em input.
+    const code = deriveOrderCode(clientOrderId);
     const supabase = createAdminClient();
 
     const { data: store, error: storeError } = await supabase
