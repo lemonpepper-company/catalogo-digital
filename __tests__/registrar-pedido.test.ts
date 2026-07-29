@@ -126,10 +126,14 @@ function itemRows(made: MadeChain[]): Record<string, unknown>[] {
   return callsOf(made, "order_items", "insert")[0][0] as Record<string, unknown>[];
 }
 
+const ORDER_CODE = "MJ7B4K";
+
 function validPayload(overrides: Record<string, unknown> = {}) {
   return {
     slug: "ateliemira",
     clientOrderId: CLIENT_ORDER_ID,
+    customerName: "Ana",
+    code: ORDER_CODE,
     items: [{ productId: P1, size: "M", color: "Areia", qty: 2 }],
     ...overrides,
   };
@@ -464,7 +468,7 @@ describe("registrarPedido — teto anti-abuso (ORD-08)", () => {
   });
 });
 
-describe("registrarPedido — nome do cliente (ORD-10)", () => {
+describe("registrarPedido — nome do cliente (ORD-10, ORD-31)", () => {
   it("aplica trim no nome informado", async () => {
     const made = setupSupabase(happyPlan());
     const registrarPedido = await loadAction();
@@ -474,13 +478,15 @@ describe("registrarPedido — nome do cliente (ORD-10)", () => {
     expect(upsertRow(made).customer_name).toBe("Ana Maria");
   });
 
-  it("grava null quando o nome vem em branco", async () => {
+  it("rejeita nome em branco sem gravar nada (ORD-31.4)", async () => {
     const made = setupSupabase(happyPlan());
     const registrarPedido = await loadAction();
 
-    await registrarPedido(validPayload({ customerName: "   " }));
+    const result = await registrarPedido(validPayload({ customerName: "   " }));
 
-    expect(upsertRow(made).customer_name).toBeNull();
+    expect(result).toEqual({ ok: false });
+    expect(writeCalls(made)).toHaveLength(0);
+    expect(from).not.toHaveBeenCalled();
   });
 
   it("trunca o nome em 60 caracteres", async () => {
