@@ -206,4 +206,15 @@ describe("CatalogoClient — modal de produto com blur no desktop", () => {
     expect(overlay.className).toContain("md:backdrop-blur-md");
     expect(overlay.className).not.toContain("md:bg-black/50");
   });
+
+  it("mantém a grade de produtos montada atrás do modal, para o backdrop-blur ter o que borrar", () => {
+    const products = makeProducts(2, "Vestidos");
+    const { container } = render(<CatalogoClient store={store} products={products} />);
+
+    fireEvent.click(screen.getByText(products[0].name));
+
+    const grid = container.querySelector(".grid");
+    expect(grid).not.toBeNull();
+    expect(grid!.querySelectorAll('img[alt^="Produto "]').length).toBe(2);
+  });
 });
