@@ -119,6 +119,7 @@ export default async function ProdutosPage({
     <ProdutosClient
       products={products}
       maxProducts={limits.maxProducts}
+      limits={limits}
       counts={{
         active: active ?? 0,
         soldOut: soldOut ?? 0,

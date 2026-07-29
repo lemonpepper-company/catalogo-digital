@@ -133,6 +133,7 @@ export const proFeatures = [
   "Cor secundária exclusiva",
   "Histórico de pedidos",
   "Domínio próprio",
+  "Importação de produtos por planilha",
 ];
 
 export const faqs = [

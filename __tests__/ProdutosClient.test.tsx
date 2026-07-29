@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { ProdutosClient } from "@/app/painel/produtos/ProdutosClient";
 import type { StoreProduct } from "@/lib/types";
+import type { PlanLimits } from "@/lib/plan-limits";
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -40,6 +41,19 @@ function makeProduct(overrides: Partial<StoreProduct> = {}): StoreProduct {
 
 const baseCounts = { active: 4, soldOut: 1, inactive: 1, total: 45 };
 
+const baseLimits: PlanLimits = {
+  maxProducts: Infinity,
+  maxCategories: Infinity,
+  maxPhotos: 5,
+  maxFeaturedProducts: Infinity,
+  themeOptions: true,
+  advancedTheme: true,
+  gridDensity: true,
+  csvImport: true,
+  hasOrderHistory: true,
+  customDomain: true,
+};
+
 const noFilters = { initialQ: "", initialCategoria: "", initialStatus: "" };
 
 describe("ProdutosClient — contadores e paginação", () => {
@@ -48,6 +62,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={2}
         totalPages={3}
@@ -63,6 +78,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={1}
         totalPages={3}
@@ -79,6 +95,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={2}
         totalPages={3}
@@ -94,6 +111,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={2}
         totalPages={3}
@@ -119,6 +137,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={2}
         totalPages={3}
@@ -147,6 +166,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={1}
         totalPages={1}
@@ -162,6 +182,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={1}
         totalPages={1}
@@ -181,6 +202,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={1}
         totalPages={1}
@@ -199,6 +221,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={{ active: 0, soldOut: 0, inactive: 0, total: 0 }}
         page={1}
         totalPages={1}
@@ -215,6 +238,7 @@ describe("ProdutosClient — contadores e paginação", () => {
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={1}
         totalPages={1}
@@ -229,11 +253,33 @@ describe("ProdutosClient — contadores e paginação", () => {
     expect(input.value).toBe("vestido");
   });
 
+  it("sem csvImport no plano, mostra o link do Pro e esconde o botão de importar planilha", () => {
+    render(
+      <ProdutosClient
+        products={[makeProduct()]}
+        maxProducts={Infinity}
+        limits={{ ...baseLimits, csvImport: false }}
+        counts={baseCounts}
+        page={1}
+        totalPages={1}
+        categories={[]}
+        {...noFilters}
+      />
+    );
+    expect(
+      screen.getByText("Importação em massa — disponível no Pro")
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Importar planilha" })
+    ).toBeNull();
+  });
+
   it("selecionar uma categoria aplica o filtro imediatamente via router.replace", () => {
     render(
       <ProdutosClient
         products={[makeProduct()]}
         maxProducts={Infinity}
+        limits={baseLimits}
         counts={baseCounts}
         page={1}
         totalPages={1}
