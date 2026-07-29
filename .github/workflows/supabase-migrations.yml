@@ -7,6 +7,10 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/**'
+  # Permite re-rodar manualmente (recuperação de incidente, ou reaplicar uma
+  # migration cujo arquivo não mudou desde a última tentativa) sem precisar de
+  # um novo push tocando supabase/migrations/**.
+  workflow_dispatch:
 
 jobs:
   migrate:
@@ -27,5 +31,18 @@ jobs:
       - name: Link project
         run: supabase link --project-ref "$PROJECT_ID"
 
+      # --include-all: com múltiplas branches em paralelo, o timestamp de um
+      # arquivo de migration reflete quando foi escrito, não a ordem em que a
+      # branch acaba mergeando/deployando. Sem a flag, `supabase db push`
+      # recusa aplicar qualquer migration cujo timestamp seja anterior ao
+      # último já registrado no banco remoto ("Found local migration files to
+      # be inserted before the last migration on remote database") — e falha
+      # a run INTEIRA sem aplicar nada, mesmo as migrations mais novas que não
+      # têm esse problema. Foi exatamente isso que quebrou o deploy de
+      # 2026-07-29: as migrations de domínio próprio (20260725*) chegaram à
+      # main depois das migrations de captura de pedidos (20260727*/20260728*)
+      # já aplicadas, e a run falhou sem aplicar nenhuma das 6 migrations
+      # novas — enquanto o app (deploy separado, via Vercel) já esperava o
+      # schema novo, causando tela em branco no /painel.
       - name: Push migrations
-        run: supabase db push
+        run: supabase db push --include-all
