@@ -17,12 +17,14 @@ const ORDER_COLS =
 
 /**
  * Busca por código **ou** nome do cliente, case-insensitive (ORD-35.10). Vírgula,
- * parênteses e `%`/`*`/`\` são descartados: o PostgREST usa vírgula para separar
+ * parênteses e `%`/`*`/`\`/`_` são descartados: o PostgREST usa vírgula para separar
  * os termos do `or` e parênteses para agrupá-los, e os curingas mudariam o LIKE —
- * nenhum deles faz sentido num código ou nome.
+ * nenhum deles faz sentido num código ou nome. O `_` entrou depois da validação do
+ * ciclo 2: é curinga de exatamente 1 caractere no LIKE, então `h_0l52` casava com
+ * `HS0L52` e a busca ficava mais larga do que o lojista pediu.
  */
 function orderSearchTerm(query: string): string {
-  return query.trim().replace(/[,()%*\\]/g, "");
+  return query.trim().replace(/[,()%*\\_]/g, "");
 }
 
 function searchFilter(term: string): string {

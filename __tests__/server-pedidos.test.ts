@@ -263,6 +263,18 @@ describe("getStoreOrders — busca por código ou nome (ORD-35.10)", () => {
     expect(made[1].calls.or).toEqual([[FILTER]]);
   });
 
+  // `_` é curinga de 1 caractere no LIKE: sem descartá-lo, "h_0l52" casaria com
+  // "HS0L52" e a busca devolveria mais do que o lojista pediu (achado da
+  // validação do ciclo 2).
+  it("descarta o underscore, que é curinga de um caractere no LIKE", async () => {
+    const made = setupSupabase([{ count: 1 }, { data: [orderRow()] }]);
+    const { getStoreOrders } = await loadModule();
+
+    await getStoreOrders(STORE_ID, 1, "an_a");
+
+    expect(made[1].calls.or).toEqual([[FILTER]]);
+  });
+
   it("não aplica filtro nenhum quando a busca está vazia ou só com espaços", async () => {
     for (const query of ["", "   ", "()"]) {
       const made = setupSupabase([{ count: 1 }, { data: [orderRow()] }]);
