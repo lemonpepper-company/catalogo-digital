@@ -2,6 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentStore } from "@/lib/server/store";
 import { storeSettingsSchema, personalizacaoSchema, domainSchema } from "@/lib/validation/painel";
 import { uploadToBucket, deleteFromBucket } from "@/lib/server/upload";
@@ -195,7 +196,12 @@ export async function updateCustomDomain(
   // de confirmar o DNS. Esta action NUNCA grava custom_domain_verified = true.
   const domainChanged = nextDomain !== store.customDomain;
 
-  const { error } = await supabase
+  // custom_domain/custom_domain_verified saíram do grant de update de
+  // authenticated (ver supabase/migrations/20260728110000_*) — a propriedade
+  // da loja já foi confirmada acima via getCurrentStore() (RLS), então este
+  // update roda com o client admin, restrito a este id específico.
+  const admin = createAdminClient();
+  const { error } = await admin
     .from("stores")
     .update({
       custom_domain: nextDomain,
