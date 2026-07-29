@@ -9,6 +9,7 @@ import { IdentidadeFields } from "@/components/loja/IdentidadeFields";
 import { PagamentoEntregaFields } from "@/components/loja/PagamentoEntregaFields";
 import { DominioField } from "@/components/loja/DominioField";
 import { signOut } from "@/app/actions/auth";
+import { VTRINE_WHATSAPP_NUMBER } from "@/lib/contact";
 import type { StoreSettings } from "@/lib/types";
 import type { PlanLimits } from "@/lib/plan-limits";
 import { useConfiguracoes, MSG_VARS } from "./use-configuracoes";
@@ -231,6 +232,19 @@ export function ConfiguracoesClient({
           {dominio.toast && <Toast msg={dominio.toast.msg} tone={dominio.toast.tone} />}
         </Card>
       </form>
+
+      <div className="pb-6 flex justify-center">
+        <a
+          href={`https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+            "Olá! Preciso de suporte com minha loja na Vtrine Digital."
+          )}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-body text-[13px] text-graphite underline"
+        >
+          Precisa de ajuda? Fale com o suporte
+        </a>
+      </div>
     </div>
   );
 }
