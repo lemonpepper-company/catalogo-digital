@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const DEBOUNCE_MS = 400;
@@ -12,15 +12,16 @@ const DEBOUNCE_MS = 400;
  * termo de busca, para que trocar de busca não derrube um filtro de período já
  * aplicado (ORD-46). A URL nova nunca leva `page`, então uma busca sempre
  * recomeça na página 1 e a paginação é recalculada sobre o resultado filtrado
- * (ORD-35.10).
+ * (ORD-35.10). `startTransition` vem de `PedidosClient` — um único useTransition
+ * por página, compartilhado com o filtro de período (ORD-50).
  */
 export function usePedidosBusca(
   initialQuery: string,
+  startTransition: (callback: () => void) => void,
   extraParams: Record<string, string> = {}
 ) {
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
-  const [isPending, startTransition] = useTransition();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onQueryChange = (value: string) => {
@@ -37,5 +38,5 @@ export function usePedidosBusca(
     }, DEBOUNCE_MS);
   };
 
-  return { query, onQueryChange, isPending };
+  return { query, onQueryChange };
 }

@@ -20,12 +20,12 @@ vi.mock("next/navigation", () => ({
  * `startTransition` chamando o callback na hora) reproduz o comportamento
  * real para todos os outros testes deste arquivo.
  */
-let mockSearchPending = false;
+let mockFiltersPending = false;
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
   return {
     ...actual,
-    useTransition: () => [mockSearchPending, (callback: () => void) => callback()],
+    useTransition: () => [mockFiltersPending, (callback: () => void) => callback()],
   };
 });
 
@@ -33,7 +33,7 @@ beforeEach(() => {
   updateOrderStatus.mockReset();
   updateOrderStatus.mockResolvedValue({ ok: true });
   replace.mockReset();
-  mockSearchPending = false;
+  mockFiltersPending = false;
 });
 
 function makeOrder(overrides: Partial<StoreOrder> = {}): StoreOrder {
@@ -581,17 +581,57 @@ describe("PedidosClient — filtro de período (ORD-46)", () => {
   });
 });
 
-describe("PedidosClient — feedback de carregamento da busca (ORD-49)", () => {
-  it("mostra um spinner no lugar do ícone de busca enquanto a navegação está pendente", () => {
-    mockSearchPending = true;
+describe("PedidosClient — feedback de carregamento (ORD-50)", () => {
+  it("mostra um spinner no lugar do ícone de busca enquanto qualquer filtro está pendente", () => {
+    mockFiltersPending = true;
     render(<PedidosClient orders={[makeOrder()]} total={1} page={1} totalPages={1} />);
 
     expect(screen.getByTestId("busca-pedidos-loading")).toBeTruthy();
   });
 
-  it("mostra o ícone de busca normal quando não há navegação pendente", () => {
+  it("mostra o ícone de busca normal quando não há filtro pendente", () => {
     render(<PedidosClient orders={[makeOrder()]} total={1} page={1} totalPages={1} />);
 
     expect(screen.queryByTestId("busca-pedidos-loading")).toBeNull();
+  });
+
+  it("mostra o dropdown de período em estado pendente enquanto qualquer filtro está pendente", () => {
+    mockFiltersPending = true;
+    render(<PedidosClient orders={[makeOrder()]} total={1} page={1} totalPages={1} />);
+
+    expect(screen.getByTestId("periodo-filtro-loading")).toBeTruthy();
+  });
+
+  it("mostra o skeleton da lista no lugar dos pedidos reais enquanto qualquer filtro está pendente", () => {
+    mockFiltersPending = true;
+    render(
+      <PedidosClient
+        orders={[makeOrder(), makeOrder({ id: "o2" })]}
+        total={2}
+        page={1}
+        totalPages={1}
+      />
+    );
+
+    expect(screen.queryByText("Ana")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /Ver detalhe do pedido/ })
+    ).toBeNull();
+  });
+
+  it("volta a mostrar a lista real quando o filtro deixa de estar pendente", () => {
+    const { rerender } = render(
+      <PedidosClient orders={[makeOrder()]} total={1} page={1} totalPages={1} />
+    );
+
+    expect(screen.getByText("Ana")).toBeTruthy();
+
+    mockFiltersPending = true;
+    rerender(<PedidosClient orders={[makeOrder()]} total={1} page={1} totalPages={1} />);
+    expect(screen.queryByText("Ana")).toBeNull();
+
+    mockFiltersPending = false;
+    rerender(<PedidosClient orders={[makeOrder()]} total={1} page={1} totalPages={1} />);
+    expect(screen.getByText("Ana")).toBeTruthy();
   });
 });

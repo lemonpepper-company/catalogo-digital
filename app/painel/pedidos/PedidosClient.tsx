@@ -1,5 +1,6 @@
 "use client";
 
+import { useTransition } from "react";
 import { Receipt, Search, CalendarSearch, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
@@ -8,6 +9,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Pagination } from "@/components/ui/Pagination";
 import { Toast } from "@/components/ui/Toast";
 import { PeriodoFiltro } from "@/components/painel/PeriodoFiltro";
+import { OrderRowSkeleton } from "@/components/painel/OrderRowSkeleton";
 import { cn, formatCents, formatDeliveryLine, formatPaymentLine } from "@/lib/utils";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/orders";
 import { activePeriodToken } from "@/lib/period-filter";
@@ -86,17 +88,18 @@ export function PedidosClient({
 }: PedidosClientProps) {
   const { selected, openOrder, closeOrder, toast, statusAction, statusPending } =
     usePedidos(orders);
+  const [filtersPending, startTransition] = useTransition();
 
   const periodParams: Record<string, string> = {};
   if (periodo) periodParams.periodo = periodo;
   if (de) periodParams.de = de;
   if (ate) periodParams.ate = ate;
 
-  const {
-    query: searchTerm,
-    onQueryChange,
-    isPending: searchPending,
-  } = usePedidosBusca(query, periodParams);
+  const { query: searchTerm, onQueryChange } = usePedidosBusca(
+    query,
+    startTransition,
+    periodParams
+  );
 
   const searchExtraParams: Record<string, string> = query ? { q: query } : {};
   const paginationExtraParams = { ...searchExtraParams, ...periodParams };
@@ -129,7 +132,7 @@ export function PedidosClient({
       <div className="flex flex-col sm:flex-row sm:items-start gap-3">
         {showSearch && (
           <div className="relative flex-1">
-            {searchPending ? (
+            {filtersPending ? (
               <Loader2
                 size={18}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-graphite animate-spin pointer-events-none z-10"
@@ -156,10 +159,18 @@ export function PedidosClient({
           de={de}
           ate={ate}
           extraParams={searchExtraParams}
+          isPending={filtersPending}
+          startTransition={startTransition}
         />
       </div>
 
-      {orders.length === 0 ? (
+      {filtersPending ? (
+        <Card pad={0} className="overflow-hidden">
+          {Array.from({ length: orders.length || 6 }).map((_, i) => (
+            <OrderRowSkeleton key={i} first={i === 0} />
+          ))}
+        </Card>
+      ) : orders.length === 0 ? (
         <Card className="py-12 text-center">
           <div className="flex flex-col items-center gap-4">
             <div className="w-24 h-24 rounded-full bg-linen flex items-center justify-center text-inactive">
