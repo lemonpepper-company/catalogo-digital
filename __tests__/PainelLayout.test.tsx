@@ -60,13 +60,13 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("PainelLayout — Dashboard exclusiva de planos pagos", () => {
-  it("esconde o item Dashboard da navegação no plano Free", async () => {
+describe("PainelLayout — item Dashboard sempre visível na navegação", () => {
+  it("mostra o item Dashboard no plano Free (o bloqueio acontece dentro da página)", async () => {
     getCurrentStore.mockResolvedValue(makeStore({ plan: "free" }));
 
     await renderLayout();
 
-    expect(screen.queryByRole("link", { name: "Dashboard" })).toBeNull();
+    expect(screen.getAllByRole("link", { name: "Dashboard" }).length).toBeGreaterThan(0);
   });
 
   it("mostra o item Dashboard no plano Pro", async () => {

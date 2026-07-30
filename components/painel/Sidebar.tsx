@@ -22,7 +22,6 @@ interface SidebarProps {
   monogram: string | null;
   logoUrl: string | null;
   catalogUrl: string | null;
-  hideDashboard?: boolean;
 }
 
 interface NavItemProps {
@@ -51,13 +50,7 @@ function NavItem({ href, icon, label, active }: NavItemProps) {
   );
 }
 
-export function Sidebar({
-  name,
-  monogram,
-  logoUrl,
-  catalogUrl,
-  hideDashboard = false,
-}: SidebarProps) {
+export function Sidebar({ name, monogram, logoUrl, catalogUrl }: SidebarProps) {
   const pathname = usePathname();
 
   const isActive = (path: string) =>
@@ -94,14 +87,12 @@ export function Sidebar({
       </div>
 
       <nav className="flex flex-col gap-1">
-        {!hideDashboard && (
-          <NavItem
-            href="/painel"
-            icon={<LayoutDashboard size={19} />}
-            label="Dashboard"
-            active={isActive("/painel")}
-          />
-        )}
+        <NavItem
+          href="/painel"
+          icon={<LayoutDashboard size={19} />}
+          label="Dashboard"
+          active={isActive("/painel")}
+        />
         <NavItem
           href="/painel/produtos"
           icon={<Tag size={19} />}
