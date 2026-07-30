@@ -8,26 +8,22 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
 }));
 
-/**
- * `useTransition` real não fica "pending" de forma observável em teste quando o
- * `router.replace` mockado é síncrono (não há trabalho assíncrono real pro React
- * suspender) — por isso controlamos `isPending` diretamente aqui. O default
- * (`false`, `startTransition` chamando o callback na hora) reproduz o
- * comportamento real para todos os outros testes deste arquivo.
- */
-let mockIsPending = false;
-vi.mock("react", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("react")>();
-  return {
-    ...actual,
-    useTransition: () => [mockIsPending, (callback: () => void) => callback()],
-  };
-});
-
 beforeEach(() => {
   replace.mockReset();
-  mockIsPending = false;
 });
+
+const startTransition = (callback: () => void) => callback();
+
+function renderFiltro(props: Partial<React.ComponentProps<typeof PeriodoFiltro>> = {}) {
+  return render(
+    <PeriodoFiltro
+      basePath="/painel"
+      isPending={false}
+      startTransition={startTransition}
+      {...props}
+    />
+  );
+}
 
 /** Abre o dropdown clicando no botão-gatilho (mostra o valor atual, sempre único quando fechado). */
 function openDropdown(currentValueLabel: string) {
@@ -36,19 +32,19 @@ function openDropdown(currentValueLabel: string) {
 
 describe("PeriodoFiltro — dropdown de presets (ORD-48)", () => {
   it("mostra Este mês como valor selecionado por padrão, sem nenhum prop de período", () => {
-    render(<PeriodoFiltro basePath="/painel" />);
+    renderFiltro();
 
     expect(screen.getByRole("button", { name: "Este mês" })).toBeTruthy();
   });
 
   it("mostra o rótulo do preset correspondente a periodo como valor selecionado", () => {
-    render(<PeriodoFiltro basePath="/painel" periodo="hoje" />);
+    renderFiltro({ periodo: "hoje" });
 
     expect(screen.getByRole("button", { name: "Hoje" })).toBeTruthy();
   });
 
   it("ao abrir, lista os quatro presets e a ação de período personalizado", () => {
-    render(<PeriodoFiltro basePath="/painel" />);
+    renderFiltro();
 
     openDropdown("Este mês");
 
@@ -61,7 +57,7 @@ describe("PeriodoFiltro — dropdown de presets (ORD-48)", () => {
   });
 
   it("selecionar um preset navega para o basePath com ?periodo=<preset>", () => {
-    render(<PeriodoFiltro basePath="/painel" />);
+    renderFiltro();
 
     openDropdown("Este mês");
     fireEvent.click(screen.getByRole("button", { name: "Hoje" }));
@@ -70,7 +66,7 @@ describe("PeriodoFiltro — dropdown de presets (ORD-48)", () => {
   });
 
   it("selecionar Todo período navega com ?periodo=tudo", () => {
-    render(<PeriodoFiltro basePath="/painel/pedidos" />);
+    renderFiltro({ basePath: "/painel/pedidos" });
 
     openDropdown("Este mês");
     fireEvent.click(screen.getByRole("button", { name: "Todo período" }));
@@ -81,7 +77,7 @@ describe("PeriodoFiltro — dropdown de presets (ORD-48)", () => {
   });
 
   it("selecionar Este mês (o default) navega sem parâmetro de período", () => {
-    render(<PeriodoFiltro basePath="/painel" periodo="hoje" />);
+    renderFiltro({ periodo: "hoje" });
 
     openDropdown("Hoje");
     fireEvent.click(screen.getByRole("button", { name: "Este mês" }));
@@ -90,9 +86,7 @@ describe("PeriodoFiltro — dropdown de presets (ORD-48)", () => {
   });
 
   it("preserva extraParams (ex: busca) ao selecionar um preset", () => {
-    render(
-      <PeriodoFiltro basePath="/painel/pedidos" extraParams={{ q: "ana" }} />
-    );
+    renderFiltro({ basePath: "/painel/pedidos", extraParams: { q: "ana" } });
 
     openDropdown("Este mês");
     fireEvent.click(screen.getByRole("button", { name: "Hoje" }));
@@ -105,15 +99,13 @@ describe("PeriodoFiltro — dropdown de presets (ORD-48)", () => {
 
 describe("PeriodoFiltro — valor exibido para range customizado (ORD-48)", () => {
   it("mostra o range abreviado como valor selecionado quando de/ate válidos vêm por prop, mesmo ano", () => {
-    render(<PeriodoFiltro basePath="/painel" de="2026-07-01" ate="2026-07-10" />);
+    renderFiltro({ de: "2026-07-01", ate: "2026-07-10" });
 
-    expect(
-      screen.getByRole("button", { name: "1 jul – 10 jul 2026" })
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "1 jul – 10 jul 2026" })).toBeTruthy();
   });
 
   it("inclui o ano nos dois lados quando de/ate estão em anos diferentes", () => {
-    render(<PeriodoFiltro basePath="/painel" de="2025-12-20" ate="2026-01-05" />);
+    renderFiltro({ de: "2025-12-20", ate: "2026-01-05" });
 
     expect(
       screen.getByRole("button", { name: "20 dez 2025 – 5 jan 2026" })
@@ -129,7 +121,7 @@ describe("PeriodoFiltro — modal de período personalizado (ORD-48)", () => {
   }
 
   it("abre com os campos De/Até vazios quando não há range customizado ativo", () => {
-    render(<PeriodoFiltro basePath="/painel" />);
+    renderFiltro();
 
     const dialog = openCustomModal("Este mês");
 
@@ -138,7 +130,7 @@ describe("PeriodoFiltro — modal de período personalizado (ORD-48)", () => {
   });
 
   it("abre com os campos De/Até preenchidos quando já há um range customizado ativo", () => {
-    render(<PeriodoFiltro basePath="/painel" de="2026-07-01" ate="2026-07-10" />);
+    renderFiltro({ de: "2026-07-01", ate: "2026-07-10" });
 
     const dialog = openCustomModal("1 jul – 10 jul 2026");
 
@@ -151,7 +143,7 @@ describe("PeriodoFiltro — modal de período personalizado (ORD-48)", () => {
   });
 
   it("desabilita Aplicar até as duas datas estarem preenchidas", () => {
-    render(<PeriodoFiltro basePath="/painel" />);
+    renderFiltro();
 
     const dialog = openCustomModal("Este mês");
     const aplicar = within(dialog).getByRole("button", { name: "Aplicar" });
@@ -169,7 +161,7 @@ describe("PeriodoFiltro — modal de período personalizado (ORD-48)", () => {
   });
 
   it("aplicar navega com de/ate e fecha a modal", () => {
-    render(<PeriodoFiltro basePath="/painel/pedidos" />);
+    renderFiltro({ basePath: "/painel/pedidos" });
 
     const dialog = openCustomModal("Este mês");
     fireEvent.change(within(dialog).getByLabelText("De"), {
@@ -188,9 +180,7 @@ describe("PeriodoFiltro — modal de período personalizado (ORD-48)", () => {
   });
 
   it("preserva extraParams ao aplicar o range customizado", () => {
-    render(
-      <PeriodoFiltro basePath="/painel/pedidos" extraParams={{ q: "ana" }} />
-    );
+    renderFiltro({ basePath: "/painel/pedidos", extraParams: { q: "ana" } });
 
     const dialog = openCustomModal("Este mês");
     fireEvent.change(within(dialog).getByLabelText("De"), {
@@ -208,7 +198,7 @@ describe("PeriodoFiltro — modal de período personalizado (ORD-48)", () => {
   });
 
   it("fechar sem aplicar não navega e fecha a modal", () => {
-    render(<PeriodoFiltro basePath="/painel" />);
+    renderFiltro();
 
     const dialog = openCustomModal("Este mês");
     fireEvent.click(within(dialog).getByLabelText("Fechar"));
@@ -218,26 +208,35 @@ describe("PeriodoFiltro — modal de período personalizado (ORD-48)", () => {
   });
 });
 
-describe("PeriodoFiltro — feedback de carregamento (ORD-49)", () => {
-  it("não mostra o spinner quando não há navegação pendente", () => {
-    render(<PeriodoFiltro basePath="/painel" />);
+describe("PeriodoFiltro — feedback de carregamento, controlado pelo pai (ORD-50)", () => {
+  it("não mostra o spinner quando isPending é false", () => {
+    renderFiltro({ isPending: false });
 
     expect(screen.queryByTestId("periodo-filtro-loading")).toBeNull();
   });
 
-  it("mostra um spinner enquanto a navegação está pendente", () => {
-    mockIsPending = true;
-    render(<PeriodoFiltro basePath="/painel" />);
+  it("mostra um spinner quando isPending é true", () => {
+    renderFiltro({ isPending: true });
 
     expect(screen.getByTestId("periodo-filtro-loading")).toBeTruthy();
   });
 
-  it("desabilita a interação com o dropdown enquanto a navegação está pendente", () => {
-    mockIsPending = true;
-    render(<PeriodoFiltro basePath="/painel" />);
+  it("desabilita a interação com o dropdown quando isPending é true", () => {
+    renderFiltro({ isPending: true });
 
     expect(
       screen.getByRole("button", { name: "Este mês" }).closest('[class*="pointer-events-none"]')
     ).toBeTruthy();
+  });
+
+  it("chama o startTransition recebido por prop ao navegar", () => {
+    const customStartTransition = vi.fn((callback: () => void) => callback());
+    renderFiltro({ startTransition: customStartTransition });
+
+    openDropdown("Este mês");
+    fireEvent.click(screen.getByRole("button", { name: "Hoje" }));
+
+    expect(customStartTransition).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledWith("/painel?periodo=hoje", { scroll: false });
   });
 });

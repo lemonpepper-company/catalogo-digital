@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Select } from "@/components/ui/Select";
@@ -60,6 +60,8 @@ interface PeriodoFiltroProps {
   de?: string;
   ate?: string;
   extraParams?: Record<string, string>;
+  isPending: boolean;
+  startTransition: (callback: () => void) => void;
 }
 
 export function PeriodoFiltro({
@@ -68,9 +70,10 @@ export function PeriodoFiltro({
   de,
   ate,
   extraParams = {},
+  isPending,
+  startTransition,
 }: PeriodoFiltroProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const active = activePeriodToken({ periodo, de, ate });
   const [modalOpen, setModalOpen] = useState(false);
   const [customDe, setCustomDe] = useState(de ?? "");
