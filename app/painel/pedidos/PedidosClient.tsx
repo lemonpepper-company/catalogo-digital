@@ -1,6 +1,6 @@
 "use client";
 
-import { Receipt, Search, CalendarSearch } from "lucide-react";
+import { Receipt, Search, CalendarSearch, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -92,7 +92,11 @@ export function PedidosClient({
   if (de) periodParams.de = de;
   if (ate) periodParams.ate = ate;
 
-  const { query: searchTerm, onQueryChange } = usePedidosBusca(query, periodParams);
+  const {
+    query: searchTerm,
+    onQueryChange,
+    isPending: searchPending,
+  } = usePedidosBusca(query, periodParams);
 
   const searchExtraParams: Record<string, string> = query ? { q: query } : {};
   const paginationExtraParams = { ...searchExtraParams, ...periodParams };
@@ -125,10 +129,18 @@ export function PedidosClient({
       <div className="flex flex-col sm:flex-row sm:items-start gap-3">
         {showSearch && (
           <div className="relative flex-1">
-            <Search
-              size={18}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-graphite pointer-events-none z-10"
-            />
+            {searchPending ? (
+              <Loader2
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-graphite animate-spin pointer-events-none z-10"
+                data-testid="busca-pedidos-loading"
+              />
+            ) : (
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-graphite pointer-events-none z-10"
+              />
+            )}
             <Input
               value={searchTerm}
               onChange={(e) => onQueryChange(e.target.value)}

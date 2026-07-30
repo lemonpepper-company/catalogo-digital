@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { PedidosClient } from "@/app/painel/pedidos/PedidosClient";
 import type { StoreOrder } from "@/lib/types";
 
@@ -13,10 +13,27 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
 }));
 
+/**
+ * Mesma técnica de `__tests__/PeriodoFiltro.test.tsx`: com `router.replace`
+ * mockado (síncrono), `useTransition` real não fica "pending" de forma
+ * observável — controlamos `isPending` diretamente. O default (`false`,
+ * `startTransition` chamando o callback na hora) reproduz o comportamento
+ * real para todos os outros testes deste arquivo.
+ */
+let mockSearchPending = false;
+vi.mock("react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react")>();
+  return {
+    ...actual,
+    useTransition: () => [mockSearchPending, (callback: () => void) => callback()],
+  };
+});
+
 beforeEach(() => {
   updateOrderStatus.mockReset();
   updateOrderStatus.mockResolvedValue({ ok: true });
   replace.mockReset();
+  mockSearchPending = false;
 });
 
 function makeOrder(overrides: Partial<StoreOrder> = {}): StoreOrder {
@@ -141,7 +158,9 @@ describe("PedidosClient — busca por código ou nome (ORD-35.10)", () => {
       fireEvent.change(screen.getByLabelText("Buscar por código ou nome do cliente"), {
         target: { value: " HS0L52 " },
       });
-      vi.advanceTimersByTime(400);
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
 
       expect(replace).toHaveBeenCalledWith("/painel/pedidos?q=HS0L52", { scroll: false });
     } finally {
@@ -165,7 +184,9 @@ describe("PedidosClient — busca por código ou nome (ORD-35.10)", () => {
       fireEvent.change(screen.getByLabelText("Buscar por código ou nome do cliente"), {
         target: { value: "" },
       });
-      vi.advanceTimersByTime(400);
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
 
       expect(replace).toHaveBeenCalledWith("/painel/pedidos", { scroll: false });
     } finally {
@@ -481,7 +502,9 @@ describe("PedidosClient — filtro de período (ORD-46)", () => {
       fireEvent.change(screen.getByLabelText("Buscar por código ou nome do cliente"), {
         target: { value: "HS0L52" },
       });
-      vi.advanceTimersByTime(400);
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
 
       expect(replace).toHaveBeenCalledWith("/painel/pedidos?periodo=hoje&q=HS0L52", {
         scroll: false,
@@ -555,5 +578,20 @@ describe("PedidosClient — filtro de período (ORD-46)", () => {
     ).toBeNull();
 
     expect(screen.queryByText("Nenhum pedido ainda")).toBeNull();
+  });
+});
+
+describe("PedidosClient — feedback de carregamento da busca (ORD-49)", () => {
+  it("mostra um spinner no lugar do ícone de busca enquanto a navegação está pendente", () => {
+    mockSearchPending = true;
+    render(<PedidosClient orders={[makeOrder()]} total={1} page={1} totalPages={1} />);
+
+    expect(screen.getByTestId("busca-pedidos-loading")).toBeTruthy();
+  });
+
+  it("mostra o ícone de busca normal quando não há navegação pendente", () => {
+    render(<PedidosClient orders={[makeOrder()]} total={1} page={1} totalPages={1} />);
+
+    expect(screen.queryByTestId("busca-pedidos-loading")).toBeNull();
   });
 });

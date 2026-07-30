@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 const DEBOUNCE_MS = 400;
@@ -20,6 +20,7 @@ export function usePedidosBusca(
 ) {
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
+  const [isPending, startTransition] = useTransition();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onQueryChange = (value: string) => {
@@ -30,9 +31,11 @@ export function usePedidosBusca(
       const params = new URLSearchParams(extraParams);
       if (trimmed) params.set("q", trimmed);
       const qs = params.toString();
-      router.replace(qs ? `/painel/pedidos?${qs}` : "/painel/pedidos", { scroll: false });
+      startTransition(() => {
+        router.replace(qs ? `/painel/pedidos?${qs}` : "/painel/pedidos", { scroll: false });
+      });
     }, DEBOUNCE_MS);
   };
 
-  return { query, onQueryChange };
+  return { query, onQueryChange, isPending };
 }

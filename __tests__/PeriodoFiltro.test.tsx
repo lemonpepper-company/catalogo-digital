@@ -8,8 +8,25 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
 }));
 
+/**
+ * `useTransition` real não fica "pending" de forma observável em teste quando o
+ * `router.replace` mockado é síncrono (não há trabalho assíncrono real pro React
+ * suspender) — por isso controlamos `isPending` diretamente aqui. O default
+ * (`false`, `startTransition` chamando o callback na hora) reproduz o
+ * comportamento real para todos os outros testes deste arquivo.
+ */
+let mockIsPending = false;
+vi.mock("react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react")>();
+  return {
+    ...actual,
+    useTransition: () => [mockIsPending, (callback: () => void) => callback()],
+  };
+});
+
 beforeEach(() => {
   replace.mockReset();
+  mockIsPending = false;
 });
 
 /** Abre o dropdown clicando no botão-gatilho (mostra o valor atual, sempre único quando fechado). */
@@ -198,5 +215,29 @@ describe("PeriodoFiltro — modal de período personalizado (ORD-48)", () => {
 
     expect(replace).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("PeriodoFiltro — feedback de carregamento (ORD-49)", () => {
+  it("não mostra o spinner quando não há navegação pendente", () => {
+    render(<PeriodoFiltro basePath="/painel" />);
+
+    expect(screen.queryByTestId("periodo-filtro-loading")).toBeNull();
+  });
+
+  it("mostra um spinner enquanto a navegação está pendente", () => {
+    mockIsPending = true;
+    render(<PeriodoFiltro basePath="/painel" />);
+
+    expect(screen.getByTestId("periodo-filtro-loading")).toBeTruthy();
+  });
+
+  it("desabilita a interação com o dropdown enquanto a navegação está pendente", () => {
+    mockIsPending = true;
+    render(<PeriodoFiltro basePath="/painel" />);
+
+    expect(
+      screen.getByRole("button", { name: "Este mês" }).closest('[class*="pointer-events-none"]')
+    ).toBeTruthy();
   });
 });

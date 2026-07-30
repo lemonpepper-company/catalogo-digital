@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
+import { cn } from "@/lib/utils";
 import { activePeriodToken, type PeriodPreset } from "@/lib/period-filter";
 
 const PRESET_LABELS: Record<PeriodPreset, string> = {
@@ -68,6 +70,7 @@ export function PeriodoFiltro({
   extraParams = {},
 }: PeriodoFiltroProps) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const active = activePeriodToken({ periodo, de, ate });
   const [modalOpen, setModalOpen] = useState(false);
   const [customDe, setCustomDe] = useState(de ?? "");
@@ -75,7 +78,9 @@ export function PeriodoFiltro({
 
   const navigate = (params: Record<string, string>) => {
     const qs = new URLSearchParams({ ...extraParams, ...params }).toString();
-    router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false });
+    startTransition(() => {
+      router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false });
+    });
   };
 
   const selectPreset = (label: string) => {
@@ -98,13 +103,27 @@ export function PeriodoFiltro({
 
   return (
     <div role="group" aria-label="Filtrar por período">
-      <div className="w-full sm:w-64">
-        <Select
-          value={periodDisplayLabel(active, de, ate)}
-          options={PRESET_OPTIONS}
-          onChange={selectPreset}
-          footer={{ label: "Período personalizado", onClick: openModal }}
-        />
+      <div
+        className={cn(
+          "flex items-center gap-2 w-full sm:w-64",
+          isPending && "opacity-60 pointer-events-none"
+        )}
+      >
+        <div className="flex-1 min-w-0">
+          <Select
+            value={periodDisplayLabel(active, de, ate)}
+            options={PRESET_OPTIONS}
+            onChange={selectPreset}
+            footer={{ label: "Período personalizado", onClick: openModal }}
+          />
+        </div>
+        {isPending && (
+          <Loader2
+            size={16}
+            className="text-graphite animate-spin flex-shrink-0"
+            data-testid="periodo-filtro-loading"
+          />
+        )}
       </div>
 
       {modalOpen && (
