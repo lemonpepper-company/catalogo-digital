@@ -56,6 +56,30 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: ORD-31.5 / ORD-32.1 (spec-authoring)
 - last seen: 2026-07-29T01:56:33Z
 
+### L-008 — Exercite campos opcionais do payload nos dois estados — ausente e null explícito — ao testar a camada que persiste, senão o coalescing para null fica sem cobertura.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `app/actions` · harmful: 0
+- features: analytics-nativo
+- evidence: app/actions/eventos.ts:69 (sensor mutation 2) (app/actions)
+- last seen: 2026-07-30T21:47:21Z
+
+### L-009 — Decida a precisão de exibição de um valor derivado na spec antes de travá-la em teste; caso contrário o teste vira a única fonte de verdade de um número que ninguém especificou.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `lib` · harmful: 0
+- features: analytics-nativo
+- evidence: lib/catalog-metrics.ts:29 / __tests__/catalog-metrics.test.ts:11 (lib)
+- last seen: 2026-07-30T21:47:21Z
+
+### L-010 — Uma AC cuja garantia é composicional entre dois módulos precisa de um teste que atravesse os dois, ou de nota explícita de que a cobertura é indireta.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `app/painel` · harmful: 0
+- features: analytics-nativo
+- evidence: ANL-19 / __tests__/DashboardPage.test.tsx:213 (app/painel)
+- last seen: 2026-07-30T21:47:21Z
+
+### L-011 — Quando um disparo de telemetria precisa ficar fora do try/catch do caminho crítico, proteja o call site mesmo que o helper já engula erros, e registre a redundância.
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `app/[slug]` · harmful: 0
+- features: analytics-nativo
+- evidence: app/[slug]/use-catalogo.ts:23-38 SPEC_DEVIATION (app/[slug])
+- last seen: 2026-07-30T21:47:21Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
