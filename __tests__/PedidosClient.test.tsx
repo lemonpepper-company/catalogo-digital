@@ -529,4 +529,30 @@ describe("PedidosClient — filtro de período (ORD-46)", () => {
     expect(screen.getByText("Nenhum pedido no período selecionado.")).toBeTruthy();
     expect(screen.queryByText("Nenhum pedido ainda")).toBeNull();
   });
+
+  it("prioriza o estado vazio de busca quando busca e período estão ativos ao mesmo tempo", () => {
+    render(
+      <PedidosClient
+        orders={[]}
+        total={0}
+        page={1}
+        totalPages={1}
+        query="zzzzzz"
+        periodo="hoje"
+      />
+    );
+
+    expect(screen.getByText("Nenhum pedido encontrado")).toBeTruthy();
+    expect(screen.getByText(/desta loja combina com/).textContent).toContain("zzzzzz");
+
+    expect(screen.queryByText("Nenhum pedido no período")).toBeNull();
+    expect(screen.queryByText("Nenhum pedido no período selecionado.")).toBeNull();
+    expect(
+      screen.queryByText(
+        "Nenhum pedido desta loja caiu no período selecionado. Tente escolher outro período acima."
+      )
+    ).toBeNull();
+
+    expect(screen.queryByText("Nenhum pedido ainda")).toBeNull();
+  });
 });
