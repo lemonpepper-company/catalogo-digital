@@ -21,7 +21,8 @@ interface SidebarProps {
   name: string;
   monogram: string | null;
   logoUrl: string | null;
-  slug: string | null;
+  catalogUrl: string | null;
+  hideDashboard?: boolean;
 }
 
 interface NavItemProps {
@@ -50,7 +51,13 @@ function NavItem({ href, icon, label, active }: NavItemProps) {
   );
 }
 
-export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
+export function Sidebar({
+  name,
+  monogram,
+  logoUrl,
+  catalogUrl,
+  hideDashboard = false,
+}: SidebarProps) {
   const pathname = usePathname();
 
   const isActive = (path: string) =>
@@ -59,9 +66,7 @@ export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
       : pathname.startsWith(path);
 
   const initials = monogram ?? name.slice(0, 2).toUpperCase();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  const catalogHref = slug ? `${siteUrl}/${slug}` : null;
-  const catalogLabel = catalogHref?.replace(/^https?:\/\//, "") ?? null;
+  const catalogLabel = catalogUrl?.replace(/^https?:\/\//, "") ?? null;
 
   return (
     <aside className="hidden lg:flex w-[248px] flex-shrink-0 border-r border-sand/50 p-5 flex-col gap-6 h-full">
@@ -89,12 +94,14 @@ export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
       </div>
 
       <nav className="flex flex-col gap-1">
-        <NavItem
-          href="/painel"
-          icon={<LayoutDashboard size={19} />}
-          label="Dashboard"
-          active={isActive("/painel")}
-        />
+        {!hideDashboard && (
+          <NavItem
+            href="/painel"
+            icon={<LayoutDashboard size={19} />}
+            label="Dashboard"
+            active={isActive("/painel")}
+          />
+        )}
         <NavItem
           href="/painel/produtos"
           icon={<Tag size={19} />}
@@ -128,13 +135,13 @@ export function Sidebar({ name, monogram, logoUrl, slug }: SidebarProps) {
       </nav>
 
       <div className="mt-auto flex flex-col gap-3">
-        {catalogHref && (
+        {catalogUrl && (
           <div className="p-3.5 rounded-card bg-linen border border-sand/50">
             <p className="font-body text-[12px] text-graphite mb-1">
               Catálogo público em
             </p>
             <a
-              href={catalogHref}
+              href={catalogUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="font-body font-medium text-[12px] text-obsidian flex items-center gap-1 hover:underline min-w-0"
