@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { PeriodoFiltro } from "@/components/painel/PeriodoFiltro";
 
 const replace = vi.fn();
@@ -12,58 +12,50 @@ beforeEach(() => {
   replace.mockReset();
 });
 
-describe("PeriodoFiltro — presets (ORD-46)", () => {
-  it("mostra os quatro presets e o botão Personalizado", () => {
+/** Abre o dropdown clicando no botão-gatilho (mostra o valor atual, sempre único quando fechado). */
+function openDropdown(currentValueLabel: string) {
+  fireEvent.click(screen.getByRole("button", { name: currentValueLabel }));
+}
+
+describe("PeriodoFiltro — dropdown de presets (ORD-48)", () => {
+  it("mostra Este mês como valor selecionado por padrão, sem nenhum prop de período", () => {
     render(<PeriodoFiltro basePath="/painel" />);
+
+    expect(screen.getByRole("button", { name: "Este mês" })).toBeTruthy();
+  });
+
+  it("mostra o rótulo do preset correspondente a periodo como valor selecionado", () => {
+    render(<PeriodoFiltro basePath="/painel" periodo="hoje" />);
+
+    expect(screen.getByRole("button", { name: "Hoje" })).toBeTruthy();
+  });
+
+  it("ao abrir, lista os quatro presets e a ação de período personalizado", () => {
+    render(<PeriodoFiltro basePath="/painel" />);
+
+    openDropdown("Este mês");
 
     expect(screen.getByRole("button", { name: "Hoje" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "7 dias" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Este mês" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Todo período" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Personalizado" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Período personalizado" })).toBeTruthy();
+    // "Este mês" aparece duas vezes quando aberto: o gatilho (valor atual) e a opção da lista.
+    expect(screen.getAllByText("Este mês")).toHaveLength(2);
   });
 
-  it('marca "Este mês" como ativo por padrão, sem nenhum prop de período', () => {
+  it("selecionar um preset navega para o basePath com ?periodo=<preset>", () => {
     render(<PeriodoFiltro basePath="/painel" />);
 
-    expect(
-      screen.getByRole("button", { name: "Este mês" }).getAttribute("aria-pressed")
-    ).toBe("true");
-    expect(
-      screen.getByRole("button", { name: "Hoje" }).getAttribute("aria-pressed")
-    ).toBe("false");
-  });
-
-  it('marca o preset correspondente a "periodo" como ativo', () => {
-    render(<PeriodoFiltro basePath="/painel" periodo="hoje" />);
-
-    expect(
-      screen.getByRole("button", { name: "Hoje" }).getAttribute("aria-pressed")
-    ).toBe("true");
-    expect(
-      screen.getByRole("button", { name: "Este mês" }).getAttribute("aria-pressed")
-    ).toBe("false");
-  });
-
-  it("navega para o basePath com ?periodo=hoje ao clicar em Hoje", () => {
-    render(<PeriodoFiltro basePath="/painel" />);
-
+    openDropdown("Este mês");
     fireEvent.click(screen.getByRole("button", { name: "Hoje" }));
 
     expect(replace).toHaveBeenCalledWith("/painel?periodo=hoje", { scroll: false });
   });
 
-  it("navega sem parâmetro de período ao clicar em Este mês (é o default)", () => {
-    render(<PeriodoFiltro basePath="/painel" periodo="hoje" />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Este mês" }));
-
-    expect(replace).toHaveBeenCalledWith("/painel", { scroll: false });
-  });
-
-  it("navega com ?periodo=tudo ao clicar em Todo período", () => {
+  it("selecionar Todo período navega com ?periodo=tudo", () => {
     render(<PeriodoFiltro basePath="/painel/pedidos" />);
 
+    openDropdown("Este mês");
     fireEvent.click(screen.getByRole("button", { name: "Todo período" }));
 
     expect(replace).toHaveBeenCalledWith("/painel/pedidos?periodo=tudo", {
@@ -71,9 +63,21 @@ describe("PeriodoFiltro — presets (ORD-46)", () => {
     });
   });
 
-  it("preserva extraParams (ex: busca) ao trocar de preset", () => {
-    render(<PeriodoFiltro basePath="/painel/pedidos" extraParams={{ q: "ana" }} />);
+  it("selecionar Este mês (o default) navega sem parâmetro de período", () => {
+    render(<PeriodoFiltro basePath="/painel" periodo="hoje" />);
 
+    openDropdown("Hoje");
+    fireEvent.click(screen.getByRole("button", { name: "Este mês" }));
+
+    expect(replace).toHaveBeenCalledWith("/painel", { scroll: false });
+  });
+
+  it("preserva extraParams (ex: busca) ao selecionar um preset", () => {
+    render(
+      <PeriodoFiltro basePath="/painel/pedidos" extraParams={{ q: "ana" }} />
+    );
+
+    openDropdown("Este mês");
     fireEvent.click(screen.getByRole("button", { name: "Hoje" }));
 
     expect(replace).toHaveBeenCalledWith("/painel/pedidos?q=ana&periodo=hoje", {
@@ -82,57 +86,117 @@ describe("PeriodoFiltro — presets (ORD-46)", () => {
   });
 });
 
-describe("PeriodoFiltro — range customizado (ORD-46)", () => {
-  it("esconde os campos De/Até até clicar em Personalizado", () => {
-    render(<PeriodoFiltro basePath="/painel" />);
-
-    expect(screen.queryByLabelText("De")).toBeNull();
-    expect(screen.queryByLabelText("Até")).toBeNull();
-  });
-
-  it("revela os campos De/Até ao clicar em Personalizado", () => {
-    render(<PeriodoFiltro basePath="/painel" />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Personalizado" }));
-
-    expect(screen.getByLabelText("De")).toBeTruthy();
-    expect(screen.getByLabelText("Até")).toBeTruthy();
-  });
-
-  it("começa com os campos abertos e preenchidos quando de/ate vêm por prop", () => {
+describe("PeriodoFiltro — valor exibido para range customizado (ORD-48)", () => {
+  it("mostra o range abreviado como valor selecionado quando de/ate válidos vêm por prop, mesmo ano", () => {
     render(<PeriodoFiltro basePath="/painel" de="2026-07-01" ate="2026-07-10" />);
 
-    expect((screen.getByLabelText("De") as HTMLInputElement).value).toBe("2026-07-01");
-    expect((screen.getByLabelText("Até") as HTMLInputElement).value).toBe("2026-07-10");
     expect(
-      screen.getByRole("button", { name: "Personalizado" }).getAttribute("aria-pressed")
-    ).toBe("true");
+      screen.getByRole("button", { name: "1 jul – 10 jul 2026" })
+    ).toBeTruthy();
+  });
+
+  it("inclui o ano nos dois lados quando de/ate estão em anos diferentes", () => {
+    render(<PeriodoFiltro basePath="/painel" de="2025-12-20" ate="2026-01-05" />);
+
+    expect(
+      screen.getByRole("button", { name: "20 dez 2025 – 5 jan 2026" })
+    ).toBeTruthy();
+  });
+});
+
+describe("PeriodoFiltro — modal de período personalizado (ORD-48)", () => {
+  function openCustomModal(currentValueLabel: string): HTMLElement {
+    openDropdown(currentValueLabel);
+    fireEvent.click(screen.getByRole("button", { name: "Período personalizado" }));
+    return screen.getByRole("dialog", { name: "Período personalizado" });
+  }
+
+  it("abre com os campos De/Até vazios quando não há range customizado ativo", () => {
+    render(<PeriodoFiltro basePath="/painel" />);
+
+    const dialog = openCustomModal("Este mês");
+
+    expect((within(dialog).getByLabelText("De") as HTMLInputElement).value).toBe("");
+    expect((within(dialog).getByLabelText("Até") as HTMLInputElement).value).toBe("");
+  });
+
+  it("abre com os campos De/Até preenchidos quando já há um range customizado ativo", () => {
+    render(<PeriodoFiltro basePath="/painel" de="2026-07-01" ate="2026-07-10" />);
+
+    const dialog = openCustomModal("1 jul – 10 jul 2026");
+
+    expect((within(dialog).getByLabelText("De") as HTMLInputElement).value).toBe(
+      "2026-07-01"
+    );
+    expect((within(dialog).getByLabelText("Até") as HTMLInputElement).value).toBe(
+      "2026-07-10"
+    );
   });
 
   it("desabilita Aplicar até as duas datas estarem preenchidas", () => {
     render(<PeriodoFiltro basePath="/painel" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Personalizado" }));
-    const aplicar = screen.getByRole("button", { name: "Aplicar" });
+    const dialog = openCustomModal("Este mês");
+    const aplicar = within(dialog).getByRole("button", { name: "Aplicar" });
     expect(aplicar).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText("De"), { target: { value: "2026-07-01" } });
+    fireEvent.change(within(dialog).getByLabelText("De"), {
+      target: { value: "2026-07-01" },
+    });
     expect(aplicar).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText("Até"), { target: { value: "2026-07-10" } });
+    fireEvent.change(within(dialog).getByLabelText("Até"), {
+      target: { value: "2026-07-10" },
+    });
     expect(aplicar).not.toBeDisabled();
   });
 
-  it("navega com de/ate e sem periodo ao clicar em Aplicar", () => {
+  it("aplicar navega com de/ate e fecha a modal", () => {
     render(<PeriodoFiltro basePath="/painel/pedidos" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Personalizado" }));
-    fireEvent.change(screen.getByLabelText("De"), { target: { value: "2026-07-01" } });
-    fireEvent.change(screen.getByLabelText("Até"), { target: { value: "2026-07-10" } });
-    fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
-
-    expect(replace).toHaveBeenCalledWith("/painel/pedidos?de=2026-07-01&ate=2026-07-10", {
-      scroll: false,
+    const dialog = openCustomModal("Este mês");
+    fireEvent.change(within(dialog).getByLabelText("De"), {
+      target: { value: "2026-07-01" },
     });
+    fireEvent.change(within(dialog).getByLabelText("Até"), {
+      target: { value: "2026-07-10" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Aplicar" }));
+
+    expect(replace).toHaveBeenCalledWith(
+      "/painel/pedidos?de=2026-07-01&ate=2026-07-10",
+      { scroll: false }
+    );
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("preserva extraParams ao aplicar o range customizado", () => {
+    render(
+      <PeriodoFiltro basePath="/painel/pedidos" extraParams={{ q: "ana" }} />
+    );
+
+    const dialog = openCustomModal("Este mês");
+    fireEvent.change(within(dialog).getByLabelText("De"), {
+      target: { value: "2026-07-01" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Até"), {
+      target: { value: "2026-07-10" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Aplicar" }));
+
+    expect(replace).toHaveBeenCalledWith(
+      "/painel/pedidos?q=ana&de=2026-07-01&ate=2026-07-10",
+      { scroll: false }
+    );
+  });
+
+  it("fechar sem aplicar não navega e fecha a modal", () => {
+    render(<PeriodoFiltro basePath="/painel" />);
+
+    const dialog = openCustomModal("Este mês");
+    fireEvent.click(within(dialog).getByLabelText("Fechar"));
+
+    expect(replace).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

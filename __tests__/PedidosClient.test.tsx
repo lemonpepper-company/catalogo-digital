@@ -457,6 +457,7 @@ describe("PedidosClient — filtro de período (ORD-46)", () => {
       <PedidosClient orders={[makeOrder()]} total={1} page={1} totalPages={1} query="ana" />
     );
 
+    fireEvent.click(screen.getByRole("button", { name: "Este mês" }));
     fireEvent.click(screen.getByRole("button", { name: "Hoje" }));
 
     expect(replace).toHaveBeenCalledWith("/painel/pedidos?q=ana&periodo=hoje", {
