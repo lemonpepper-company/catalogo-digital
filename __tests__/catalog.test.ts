@@ -325,11 +325,11 @@ describe("resolveCatalog — gating de tema/densidade/destaques por plano", () =
     expect(result.store.gridDensity).toBe("compacto");
   });
 
-  it("loja starter: cor secundária é ignorada (só Pro)", () => {
+  it("loja free: aplica cor secundária salva (disponível em todos os planos)", () => {
     const store = baseStoreRow({ secondary_color: "#112233" });
-    const result = resolveCatalog(store, [], [], "starter");
+    const result = resolveCatalog(store, [], [], "free");
     if (result.status !== "ok" && result.status !== "hidden") throw new Error("esperado ok/hidden");
-    expect(result.store.theme.secondaryColor).toBeNull();
+    expect(result.store.theme.secondaryColor).toBe("#112233");
   });
 
   it("loja pro: aplica cor secundária salva", () => {

@@ -24,7 +24,6 @@ const FREE_LIMITS_STUB = {
   hasOrderHistory: false,
   maxFeaturedProducts: 0,
   themeOptions: false,
-  advancedTheme: false,
   gridDensity: false,
 };
 const getPlanLimits = vi.fn(() => FREE_LIMITS_STUB);

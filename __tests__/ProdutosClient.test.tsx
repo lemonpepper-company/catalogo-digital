@@ -62,7 +62,6 @@ const baseLimits: PlanLimits = {
   maxPhotos: 5,
   maxFeaturedProducts: Infinity,
   themeOptions: true,
-  advancedTheme: true,
   gridDensity: true,
   csvImport: true,
   hasOrderHistory: true,

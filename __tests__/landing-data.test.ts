@@ -76,3 +76,16 @@ describe("bullets de plano — Dashboard exclusiva de planos pagos (ORD-48)", ()
     expect(freeFeatures.some((f) => /dashboard/i.test(f))).toBe(false);
   });
 });
+
+describe("bullets de plano — cor secundária deixou de ser diferencial", () => {
+  it("nenhum plano anuncia cor secundária", () => {
+    for (const features of [freeFeatures, starterFeatures, proFeatures]) {
+      expect(features.some((f) => /secund(á|a)ria/i.test(f))).toBe(false);
+    }
+  });
+
+  it("Starter anuncia os limites novos", () => {
+    expect(starterFeatures).toContain("Até 50 produtos");
+    expect(starterFeatures).toContain("7 categorias");
+  });
+});

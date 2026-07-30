@@ -43,9 +43,8 @@ describe("opções de tema", () => {
 });
 
 describe("resolveTheme", () => {
-  const noFlags = { themeOptions: false, advancedTheme: false };
-  const themeFlag = { themeOptions: true, advancedTheme: false };
-  const allFlags = { themeOptions: true, advancedTheme: true };
+  const noFlags = { themeOptions: false };
+  const themeFlag = { themeOptions: true };
 
   it("sem themeOptions, ignora as 3 escolhas e usa sempre o padrão de cada uma", () => {
     const resolved = resolveTheme("editorial", "areia", "arredondado", null, noFlags);
@@ -68,13 +67,17 @@ describe("resolveTheme", () => {
     expect(resolved.cardRadius).toBe("4px");
   });
 
-  it("sem advancedTheme, ignora a cor secundária mesmo se estiver salva", () => {
-    const resolved = resolveTheme("padrao", "padrao", "padrao", "#123456", themeFlag);
-    expect(resolved.secondaryColor).toBeNull();
+  it("preserva secondaryColor mesmo sem themeOptions (todos os planos)", () => {
+    const theme = resolveTheme("editorial", "areia", "reto", "#8B0000", {
+      themeOptions: false,
+    });
+    expect(theme.secondaryColor).toBe("#8B0000");
   });
 
-  it("com advancedTheme, aplica a cor secundária salva", () => {
-    const resolved = resolveTheme("padrao", "padrao", "padrao", "#123456", allFlags);
-    expect(resolved.secondaryColor).toBe("#123456");
+  it("secondaryColor nula continua nula", () => {
+    const theme = resolveTheme("padrao", "padrao", "padrao", null, {
+      themeOptions: true,
+    });
+    expect(theme.secondaryColor).toBeNull();
   });
 });

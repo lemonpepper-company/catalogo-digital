@@ -133,7 +133,6 @@ export const proFeatures = [
   "Produtos em destaque ilimitados",
   "Histórico de pedidos",
   "Dashboard com métricas de vendas",
-  "Cor secundária exclusiva",
   "Domínio próprio",
   "Importação de produtos por planilha",
 ];

@@ -7,7 +7,6 @@ export interface PlanLimits {
   hasOrderHistory: boolean;
   maxFeaturedProducts: number;
   themeOptions: boolean;
-  advancedTheme: boolean;
   gridDensity: boolean;
   csvImport: boolean;
   customDomain: boolean;
@@ -20,7 +19,6 @@ const FREE_LIMITS: PlanLimits = {
   hasOrderHistory: false,
   maxFeaturedProducts: 0,
   themeOptions: false,
-  advancedTheme: false,
   gridDensity: false,
   csvImport: false,
   customDomain: false,
@@ -33,7 +31,6 @@ const STARTER_LIMITS: PlanLimits = {
   hasOrderHistory: true,
   maxFeaturedProducts: 3,
   themeOptions: true,
-  advancedTheme: false,
   gridDensity: true,
   csvImport: false,
   customDomain: false,
@@ -46,7 +43,6 @@ const PRO_LIMITS: PlanLimits = {
   hasOrderHistory: true,
   maxFeaturedProducts: Infinity,
   themeOptions: true,
-  advancedTheme: true,
   gridDensity: true,
   csvImport: true,
   customDomain: true,
