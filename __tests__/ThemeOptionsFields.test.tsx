@@ -24,19 +24,9 @@ describe("ThemeOptionsFields — bloqueio por plano", () => {
     tooltips.forEach((t) => expect(t).toHaveTextContent("Disponível no Starter"));
   });
 
-  it("mostra o aviso de upsell quando bloqueado", () => {
-    setup(false);
-    expect(
-      screen.getByRole("link", { name: "Disponível no Starter — fale conosco" })
-    ).toBeTruthy();
-  });
-
-  it("não mostra tooltip nem aviso de upsell quando desbloqueado", () => {
+  it("não mostra tooltip quando desbloqueado", () => {
     setup(true);
     expect(screen.queryByRole("tooltip")).toBeNull();
-    expect(
-      screen.queryByRole("link", { name: "Disponível no Starter — fale conosco" })
-    ).toBeNull();
   });
 
   it("mantém a opção padrão do pareamento de fonte sempre clicável, mesmo bloqueado", () => {

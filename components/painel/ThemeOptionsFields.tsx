@@ -5,7 +5,6 @@ import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FONT_PAIRINGS, BACKGROUND_PALETTES, CORNER_STYLES } from "@/lib/theme-options";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { UpsellHint } from "@/components/painel/UpsellHint";
 import { PLAN_GATE_LABEL } from "@/lib/contact";
 
 interface Option {
@@ -124,12 +123,6 @@ export function ThemeOptionsFields({
         onChange={onCornerStyleChange}
         unlocked={unlocked}
       />
-      {!unlocked && (
-        <UpsellHint
-          label={`${PLAN_GATE_LABEL.starter} — fale conosco`}
-          whatsappMessage="Olá! Quero saber mais sobre desbloquear as opções de tema."
-        />
-      )}
     </>
   );
 }

@@ -143,6 +143,13 @@ export function PersonalizacaoClient({
               })}
             </div>
           </div>
+
+          {!f.limits.themeOptions && (
+            <UpsellHint
+              label={`${PLAN_GATE_LABEL.starter} — fale conosco`}
+              whatsappMessage="Olá! Quero saber mais sobre desbloquear as opções de tema."
+            />
+          )}
         </Card>
 
         <Card>
