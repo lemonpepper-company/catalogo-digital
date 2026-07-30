@@ -1,0 +1,103 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import type { StoreSettings } from "@/lib/types";
+
+const getCurrentStore = vi.fn();
+
+vi.mock("@/lib/server/store", () => ({
+  getCurrentStore: () => getCurrentStore(),
+}));
+vi.mock("next/navigation", () => ({
+  redirect: () => {
+    throw new Error("NEXT_REDIRECT");
+  },
+  usePathname: () => "/painel",
+}));
+
+const STORE_ID = "11111111-1111-4111-8111-111111111111";
+
+function makeStore(overrides: Partial<StoreSettings> = {}): StoreSettings {
+  return {
+    id: STORE_ID,
+    name: "Ateliê Mira",
+    slug: "ateliemira",
+    plan: "free",
+    trialEndsAt: null,
+    whatsapp: "35999999999",
+    accentColor: "#C9A96E",
+    logoUrl: null,
+    coverUrl: null,
+    description: null,
+    monogram: "AM",
+    analyticsId: null,
+    pixelId: null,
+    messageTemplate: null,
+    instagram: null,
+    paymentMethods: [],
+    deliveryMethods: [],
+    fontPairing: "padrao",
+    backgroundPalette: "padrao",
+    cornerStyle: "padrao",
+    secondaryColor: null,
+    gridDensity: "padrao",
+    customDomain: null,
+    customDomainVerified: false,
+    ...overrides,
+  };
+}
+
+async function renderLayout() {
+  const { default: PainelLayout } = await import("@/app/painel/layout");
+  return render(await PainelLayout({ children: <div>conteúdo da página</div> }));
+}
+
+beforeEach(() => {
+  getCurrentStore.mockReset();
+  vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://vtrine.test");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe("PainelLayout — Dashboard exclusiva de planos pagos", () => {
+  it("esconde o item Dashboard da navegação no plano Free", async () => {
+    getCurrentStore.mockResolvedValue(makeStore({ plan: "free" }));
+
+    await renderLayout();
+
+    expect(screen.queryByRole("link", { name: "Dashboard" })).toBeNull();
+  });
+
+  it("mostra o item Dashboard no plano Pro", async () => {
+    getCurrentStore.mockResolvedValue(makeStore({ plan: "pro" }));
+
+    await renderLayout();
+
+    expect(screen.getAllByRole("link", { name: "Dashboard" }).length).toBeGreaterThan(0);
+  });
+});
+
+describe("PainelLayout — link do catálogo com domínio próprio", () => {
+  it("usa o domínio próprio verificado no Pro", async () => {
+    getCurrentStore.mockResolvedValue(
+      makeStore({
+        plan: "pro",
+        customDomain: "minhaloja.com.br",
+        customDomainVerified: true,
+      })
+    );
+
+    await renderLayout();
+
+    expect(screen.getByText("minhaloja.com.br")).toBeTruthy();
+  });
+
+  it("usa o link de slug quando não há domínio verificado", async () => {
+    getCurrentStore.mockResolvedValue(makeStore({ plan: "pro" }));
+
+    await renderLayout();
+
+    expect(screen.getByText("vtrine.test/ateliemira")).toBeTruthy();
+  });
+});
