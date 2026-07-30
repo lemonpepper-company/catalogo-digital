@@ -96,20 +96,6 @@ beforeEach(() => {
   });
 });
 
-describe("/painel — gate de plano dos cards de ROI (ORD-29)", () => {
-  it("no plano Free não busca métricas nem resolve o período, e mostra o aviso de upgrade", async () => {
-    getCurrentStore.mockResolvedValue(makeStore("free"));
-
-    const { container } = await renderPage();
-
-    expect(getOrderMetrics).not.toHaveBeenCalled();
-    expect(resolvePeriodRange).not.toHaveBeenCalled();
-    expect(screen.getByText("Disponível a partir do plano Starter")).toBeTruthy();
-    expect(screen.queryByText("Pedidos")).toBeNull();
-    expect(container.textContent).not.toContain("R$");
-  });
-});
-
 describe("/painel — cards de ROI nos planos pagos (ORD-30)", () => {
   it("no plano Starter busca as métricas da loja com o range resolvido e mostra os três cards", async () => {
     getCurrentStore.mockResolvedValue(makeStore("starter"));
@@ -121,14 +107,37 @@ describe("/painel — cards de ROI nos planos pagos (ORD-30)", () => {
     expect(screen.getByText("Vendas confirmadas")).toBeTruthy();
     expect(screen.getByText("Aguardando confirmação")).toBeTruthy();
   });
+});
 
-  it("rebaixa Starter com trial_ends_at vencido para o estado bloqueado", async () => {
-    getCurrentStore.mockResolvedValue(makeStore("starter", "2020-01-01T00:00:00.000Z"));
+describe("/painel — Dashboard exclusiva de planos pagos", () => {
+  it("no plano Free mostra o bloqueio de recurso pago sem buscar produtos nem métricas", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("free"));
 
     await renderPage();
 
+    expect(from).not.toHaveBeenCalled();
     expect(getOrderMetrics).not.toHaveBeenCalled();
+    expect(resolvePeriodRange).not.toHaveBeenCalled();
     expect(screen.getByText("Disponível a partir do plano Starter")).toBeTruthy();
+    expect(screen.getByText("Dashboard")).toBeTruthy();
+  });
+
+  it("rebaixa Starter/Pro com trial_ends_at vencido para o bloqueio do Free", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("pro", "2020-01-01T00:00:00.000Z"));
+
+    await renderPage();
+
+    expect(from).not.toHaveBeenCalled();
+    expect(screen.getByText("Disponível a partir do plano Starter")).toBeTruthy();
+  });
+
+  it("não bloqueia Starter no plano ativo", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("starter"));
+
+    await renderPage();
+
+    expect(from).toHaveBeenCalled();
+    expect(screen.queryByText("Disponível a partir do plano Starter")).toBeNull();
   });
 });
 

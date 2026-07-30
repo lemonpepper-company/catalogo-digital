@@ -122,6 +122,7 @@ export const starterFeatures = [
   "Temas, fundos e formatos personalizáveis",
   "Até 3 produtos em destaque",
   "Histórico de pedidos",
+  "Dashboard com métricas de vendas",
 ];
 
 export const proFeatures = [
@@ -131,6 +132,7 @@ export const proFeatures = [
   "Temas, fundos e formatos personalizáveis",
   "Produtos em destaque ilimitados",
   "Histórico de pedidos",
+  "Dashboard com métricas de vendas",
   "Cor secundária exclusiva",
   "Domínio próprio",
   "Importação de produtos por planilha",

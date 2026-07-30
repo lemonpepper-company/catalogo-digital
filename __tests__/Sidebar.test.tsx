@@ -20,7 +20,7 @@ describe("Sidebar", () => {
         name="Ateliê Mira"
         monogram="AM"
         logoUrl="https://cdn.test/logo.jpg"
-        slug="ateliemira"
+        catalogUrl="https://vtrine.test/ateliemira"
       />
     );
     const img = screen.getByRole("img", { name: "Ateliê Mira" });
@@ -30,7 +30,12 @@ describe("Sidebar", () => {
 
   it("falls back to the monogram when there is no logo", () => {
     render(
-      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} slug="ateliemira" />
+      <Sidebar
+        name="Ateliê Mira"
+        monogram="AM"
+        logoUrl={null}
+        catalogUrl="https://vtrine.test/ateliemira"
+      />
     );
     expect(screen.getByText("AM")).toBeTruthy();
     expect(screen.queryByRole("img")).toBeNull();
@@ -38,7 +43,12 @@ describe("Sidebar", () => {
 
   it("shows the real store name", () => {
     render(
-      <Sidebar name="Loja Nova" monogram={null} logoUrl={null} slug="loja-nova" />
+      <Sidebar
+        name="Loja Nova"
+        monogram={null}
+        logoUrl={null}
+        catalogUrl="https://vtrine.test/loja-nova"
+      />
     );
     expect(screen.getByText("Loja Nova")).toBeTruthy();
     // monogram derived from name when null
@@ -47,7 +57,12 @@ describe("Sidebar", () => {
 
   it("mostra o item de navegação Personalização", () => {
     render(
-      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} slug="ateliemira" />
+      <Sidebar
+        name="Ateliê Mira"
+        monogram="AM"
+        logoUrl={null}
+        catalogUrl="https://vtrine.test/ateliemira"
+      />
     );
     expect(screen.getByText("Personalização")).toBeTruthy();
   });
@@ -56,7 +71,12 @@ describe("Sidebar", () => {
 describe("Sidebar — item Pedidos (ORD-16)", () => {
   it("mostra o link Pedidos logo depois de Produtos", () => {
     render(
-      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} slug="ateliemira" />
+      <Sidebar
+        name="Ateliê Mira"
+        monogram="AM"
+        logoUrl={null}
+        catalogUrl="https://vtrine.test/ateliemira"
+      />
     );
 
     const pedidos = screen.getByRole("link", { name: "Pedidos" });
@@ -77,7 +97,12 @@ describe("Sidebar — item Pedidos (ORD-16)", () => {
   it("marca Pedidos como ativo em /painel/pedidos", () => {
     pathname = "/painel/pedidos";
     render(
-      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} slug="ateliemira" />
+      <Sidebar
+        name="Ateliê Mira"
+        monogram="AM"
+        logoUrl={null}
+        catalogUrl="https://vtrine.test/ateliemira"
+      />
     );
 
     expect(
@@ -90,7 +115,12 @@ describe("Sidebar — item Pedidos (ORD-16)", () => {
 
   it("mantém Pedidos inativo no dashboard", () => {
     render(
-      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} slug="ateliemira" />
+      <Sidebar
+        name="Ateliê Mira"
+        monogram="AM"
+        logoUrl={null}
+        catalogUrl="https://vtrine.test/ateliemira"
+      />
     );
 
     expect(
@@ -105,7 +135,12 @@ describe("Sidebar — item Pedidos (ORD-16)", () => {
 describe("Sidebar — link de suporte", () => {
   it("mostra um link de Suporte apontando para o WhatsApp da Vtrine", () => {
     render(
-      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} slug="ateliemira" />
+      <Sidebar
+        name="Ateliê Mira"
+        monogram="AM"
+        logoUrl={null}
+        catalogUrl="https://vtrine.test/ateliemira"
+      />
     );
     const link = screen.getByRole("link", { name: /suporte/i });
     expect(link.getAttribute("href")).toBe(
@@ -113,5 +148,29 @@ describe("Sidebar — link de suporte", () => {
         "Olá! Preciso de suporte com minha loja na Vtrine Digital."
       )}`
     );
+  });
+});
+
+describe("Sidebar — link do catálogo com domínio próprio", () => {
+  it("mostra o domínio próprio quando o link já vem resolvido para ele", () => {
+    render(
+      <Sidebar
+        name="Ateliê Mira"
+        monogram="AM"
+        logoUrl={null}
+        catalogUrl="https://minhaloja.com.br"
+      />
+    );
+
+    const link = screen.getByRole("link", { name: /minhaloja\.com\.br/ });
+    expect(link.getAttribute("href")).toBe("https://minhaloja.com.br");
+  });
+
+  it("não mostra o card de catálogo quando catalogUrl é null", () => {
+    render(
+      <Sidebar name="Ateliê Mira" monogram="AM" logoUrl={null} catalogUrl={null} />
+    );
+
+    expect(screen.queryByText("Catálogo público em")).toBeNull();
   });
 });

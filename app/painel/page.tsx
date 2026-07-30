@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore, mapProduct } from "@/lib/server/store";
-import { getPlanLimits } from "@/lib/plan-limits";
+import { getPlanLimits, getEffectivePlan } from "@/lib/plan-limits";
 import { getOrderMetrics } from "@/lib/server/pedidos";
 import { resolvePeriodRange } from "@/lib/period-filter";
+import { RecursoBloqueado } from "@/components/painel/RecursoBloqueado";
 import { DashboardClient } from "./DashboardClient";
 
 export default async function DashboardPage({
@@ -13,6 +14,18 @@ export default async function DashboardPage({
 }) {
   const store = await getCurrentStore();
   if (!store) redirect("/login");
+
+  // Dashboard é exclusiva de planos pagos: no Free, nenhum dado real
+  // (produtos, pedidos, faturamento) chega ao HTML — mesmo padrão de bloqueio
+  // já usado em /painel/pedidos.
+  if (getEffectivePlan(store.plan, store.trialEndsAt) === "free") {
+    return (
+      <RecursoBloqueado
+        titulo="Dashboard"
+        descricao="Acompanhe um resumo de produtos, vendas e pedidos da sua loja. Disponível a partir do plano Starter."
+      />
+    );
+  }
 
   const params = await searchParams;
 
@@ -33,13 +46,11 @@ export default async function DashboardPage({
     .order("created_at", { ascending: false });
 
   const products = (data ?? []).map(mapProduct);
-  const catalogUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/${store.slug}`;
 
   return (
     <DashboardClient
       products={products}
       storeName={store.name}
-      catalogUrl={catalogUrl}
       metrics={metrics}
       periodo={params.periodo}
       de={params.de}

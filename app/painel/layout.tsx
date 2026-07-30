@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCurrentStore } from '@/lib/server/store'
 import { getEffectivePlan } from '@/lib/plan-limits'
+import { getCatalogUrl } from '@/lib/catalog-url'
 import { VTRINE_WHATSAPP_NUMBER } from '@/lib/contact'
 import { Sidebar } from '@/components/painel/Sidebar'
 import { MobileTabBar } from '@/components/painel/MobileTabBar'
@@ -21,14 +22,15 @@ export default async function PainelLayout({
     redirect('/login')
   }
 
-  const showUpgradeBanner = getEffectivePlan(store.plan, store.trialEndsAt) === 'free'
+  const isFree = getEffectivePlan(store.plan, store.trialEndsAt) === 'free'
+  const catalogUrl = getCatalogUrl(store)
   const upgradeWhatsAppHref = `https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
     'Olá! Quero saber mais sobre os planos pagos da Vtrine.'
   )}`
 
   return (
     <div className="h-dvh flex flex-col bg-ivory overflow-hidden">
-      {showUpgradeBanner && (
+      {isFree && (
         <div className="flex-shrink-0 flex flex-wrap lg:flex-nowrap items-center justify-center gap-x-2 gap-y-1 px-4 py-2 lg:h-10 lg:py-0 bg-linen border-b border-sand/50 font-body text-[13.5px] text-gold text-center">
           <span className="font-semibold tracking-[0.02em]">Plano Free</span>
           <span className="opacity-55">·</span>
@@ -49,7 +51,7 @@ export default async function PainelLayout({
           name={store.name}
           monogram={store.monogram}
           logoUrl={store.logoUrl}
-          slug={store.slug}
+          catalogUrl={catalogUrl}
         />
         <main className="flex-1 overflow-y-auto">
           <div className="px-4 py-6 pb-24 lg:px-12 lg:py-10 lg:pb-10">{children}</div>
