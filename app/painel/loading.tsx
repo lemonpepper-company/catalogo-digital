@@ -11,19 +11,6 @@ function StatCardSkeleton() {
   );
 }
 
-function ProductRowSkeleton() {
-  return (
-    <div className="flex items-center gap-4 px-5 py-3.5 border-t border-sand/50 first:border-t-0">
-      <Sk w="w-12" h="h-12" rounded="rounded-[8px]" />
-      <div className="flex-1 flex flex-col gap-1.5">
-        <Sk w="w-40" h="h-4" />
-        <Sk w="w-20" h="h-3" />
-      </div>
-      <Sk w="w-12" h="h-5" rounded="rounded-pill" />
-    </div>
-  );
-}
-
 export default function DashboardLoading() {
   return (
     <div className="flex flex-col gap-6 w-full lg:max-w-content">
@@ -51,18 +38,6 @@ export default function DashboardLoading() {
             <Sk w="w-24" h="h-11" rounded="rounded-btn" />
             <Sk w="w-32" h="h-11" rounded="rounded-btn" />
           </div>
-        </div>
-      </div>
-
-      <div>
-        <div className="flex items-center justify-between mb-3.5">
-          <Sk w="w-36" h="h-5" />
-          <Sk w="w-16" h="h-4" />
-        </div>
-        <div className="bg-white border border-sand/50 rounded-card overflow-hidden">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <ProductRowSkeleton key={i} />
-          ))}
         </div>
       </div>
     </div>

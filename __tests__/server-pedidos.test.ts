@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { monthStartInSaoPaulo } from "@/lib/order-metrics";
+import type { PeriodRange } from "@/lib/period-filter";
 
 const from = vi.fn();
 
@@ -17,7 +17,7 @@ interface FakeChain {
   [key: string]: unknown;
 }
 
-const CHAIN_METHODS = ["select", "eq", "gte", "or", "order", "range"] as const;
+const CHAIN_METHODS = ["select", "eq", "gte", "lte", "or", "order", "range"] as const;
 
 /** Mesmo padrão de fake chain de `__tests__/registrar-pedido.test.ts:36-49`. */
 function makeChain(result: Result): FakeChain {
@@ -36,7 +36,7 @@ function makeChain(result: Result): FakeChain {
 
 /**
  * `results` são consumidos em ordem a cada `from("orders")`. Em `getStoreOrders`
- * a ordem é [contagem, lista]; em `getOrderMetrics` é [pedidos do mês, pendentes].
+ * a ordem é [contagem, lista]; em `getOrderMetrics` é [pedidos do período, pendentes].
  */
 function setupSupabase(results: Result[]): FakeChain[] {
   const made: FakeChain[] = [];
@@ -306,6 +306,55 @@ describe("getStoreOrders — busca por código ou nome (ORD-35.10)", () => {
   });
 });
 
+describe("getStoreOrders — filtro de período (ORD-46)", () => {
+  const RANGE: PeriodRange = {
+    from: new Date("2026-07-01T03:00:00.000Z"),
+    to: new Date("2026-07-15T12:00:00.000Z"),
+  };
+
+  it("aplica gte/lte de created_at na contagem e na listagem quando o range é informado", async () => {
+    const made = setupSupabase([{ count: 1 }, { data: [orderRow()] }]);
+    const { getStoreOrders } = await loadModule();
+
+    await getStoreOrders(STORE_ID, 1, "", RANGE);
+
+    expect(made[0].calls.gte).toEqual([["created_at", RANGE.from.toISOString()]]);
+    expect(made[0].calls.lte).toEqual([["created_at", RANGE.to.toISOString()]]);
+    expect(made[1].calls.gte).toEqual([["created_at", RANGE.from.toISOString()]]);
+    expect(made[1].calls.lte).toEqual([["created_at", RANGE.to.toISOString()]]);
+  });
+
+  it("combina o filtro de período com a busca por código/nome", async () => {
+    const made = setupSupabase([{ count: 1 }, { data: [orderRow()] }]);
+    const { getStoreOrders } = await loadModule();
+
+    await getStoreOrders(STORE_ID, 1, "ana", RANGE);
+
+    expect(made[1].calls.or).toEqual([["code.ilike.%ana%,customer_name.ilike.%ana%"]]);
+    expect(made[1].calls.gte).toEqual([["created_at", RANGE.from.toISOString()]]);
+  });
+
+  it("sem range (default) não aplica gte/lte, mantendo o comportamento atual", async () => {
+    const made = setupSupabase([{ count: 1 }, { data: [orderRow()] }]);
+    const { getStoreOrders } = await loadModule();
+
+    await getStoreOrders(STORE_ID, 1);
+
+    expect(made[1].calls.gte).toBeUndefined();
+    expect(made[1].calls.lte).toBeUndefined();
+  });
+
+  it("com range explicitamente null não aplica gte/lte", async () => {
+    const made = setupSupabase([{ count: 1 }, { data: [orderRow()] }]);
+    const { getStoreOrders } = await loadModule();
+
+    await getStoreOrders(STORE_ID, 1, "", null);
+
+    expect(made[1].calls.gte).toBeUndefined();
+    expect(made[1].calls.lte).toBeUndefined();
+  });
+});
+
 describe("getStoreOrders — erro do banco nunca vira lista vazia", () => {
   it("lança e loga quando a contagem falha", async () => {
     setupSupabase([{ count: null, error: { message: "permission denied" } }]);
@@ -324,31 +373,34 @@ describe("getStoreOrders — erro do banco nunca vira lista vazia", () => {
   });
 });
 
-describe("getOrderMetrics — mês corrente no fuso do lojista (ORD-17, ORD-18)", () => {
-  const NOW = new Date("2026-07-15T12:00:00.000Z");
+describe("getOrderMetrics — filtra por período quando informado (ORD-17, ORD-18, ORD-46)", () => {
+  const RANGE: PeriodRange = {
+    from: new Date("2026-07-01T03:00:00.000Z"),
+    to: new Date("2026-07-15T12:00:00.000Z"),
+  };
 
-  it("filtra os pedidos do mês pelo corte de São Paulo", async () => {
+  it("aplica gte/lte de created_at nas duas queries (período e pendentes)", async () => {
     const made = setupSupabase([{ data: [] }, { count: 0 }]);
     const { getOrderMetrics } = await loadModule();
 
-    await getOrderMetrics(STORE_ID, NOW);
+    await getOrderMetrics(STORE_ID, RANGE);
 
-    expect(made[0].calls.gte).toEqual([
-      ["created_at", monthStartInSaoPaulo(NOW).toISOString()],
-    ]);
-    expect(made[0].calls.gte[0][1]).toBe("2026-07-01T03:00:00.000Z");
+    expect(made[0].calls.gte).toEqual([["created_at", RANGE.from.toISOString()]]);
+    expect(made[0].calls.lte).toEqual([["created_at", RANGE.to.toISOString()]]);
+    expect(made[1].calls.gte).toEqual([["created_at", RANGE.from.toISOString()]]);
+    expect(made[1].calls.lte).toEqual([["created_at", RANGE.to.toISOString()]]);
   });
 
-  it("filtra os pedidos do mês por store_id", async () => {
+  it("filtra os pedidos do período por store_id", async () => {
     const made = setupSupabase([{ data: [] }, { count: 0 }]);
     const { getOrderMetrics } = await loadModule();
 
-    await getOrderMetrics(STORE_ID, NOW);
+    await getOrderMetrics(STORE_ID, RANGE);
 
     expect(made[0].calls.eq).toEqual([["store_id", STORE_ID]]);
   });
 
-  it("conta os não cancelados e soma só os confirmados do mês", async () => {
+  it("conta os não cancelados e soma só os confirmados do período", async () => {
     setupSupabase([
       {
         data: [
@@ -362,7 +414,7 @@ describe("getOrderMetrics — mês corrente no fuso do lojista (ORD-17, ORD-18)"
     ]);
     const { getOrderMetrics } = await loadModule();
 
-    const metrics = await getOrderMetrics(STORE_ID, NOW);
+    const metrics = await getOrderMetrics(STORE_ID, RANGE);
 
     expect(metrics).toEqual({
       ordersThisMonth: 3,
@@ -370,16 +422,38 @@ describe("getOrderMetrics — mês corrente no fuso do lojista (ORD-17, ORD-18)"
       pendingCount: 4,
     });
   });
+
+  it("também filtra a contagem de pendentes pelo período, além do status", async () => {
+    const made = setupSupabase([{ data: [] }, { count: 4 }]);
+    const { getOrderMetrics } = await loadModule();
+
+    await getOrderMetrics(STORE_ID, RANGE);
+
+    expect(made[1].calls.eq).toEqual([
+      ["store_id", STORE_ID],
+      ["status", "pendente"],
+    ]);
+  });
 });
 
-describe("getOrderMetrics — pendentes de todo o histórico (ORD-19)", () => {
-  const NOW = new Date("2026-07-15T12:00:00.000Z");
-
-  it("conta apenas os pedidos com status pendente, da própria loja", async () => {
+describe("getOrderMetrics — sem filtro de data quando o range é null (todo o período)", () => {
+  it("não aplica gte/lte em nenhuma das duas queries", async () => {
     const made = setupSupabase([{ data: [] }, { count: 7 }]);
     const { getOrderMetrics } = await loadModule();
 
-    const metrics = await getOrderMetrics(STORE_ID, NOW);
+    await getOrderMetrics(STORE_ID, null);
+
+    expect(made[0].calls.gte).toBeUndefined();
+    expect(made[0].calls.lte).toBeUndefined();
+    expect(made[1].calls.gte).toBeUndefined();
+    expect(made[1].calls.lte).toBeUndefined();
+  });
+
+  it("conta pendentes de todo o histórico, filtrando só por status e store_id", async () => {
+    const made = setupSupabase([{ data: [] }, { count: 7 }]);
+    const { getOrderMetrics } = await loadModule();
+
+    const metrics = await getOrderMetrics(STORE_ID, null);
 
     expect(made[1].calls.eq).toEqual([
       ["store_id", STORE_ID],
@@ -387,25 +461,19 @@ describe("getOrderMetrics — pendentes de todo o histórico (ORD-19)", () => {
     ]);
     expect(metrics.pendingCount).toBe(7);
   });
-
-  it("não aplica filtro de período na contagem de pendentes", async () => {
-    const made = setupSupabase([{ data: [] }, { count: 7 }]);
-    const { getOrderMetrics } = await loadModule();
-
-    await getOrderMetrics(STORE_ID, NOW);
-
-    expect(made[1].calls.gte).toBeUndefined();
-  });
 });
 
 describe("getOrderMetrics — sem pedidos e caminhos de erro (ORD-20)", () => {
-  const NOW = new Date("2026-07-15T12:00:00.000Z");
+  const RANGE: PeriodRange = {
+    from: new Date("2026-07-01T03:00:00.000Z"),
+    to: new Date("2026-07-15T12:00:00.000Z"),
+  };
 
   it("devolve zeros quando não há pedido nenhum", async () => {
     setupSupabase([{ data: null }, { count: null }]);
     const { getOrderMetrics } = await loadModule();
 
-    const metrics = await getOrderMetrics(STORE_ID, NOW);
+    const metrics = await getOrderMetrics(STORE_ID, RANGE);
 
     expect(metrics).toEqual({
       ordersThisMonth: 0,
@@ -414,11 +482,11 @@ describe("getOrderMetrics — sem pedidos e caminhos de erro (ORD-20)", () => {
     });
   });
 
-  it("lança e loga quando a query do mês falha", async () => {
+  it("lança e loga quando a query do período falha", async () => {
     setupSupabase([{ data: null, error: { message: "permission denied" } }, { count: 0 }]);
     const { getOrderMetrics } = await loadModule();
 
-    await expect(getOrderMetrics(STORE_ID, NOW)).rejects.toThrow("permission denied");
+    await expect(getOrderMetrics(STORE_ID, RANGE)).rejects.toThrow("permission denied");
     expect(errorSpy).toHaveBeenCalled();
   });
 
@@ -426,7 +494,7 @@ describe("getOrderMetrics — sem pedidos e caminhos de erro (ORD-20)", () => {
     setupSupabase([{ data: [] }, { count: null, error: { message: "boom" } }]);
     const { getOrderMetrics } = await loadModule();
 
-    await expect(getOrderMetrics(STORE_ID, NOW)).rejects.toThrow("boom");
+    await expect(getOrderMetrics(STORE_ID, RANGE)).rejects.toThrow("boom");
     expect(errorSpy).toHaveBeenCalled();
   });
 });

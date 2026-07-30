@@ -27,15 +27,14 @@ export function useDashboard(
 
   const activeProducts = products.filter((p) => p.isActive && p.stock > 0);
   const soldOutProducts = products.filter((p) => p.stock === 0);
-  const recent = products.slice(0, 4);
 
   // `null` = plano sem histórico de pedidos: nenhum número real existe aqui.
   const orderStats = metrics
     ? [
-        { value: metrics.ordersThisMonth, label: "Pedidos no mês" },
+        { value: metrics.ordersThisMonth, label: "Pedidos" },
         {
           value: formatCents(metrics.confirmedCentsThisMonth),
-          label: "Vendas confirmadas no mês",
+          label: "Vendas confirmadas",
         },
         { value: metrics.pendingCount, label: "Aguardando confirmação" },
       ]
@@ -47,7 +46,6 @@ export function useDashboard(
     handleCopy,
     activeProducts,
     soldOutProducts,
-    recent,
     total: products.length,
     orderStats,
   };

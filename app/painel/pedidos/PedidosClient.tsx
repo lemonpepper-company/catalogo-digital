@@ -1,14 +1,18 @@
 "use client";
 
-import { Receipt, Search } from "lucide-react";
+import { useTransition } from "react";
+import { Receipt, Search, CalendarSearch, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Pagination } from "@/components/ui/Pagination";
 import { Toast } from "@/components/ui/Toast";
+import { PeriodoFiltro } from "@/components/painel/PeriodoFiltro";
+import { OrderRowSkeleton } from "@/components/painel/OrderRowSkeleton";
 import { cn, formatCents, formatDeliveryLine, formatPaymentLine } from "@/lib/utils";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/orders";
+import { activePeriodToken } from "@/lib/period-filter";
 import type { StoreOrder, StoreOrderItem } from "@/lib/types";
 import { usePedidos } from "./use-pedidos";
 import { usePedidosBusca } from "./use-pedidos-busca";
@@ -19,6 +23,9 @@ interface PedidosClientProps {
   page: number;
   totalPages: number;
   query?: string;
+  periodo?: string;
+  de?: string;
+  ate?: string;
 }
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -75,23 +82,45 @@ export function PedidosClient({
   page,
   totalPages,
   query = "",
+  periodo,
+  de,
+  ate,
 }: PedidosClientProps) {
   const { selected, openOrder, closeOrder, toast, statusAction, statusPending } =
     usePedidos(orders);
-  const { query: searchTerm, onQueryChange } = usePedidosBusca(query);
+  const [filtersPending, startTransition] = useTransition();
 
-  // Sem busca e sem pedido é loja sem histórico; com busca, a lista vazia é
-  // resultado de filtro (ORD-35.11). A caixa de busca acompanha esse critério.
+  const periodParams: Record<string, string> = {};
+  if (periodo) periodParams.periodo = periodo;
+  if (de) periodParams.de = de;
+  if (ate) periodParams.ate = ate;
+
+  const { query: searchTerm, onQueryChange } = usePedidosBusca(
+    query,
+    startTransition,
+    periodParams
+  );
+
+  const searchExtraParams: Record<string, string> = query ? { q: query } : {};
+  const paginationExtraParams = { ...searchExtraParams, ...periodParams };
+
+  const activeToken = activePeriodToken({ periodo, de, ate });
   const isSearching = query !== "";
-  const showSearch = isSearching || orders.length > 0;
+  const isPeriodFiltered = activeToken !== "mes";
+  const isFiltering = isSearching || isPeriodFiltered;
+  const showSearch = isFiltering || orders.length > 0;
 
   const subtitle = isSearching
     ? total === 0
       ? `Nenhum pedido combina com "${query}".`
       : `${total} ${total === 1 ? "pedido encontrado" : "pedidos encontrados"}`
-    : total === 0
-      ? "Os pedidos enviados pela sacola aparecem aqui."
-      : `${total} ${total === 1 ? "pedido recebido" : "pedidos recebidos"}`;
+    : isPeriodFiltered
+      ? total === 0
+        ? "Nenhum pedido no período selecionado."
+        : `${total} ${total === 1 ? "pedido no período" : "pedidos no período"}`
+      : total === 0
+        ? "Os pedidos enviados pela sacola aparecem aqui."
+        : `${total} ${total === 1 ? "pedido recebido" : "pedidos recebidos"}`;
 
   return (
     <div className="flex flex-col gap-6 w-full lg:max-w-content">
@@ -100,27 +129,58 @@ export function PedidosClient({
         <p className="font-body text-[15px] text-graphite mt-1.5">{subtitle}</p>
       </div>
 
-      {showSearch && (
-        <div className="relative">
-          <Search
-            size={18}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-graphite pointer-events-none z-10"
-          />
-          <Input
-            value={searchTerm}
-            onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Buscar por código ou nome do cliente..."
-            aria-label="Buscar por código ou nome do cliente"
-            className="pl-9"
-          />
-        </div>
-      )}
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+        {showSearch && (
+          <div className="relative flex-1">
+            {filtersPending ? (
+              <Loader2
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-graphite animate-spin pointer-events-none z-10"
+                data-testid="busca-pedidos-loading"
+              />
+            ) : (
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-graphite pointer-events-none z-10"
+              />
+            )}
+            <Input
+              value={searchTerm}
+              onChange={(e) => onQueryChange(e.target.value)}
+              placeholder="Buscar por código ou nome do cliente..."
+              aria-label="Buscar por código ou nome do cliente"
+              className="pl-9"
+            />
+          </div>
+        )}
+        <PeriodoFiltro
+          basePath="/painel/pedidos"
+          periodo={periodo}
+          de={de}
+          ate={ate}
+          extraParams={searchExtraParams}
+          isPending={filtersPending}
+          startTransition={startTransition}
+        />
+      </div>
 
-      {orders.length === 0 ? (
+      {filtersPending ? (
+        <Card pad={0} className="overflow-hidden">
+          {Array.from({ length: orders.length || 6 }).map((_, i) => (
+            <OrderRowSkeleton key={i} first={i === 0} />
+          ))}
+        </Card>
+      ) : orders.length === 0 ? (
         <Card className="py-12 text-center">
           <div className="flex flex-col items-center gap-4">
             <div className="w-24 h-24 rounded-full bg-linen flex items-center justify-center text-inactive">
-              {isSearching ? <Search size={42} /> : <Receipt size={42} />}
+              {isSearching ? (
+                <Search size={42} />
+              ) : isPeriodFiltered ? (
+                <CalendarSearch size={42} />
+              ) : (
+                <Receipt size={42} />
+              )}
             </div>
             {isSearching ? (
               <div>
@@ -130,6 +190,16 @@ export function PedidosClient({
                 <p className="font-body text-[15px] text-graphite mt-2 max-w-sm mx-auto">
                   Nenhum pedido desta loja combina com “{query}”. Tente o código que
                   chegou no WhatsApp ou parte do nome do cliente.
+                </p>
+              </div>
+            ) : isPeriodFiltered ? (
+              <div>
+                <div className="font-display font-semibold text-[20px] text-obsidian">
+                  Nenhum pedido no período
+                </div>
+                <p className="font-body text-[15px] text-graphite mt-2 max-w-sm mx-auto">
+                  Nenhum pedido desta loja caiu no período selecionado. Tente escolher
+                  outro período acima.
                 </p>
               </div>
             ) : (
@@ -182,7 +252,7 @@ export function PedidosClient({
             currentPage={page}
             totalPages={totalPages}
             basePath="/painel/pedidos"
-            extraParams={isSearching ? { q: query } : {}}
+            extraParams={paginationExtraParams}
           />
         </>
       )}

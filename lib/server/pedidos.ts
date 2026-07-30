@@ -2,12 +2,8 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getTotalPages, clampPage } from "@/lib/pagination";
 import { mapOrderRow, type OrderRow } from "@/lib/orders";
-import {
-  computeOrderMetrics,
-  monthStartInSaoPaulo,
-  type OrderMetricRow,
-  type OrderMetrics,
-} from "@/lib/order-metrics";
+import { computeOrderMetrics, type OrderMetricRow, type OrderMetrics } from "@/lib/order-metrics";
+import type { PeriodRange } from "@/lib/period-filter";
 import type { StoreOrder } from "@/lib/types";
 
 export const ORDERS_PAGE_SIZE = 20;
@@ -48,13 +44,15 @@ function fail(context: string, error: { message: string }): never {
 /**
  * Histórico da loja, 20 por página, mais recentes primeiro. RLS restringe à loja
  * do dono e o `.eq("store_id")` mantém o isolamento explícito também na busca.
- * A contagem usa o mesmo filtro da listagem — a paginação é recalculada sobre o
- * resultado filtrado (ORD-35.10).
+ * A contagem usa o mesmo filtro (busca + período) da listagem — a paginação é
+ * recalculada sobre o resultado filtrado (ORD-35.10, ORD-46). `range: null`
+ * (padrão) = todo o histórico, sem filtro de data.
  */
 export async function getStoreOrders(
   storeId: string,
   page: number,
-  query = ""
+  query = "",
+  range: PeriodRange | null = null
 ): Promise<StoreOrdersPage> {
   const supabase = await createClient();
   const term = orderSearchTerm(query);
@@ -64,6 +62,11 @@ export async function getStoreOrders(
     .select("id", { count: "exact", head: true })
     .eq("store_id", storeId);
   if (term) countQuery = countQuery.or(searchFilter(term));
+  if (range) {
+    countQuery = countQuery
+      .gte("created_at", range.from.toISOString())
+      .lte("created_at", range.to.toISOString());
+  }
 
   const { count, error: countError } = await countQuery;
 
@@ -76,6 +79,11 @@ export async function getStoreOrders(
 
   let listQuery = supabase.from("orders").select(ORDER_COLS).eq("store_id", storeId);
   if (term) listQuery = listQuery.or(searchFilter(term));
+  if (range) {
+    listQuery = listQuery
+      .gte("created_at", range.from.toISOString())
+      .lte("created_at", range.to.toISOString());
+  }
 
   const { data, error } = await listQuery
     .order("created_at", { ascending: false })
@@ -91,34 +99,45 @@ export async function getStoreOrders(
   };
 }
 
-/** Métricas de ROI do mês corrente (fuso do lojista) + pendentes de todo o histórico. */
+/**
+ * Métricas de "Vendas pela vitrine" no período informado (fuso do lojista).
+ * `range: null` = todo o histórico, sem filtro de data — inclusive na contagem
+ * de pendentes, que passou a respeitar o período (ORD-46).
+ */
 export async function getOrderMetrics(
   storeId: string,
-  now: Date = new Date()
+  range: PeriodRange | null
 ): Promise<OrderMetrics> {
   const supabase = await createClient();
-  const monthStart = monthStartInSaoPaulo(now).toISOString();
 
-  const [monthResult, pendingResult] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("status, total_cents")
-      .eq("store_id", storeId)
-      .gte("created_at", monthStart),
-    supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .eq("store_id", storeId)
-      .eq("status", "pendente"),
-  ]);
+  let periodQuery = supabase
+    .from("orders")
+    .select("status, total_cents")
+    .eq("store_id", storeId);
+  let pendingQuery = supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("store_id", storeId)
+    .eq("status", "pendente");
 
-  if (monthResult.error)
-    fail(`getOrderMetrics(${storeId}) — erro ao ler pedidos do mês`, monthResult.error);
+  if (range) {
+    periodQuery = periodQuery
+      .gte("created_at", range.from.toISOString())
+      .lte("created_at", range.to.toISOString());
+    pendingQuery = pendingQuery
+      .gte("created_at", range.from.toISOString())
+      .lte("created_at", range.to.toISOString());
+  }
+
+  const [periodResult, pendingResult] = await Promise.all([periodQuery, pendingQuery]);
+
+  if (periodResult.error)
+    fail(`getOrderMetrics(${storeId}) — erro ao ler pedidos do período`, periodResult.error);
   if (pendingResult.error)
     fail(`getOrderMetrics(${storeId}) — erro ao contar pendentes`, pendingResult.error);
 
   return computeOrderMetrics(
-    (monthResult.data ?? []) as OrderMetricRow[],
+    (periodResult.data ?? []) as OrderMetricRow[],
     pendingResult.count ?? 0
   );
 }

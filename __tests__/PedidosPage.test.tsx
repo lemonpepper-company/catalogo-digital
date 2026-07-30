@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { Plan, StoreOrder, StoreSettings } from "@/lib/types";
+import type { PeriodRange } from "@/lib/period-filter";
 
 const getCurrentStore = vi.fn();
 const getStoreOrders = vi.fn();
+const resolvePeriodRange = vi.fn();
 const redirect = vi.fn((_path: string) => {
   throw new Error("NEXT_REDIRECT");
 });
@@ -14,12 +16,23 @@ vi.mock("@/lib/server/store", () => ({
 vi.mock("@/lib/server/pedidos", () => ({
   getStoreOrders: (...args: unknown[]) => getStoreOrders(...args),
 }));
+vi.mock("@/lib/period-filter", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/period-filter")>();
+  return {
+    ...actual,
+    resolvePeriodRange: (...args: unknown[]) => resolvePeriodRange(...args),
+  };
+});
 vi.mock("next/navigation", () => ({
   redirect: (path: string) => redirect(path),
   useRouter: () => ({ replace: vi.fn() }),
 }));
 
 const STORE_ID = "11111111-1111-4111-8111-111111111111";
+const RANGE: PeriodRange = {
+  from: new Date("2026-07-01T03:00:00.000Z"),
+  to: new Date("2026-07-15T12:00:00.000Z"),
+};
 
 function makeStore(plan: Plan, trialEndsAt: string | null = null): StoreSettings {
   return {
@@ -74,12 +87,13 @@ function makeOrder(): StoreOrder {
   };
 }
 
-async function renderPage(pageParam?: string, q?: string) {
+async function renderPage(pageParam?: string, q?: string, periodo?: string) {
   const { default: PedidosPage } = await import("@/app/painel/pedidos/page");
   const ui = await PedidosPage({
     searchParams: Promise.resolve({
       ...(pageParam ? { page: pageParam } : {}),
       ...(q === undefined ? {} : { q }),
+      ...(periodo === undefined ? {} : { periodo }),
     }),
   });
   return render(ui);
@@ -89,6 +103,8 @@ beforeEach(() => {
   getCurrentStore.mockReset();
   getStoreOrders.mockReset();
   redirect.mockClear();
+  resolvePeriodRange.mockReset();
+  resolvePeriodRange.mockReturnValue(RANGE);
   getStoreOrders.mockResolvedValue({
     orders: [makeOrder()],
     total: 1,
@@ -104,6 +120,7 @@ describe("/painel/pedidos — gate de plano (ORD-28)", () => {
     await renderPage();
 
     expect(getStoreOrders).not.toHaveBeenCalled();
+    expect(resolvePeriodRange).not.toHaveBeenCalled();
     expect(screen.getByText("Disponível a partir do plano Starter")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Falar no WhatsApp →" })).toBeTruthy();
   });
@@ -139,7 +156,7 @@ describe("/painel/pedidos — busca vinda da URL (ORD-35.10)", () => {
 
     await renderPage(undefined, "hs0l");
 
-    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 1, "hs0l");
+    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 1, "hs0l", RANGE);
   });
 
   it("combina busca e página na mesma leitura", async () => {
@@ -153,7 +170,7 @@ describe("/painel/pedidos — busca vinda da URL (ORD-35.10)", () => {
 
     await renderPage("2", "ana");
 
-    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 2, "ana");
+    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 2, "ana", RANGE);
   });
 
   it("mostra o código do pedido na lista renderizada pela página", async () => {
@@ -171,7 +188,7 @@ describe("/painel/pedidos — planos pagos (ORD-30)", () => {
 
     await renderPage();
 
-    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 1, "");
+    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 1, "", RANGE);
     expect(screen.getByText("Ana")).toBeTruthy();
     expect(screen.getByText("R$ 398,00")).toBeTruthy();
   });
@@ -186,9 +203,7 @@ describe("/painel/pedidos — planos pagos (ORD-30)", () => {
   });
 
   it("rebaixa Starter com trial_ends_at vencido para o estado bloqueado", async () => {
-    getCurrentStore.mockResolvedValue(
-      makeStore("starter", "2020-01-01T00:00:00.000Z")
-    );
+    getCurrentStore.mockResolvedValue(makeStore("starter", "2020-01-01T00:00:00.000Z"));
 
     await renderPage();
 
@@ -207,13 +222,12 @@ describe("/painel/pedidos — planos pagos (ORD-30)", () => {
 
     await renderPage("2");
 
-    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 2, "");
+    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 2, "", RANGE);
   });
 });
 
 describe("/painel/pedidos — histórico do período Free ao virar pago (ORD-30.7)", () => {
   it("os pedidos gravados no Free aparecem quando o plano efetivo vira starter, sem migração", async () => {
-    // Mesma linha em `orders`, gravada enquanto a loja era Free.
     getStoreOrders.mockResolvedValue({
       orders: [makeOrder()],
       total: 1,
@@ -231,9 +245,8 @@ describe("/painel/pedidos — histórico do período Free ao virar pago (ORD-30.
     getCurrentStore.mockResolvedValue(makeStore("starter"));
     const liberado = await renderPage();
 
-    // Mesma query de sempre — só `store_id` e a página; nada específico de plano.
     expect(getStoreOrders).toHaveBeenCalledTimes(1);
-    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 1, "");
+    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 1, "", RANGE);
     expect(liberado.getByText("Ana")).toBeTruthy();
     expect(liberado.getByText("R$ 398,00")).toBeTruthy();
   });
@@ -246,5 +259,28 @@ describe("/painel/pedidos — sessão ausente", () => {
     await expect(renderPage()).rejects.toThrow("NEXT_REDIRECT");
     expect(redirect).toHaveBeenCalledWith("/login");
     expect(getStoreOrders).not.toHaveBeenCalled();
+    expect(resolvePeriodRange).not.toHaveBeenCalled();
+  });
+});
+
+describe("/painel/pedidos — filtro de período (ORD-46)", () => {
+  it("repassa periodo de searchParams para resolvePeriodRange", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("starter"));
+
+    await renderPage(undefined, undefined, "hoje");
+
+    expect(resolvePeriodRange).toHaveBeenCalledWith({
+      periodo: "hoje",
+      de: undefined,
+      ate: undefined,
+    });
+  });
+
+  it("usa o range resolvido na leitura do histórico", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("starter"));
+
+    await renderPage();
+
+    expect(getStoreOrders).toHaveBeenCalledWith(STORE_ID, 1, "", RANGE);
   });
 });

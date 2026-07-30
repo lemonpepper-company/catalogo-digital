@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Plus, Pencil, Trash2, Package, Search, Star } from "lucide-react";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ImportarProdutosModal } from "@/components/painel/ImportarProdutosModal";
+import { ProductRowSkeleton } from "@/components/painel/ProductRowSkeleton";
 import { cn, formatCents } from "@/lib/utils";
 import type { StoreProduct } from "@/lib/types";
 import type { PlanLimits } from "@/lib/plan-limits";
@@ -66,8 +67,10 @@ export function ProdutosClient({
     status: initialStatus,
   });
 
+  const [filtersPending, startTransition] = useTransition();
+
   const { q, onQChange, onCategoriaChange, onStatusChange, clearFilters } =
-    useProdutosFiltros(initialQ, initialCategoria, initialStatus);
+    useProdutosFiltros(initialQ, initialCategoria, initialStatus, startTransition);
 
   const isStoreEmpty = counts.total === 0;
   const hasActiveFilters = Boolean(
@@ -192,7 +195,12 @@ export function ProdutosClient({
                 className="pl-9"
               />
             </div>
-            <div className="w-full sm:w-[200px]">
+            <div
+              className={cn(
+                "w-full sm:w-[200px]",
+                filtersPending && "opacity-60 pointer-events-none"
+              )}
+            >
               <Select
                 value={categoriaLabel || "Todas as categorias"}
                 options={[
@@ -211,7 +219,12 @@ export function ProdutosClient({
                 }}
               />
             </div>
-            <div className="w-full sm:w-[180px]">
+            <div
+              className={cn(
+                "w-full sm:w-[180px]",
+                filtersPending && "opacity-60 pointer-events-none"
+              )}
+            >
               <Select
                 value={statusLabel || "Todos os status"}
                 options={["Todos os status", ...STATUS_OPTIONS.map((o) => o.label)]}
@@ -233,7 +246,13 @@ export function ProdutosClient({
             </Button>
           </div>
 
-          {products.length === 0 ? (
+          {filtersPending ? (
+            <Card pad={0} className="overflow-hidden">
+              {Array.from({ length: products.length || 6 }).map((_, i) => (
+                <ProductRowSkeleton key={i} first={i === 0} />
+              ))}
+            </Card>
+          ) : products.length === 0 ? (
             <Card className="py-12 text-center">
               <div className="flex flex-col items-center gap-4">
                 <div className="w-24 h-24 rounded-full bg-linen flex items-center justify-center text-inactive">

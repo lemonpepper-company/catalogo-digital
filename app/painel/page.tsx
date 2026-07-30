@@ -3,16 +3,24 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore, mapProduct } from "@/lib/server/store";
 import { getPlanLimits } from "@/lib/plan-limits";
 import { getOrderMetrics } from "@/lib/server/pedidos";
+import { resolvePeriodRange } from "@/lib/period-filter";
 import { DashboardClient } from "./DashboardClient";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ periodo?: string; de?: string; ate?: string }>;
+}) {
   const store = await getCurrentStore();
   if (!store) redirect("/login");
 
+  const params = await searchParams;
+
   // Gate antes do I/O: no plano Free nenhum número de pedido/faturamento é
-  // buscado, então nada real pode chegar ao HTML (ORD-29).
+  // buscado nem o período é resolvido, então nada real pode chegar ao HTML
+  // (ORD-29).
   const metrics = getPlanLimits(store.plan, store.trialEndsAt).hasOrderHistory
-    ? await getOrderMetrics(store.id)
+    ? await getOrderMetrics(store.id, resolvePeriodRange(params))
     : null;
 
   const supabase = await createClient();
@@ -33,6 +41,9 @@ export default async function DashboardPage() {
       storeName={store.name}
       catalogUrl={catalogUrl}
       metrics={metrics}
+      periodo={params.periodo}
+      de={params.de}
+      ate={params.ate}
     />
   );
 }
