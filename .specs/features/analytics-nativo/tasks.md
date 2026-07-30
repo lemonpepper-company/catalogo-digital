@@ -9,7 +9,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/analytics-nativo/design.md`
-**Status**: Draft (revisado 2026-07-30 após PRs #70/#71 — T10 removida, período via `PeriodoFiltro` existente; aguardando aprovação do usuário)
+**Status**: ✅ **Executada** (2026-07-30) — T1–T13 concluídas, 12 commits atômicos na branch `feature/analytics-nativo`. Suíte: 82 arquivos / 928 testes (baseline 837). Lint: 19 = baseline real da `main` (o número 17 registrado aqui estava desatualizado — `use-catalogo.ts` e `SlugInput.tsx` já erravam na main).
 
 **Pré-requisito de execução**: criar branch `feature/analytics-nativo` a partir de `main`. Supabase local rodando (`npx supabase start`) para T1–T3 e T13. Baseline da suíte: **77 arquivos / 837 testes verdes** (2026-07-30, pós-merge dos PRs #70/#71). Lint: baseline pré-existente de 17 erros — nenhum erro novo.
 
@@ -140,7 +140,7 @@ Phase 4 (Sequencial — integração final):
 
 ---
 
-### T4: Schema de validação do payload de evento
+### T4: Schema de validação do payload de evento — ✅ Concluída (`4880182`)
 
 **What**: Criar `lib/validation/evento.ts` com `eventPayloadSchema` (slug, visitorId uuid, eventType enum 4 valores, productId uuid|null) + regra cruzada: `product_view`/`add_to_bag` exigem `productId`; `catalog_visit`/`buy_click` exigem `productId` nulo/ausente. Testes 1:1 com ANL-08 (cada campo inválido + as 4 combinações da regra cruzada, válidas e inválidas).
 **Where**: `lib/validation/evento.ts` + `__tests__/evento-validation.test.ts`
@@ -162,7 +162,7 @@ Phase 4 (Sequencial — integração final):
 
 ---
 
-### T5: Server Action `registrarEvento`
+### T5: Server Action `registrarEvento` — ✅ Concluída (`bffe6ff`)
 
 **What**: Criar `app/actions/eventos.ts` com `registrarEvento(payload: unknown): Promise<{ok: boolean}>` seguindo o fluxo do design: zod → loja por slug com `is_active=true` → se `productId`, posse via `products.id+store_id` (sem exigir `is_active`) → insert via `createAdminClient()`. Nunca lança; `console.error` em toda falha; sem consulta de plano; sem rate-limit (AD-013). Testes com admin client mockado: sucesso dos 4 tipos, payload inválido, loja inexistente/inativa, produto de outra loja, erro de insert, exceção inesperada — nada gravado nos casos de falha.
 **Where**: `app/actions/eventos.ts` + `__tests__/registrar-evento.test.ts`
@@ -185,7 +185,7 @@ Phase 4 (Sequencial — integração final):
 
 ---
 
-### T6: Client de analytics (`lib/analytics-client.ts`)
+### T6: Client de analytics (`lib/analytics-client.ts`) — ✅ Concluída (`2ea8c07`)
 
 **What**: Criar `getVisitorId()` (persistência em `localStorage["cd_visitor_id"]`; consent `"rejected"` na chave `cookie-consent` → UUID efêmero de módulo; sem storage → efêmero), `shouldTrackVisit(slug)` (dedup `sessionStorage["cd_visited_"+slug]`, fallback memória) e `trackEvent(slug, type, productId?): void` (fire-and-forget, `void ...catch(()=>{})`, **retorno `void`, nunca Promise**). Testes: persistência/reuso do id, consent rejected → id muda entre "páginas" (novo import/módulo) e não grava em localStorage, dedup por slug, storage indisponível não lança, trackEvent não propaga rejeição.
 **Where**: `lib/analytics-client.ts` + `__tests__/analytics-client.test.ts`
@@ -208,7 +208,7 @@ Phase 4 (Sequencial — integração final):
 
 ---
 
-### T7: Instrumentação do catálogo (`use-catalogo.ts` + `CatalogoClient`)
+### T7: Instrumentação do catálogo (`use-catalogo.ts` + `CatalogoClient`) — ✅ Concluída (`9bc776f`)
 
 **What**: Ligar os 4 disparos: `useEffect` de montagem com `shouldTrackVisit` (visita); novo `handleOpenProduct(product)` substituindo `setOpenProduct` direto no `CatalogoClient` (product_view); track em `handleAdd` (add_to_bag); track em `handleCheckout` logo após o guard de WhatsApp, **antes de `window.open` e fora do `Promise.race`** (buy_click). Atualizar testes de `use-catalogo` e `CatalogoClient`.
 **Where**: `app/[slug]/use-catalogo.ts`, `app/[slug]/CatalogoClient.tsx` + `__tests__/use-catalogo.test.ts`, `__tests__/CatalogoClient.test.tsx`
@@ -232,7 +232,7 @@ Phase 4 (Sequencial — integração final):
 
 ---
 
-### T8: Métricas puras (`lib/catalog-metrics.ts`)
+### T8: Métricas puras (`lib/catalog-metrics.ts`) — ✅ Concluída (`567d75b`)
 
 **What**: Criar tipos do design (`CatalogEventMetrics`, `TopViewedProduct`) + `computeConversionPct(ordersInPeriod, bagVisitors)`: % com 1 casa, `null` quando `bagVisitors===0`, sem cap (>100% permitido). Testes 1:1: zeros, divisor zero → null, >100%, arredondamento.
 **Where**: `lib/catalog-metrics.ts` + `__tests__/catalog-metrics.test.ts`
@@ -254,7 +254,7 @@ Phase 4 (Sequencial — integração final):
 
 ---
 
-### T9: Leitura server-side (`lib/server/analytics.ts`)
+### T9: Leitura server-side (`lib/server/analytics.ts`) — ✅ Concluída (`194c4af`)
 
 **What**: Criar `getCatalogAnalytics(storeId, range: PeriodRange | null)` com `import "server-only"`: `Promise.all` das duas RPCs com `p_from`/`p_to` do range (`range === null` → ambos `null`, preset "tudo"); erro → `fail()` (nunca vira zero silencioso). **Sem query de `orders`** — numerador da conversão vem do `getOrderMetrics` já chamado pela page. Testes com client mockado: args das RPCs para range com from/to e para `null`, mapeamento do retorno, cada fonte de erro lança.
 **Where**: `lib/server/analytics.ts` + `__tests__/server-analytics.test.ts`
@@ -283,7 +283,7 @@ Phase 4 (Sequencial — integração final):
 
 ---
 
-### T11: Dashboard page — fetch de analytics com o range existente
+### T11: Dashboard page — fetch de analytics com o range existente — ✅ Concluída (`939bf20`)
 
 **What**: Em `app/painel/page.tsx`: extrair `resolvePeriodRange(params)` para uma variável (hoje é chamado inline no `getOrderMetrics`) e alimentar **ambos** `getOrderMetrics` e `getCatalogAnalytics` com o mesmo range (ANL-14/15); `getCatalogAnalytics` em try/catch (erro → loga e passa `analytics: null`, página não cai). Free já retorna antes (PR #71) — analytics entra depois do early-return (ANL-18). Passar `analytics` ao `DashboardClient`. Atualizar `__tests__/DashboardPage.test.tsx`: free não chama a lib; pago chama com o range resolvido dos mesmos params; erro de fetch → página renderiza com `analytics: null` e `metrics` intactos.
 **Where**: `app/painel/page.tsx` + `__tests__/DashboardPage.test.tsx`
@@ -307,7 +307,7 @@ Phase 4 (Sequencial — integração final):
 
 ---
 
-### T12: Dashboard UI — seção de analytics sob o filtro existente
+### T12: Dashboard UI — seção de analytics sob o filtro existente — ✅ Concluída (`14647cf`)
 
 **What**: Em `use-dashboard.ts` + `DashboardClient.tsx`: seção "Sua vitrine em números" com `StatCard`s (visitas, únicos, cliques em comprar, conversão — `computeConversionPct(metrics.ordersThisMonth, analytics.bagVisitors)`, "—" quando null), lista top 5 mais vistos (cruzando `TopViewedProduct[]` com `products` das props; deletados filtrados); **mover o `PeriodoFiltro` do header de "Vendas pela vitrine" para acima das duas seções** (governa ambas — nenhum seletor novo); `analytics: null` → "—" + nota de indisponível. Atualizar `__tests__/DashboardClient.test.tsx`.
 **Where**: `app/painel/use-dashboard.ts`, `app/painel/DashboardClient.tsx` + `__tests__/DashboardClient.test.tsx`
@@ -331,7 +331,7 @@ Phase 4 (Sequencial — integração final):
 
 ---
 
-### T13: Verificação integrada local (smoke E2E)
+### T13: Verificação integrada local (smoke E2E) — ✅ Concluída (sem fix, sem commit de código)
 
 **What**: Com Supabase + `npm run dev` locais: fluxo real na vitrine (abrir catálogo, recarregar, abrir produto, adicionar à sacola, finalizar) → conferir via SQL as linhas de `catalog_events` (4 tipos; visita única após reload); logar no painel como a loja de teste (Starter/Pro) → conferir números alternando presets do `PeriodoFiltro` (7d/mês/tudo + um range customizado); simular consent rejected → `cd_visitor_id` ausente do localStorage e eventos ainda gravando; limpar dados de teste ao final (`delete from catalog_events where store_id = …`).
 **Where**: — (verificação; nenhum código novo além de eventuais fixes)
@@ -343,10 +343,12 @@ Phase 4 (Sequencial — integração final):
 
 **Done when**:
 
-- [ ] Evidência SQL colada no relatório da task (contagens por tipo antes/depois)
-- [ ] Dashboard exibindo números reais nos dois períodos (screenshot)
-- [ ] Dados de teste removidos (contagem final = estado pré-teste)
-- [ ] Gate: `npx vitest run && npm run build` (fecho da feature)
+- [x] Evidência SQL colada no relatório (pré-teste 0 → 4 tipos gravados no fluxo real → 0 após limpeza)
+- [x] Dashboard exibindo números reais em 4 recortes (mês 4/3/1, tudo 6/5/2, 7d 4/3/1, range customizado 2/2/1) — screenshots capturados; cada número conferido contra a mesma consulta em SQL
+- [x] RLS own-store verificada sob role `authenticated`: loja alheia → zeros; `anon` → `permission denied` na função
+- [x] ANL-21 verificado no navegador: consent `rejected` → `cd_visitor_id` ausente do localStorage, evento gravado mesmo assim
+- [x] Dados de teste removidos (`catalog_events` = 0, pedido de teste removido, pedidos preexistentes intactos)
+- [x] Gate: `npx vitest run && npm run build` (928 testes verdes, build ok)
 
 **Tests**: none (verificação manual guiada) · **Gate**: build
 
