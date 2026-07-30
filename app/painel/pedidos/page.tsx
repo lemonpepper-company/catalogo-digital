@@ -2,13 +2,20 @@ import { redirect } from "next/navigation";
 import { getCurrentStore } from "@/lib/server/store";
 import { getPlanLimits } from "@/lib/plan-limits";
 import { getStoreOrders } from "@/lib/server/pedidos";
+import { resolvePeriodRange } from "@/lib/period-filter";
 import { RecursoBloqueado } from "@/components/painel/RecursoBloqueado";
 import { PedidosClient } from "./PedidosClient";
 
 export default async function PedidosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+    periodo?: string;
+    de?: string;
+    ate?: string;
+  }>;
 }) {
   const store = await getCurrentStore();
   if (!store) redirect("/login");
@@ -24,12 +31,14 @@ export default async function PedidosPage({
     );
   }
 
-  const { page: pageParam, q } = await searchParams;
+  const { page: pageParam, q, periodo, de, ate } = await searchParams;
   const query = q ?? "";
+  const range = resolvePeriodRange({ periodo, de, ate });
   const { orders, total, page, totalPages } = await getStoreOrders(
     store.id,
     Number(pageParam ?? "1"),
-    query
+    query,
+    range
   );
 
   return (
@@ -39,6 +48,9 @@ export default async function PedidosPage({
       page={page}
       totalPages={totalPages}
       query={query}
+      periodo={periodo}
+      de={de}
+      ate={ate}
     />
   );
 }

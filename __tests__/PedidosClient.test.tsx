@@ -267,8 +267,6 @@ describe("PedidosClient — detalhe do pedido (ORD-14)", () => {
 
     expect(within(dialog).getByText("Total")).toBeTruthy();
     expect(within(dialog).getByText("R$ 478,00")).toBeTruthy();
-    // O badge de status é um <span>; os controles de mudança de status (T12)
-    // usam os mesmos rótulos em <button>.
     const statusBadge = within(dialog)
       .getAllByText("Confirmado")
       .find((el) => el.tagName === "SPAN");
@@ -444,5 +442,91 @@ describe("PedidosClient — estado vazio de busca (ORD-35.11)", () => {
       (screen.getByLabelText("Buscar por código ou nome do cliente") as HTMLInputElement)
         .value
     ).toBe("ZZZZZZ");
+  });
+});
+
+describe("PedidosClient — filtro de período (ORD-46)", () => {
+  it("mostra o filtro de período mesmo quando a loja ainda não tem pedido", () => {
+    render(<PedidosClient orders={[]} total={0} page={1} totalPages={1} />);
+
+    expect(screen.getByRole("group", { name: "Filtrar por período" })).toBeTruthy();
+  });
+
+  it("ao trocar de período, preserva a busca ativa na URL", () => {
+    render(
+      <PedidosClient orders={[makeOrder()]} total={1} page={1} totalPages={1} query="ana" />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Hoje" }));
+
+    expect(replace).toHaveBeenCalledWith("/painel/pedidos?q=ana&periodo=hoje", {
+      scroll: false,
+    });
+  });
+
+  it("ao buscar com um período ativo, preserva o período na URL da busca", () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <PedidosClient
+          orders={[makeOrder()]}
+          total={1}
+          page={1}
+          totalPages={1}
+          periodo="hoje"
+        />
+      );
+
+      fireEvent.change(screen.getByLabelText("Buscar por código ou nome do cliente"), {
+        target: { value: "HS0L52" },
+      });
+      vi.advanceTimersByTime(400);
+
+      expect(replace).toHaveBeenCalledWith("/painel/pedidos?periodo=hoje&q=HS0L52", {
+        scroll: false,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("mostra a paginação com período e busca combinados", () => {
+    render(
+      <PedidosClient
+        orders={[makeOrder()]}
+        total={30}
+        page={1}
+        totalPages={2}
+        query="ana"
+        periodo="hoje"
+      />
+    );
+
+    const nav = screen.getByLabelText("Paginação");
+    expect(within(nav).getByRole("link", { name: "2" }).getAttribute("href")).toBe(
+      "/painel/pedidos?page=2&q=ana&periodo=hoje"
+    );
+  });
+
+  it("mostra o subtítulo de contagem por período quando não há busca", () => {
+    render(
+      <PedidosClient
+        orders={[makeOrder()]}
+        total={5}
+        page={1}
+        totalPages={1}
+        periodo="hoje"
+      />
+    );
+
+    expect(screen.getByText("5 pedidos no período")).toBeTruthy();
+  });
+
+  it("mostra estado vazio específico quando o período filtrado não tem pedidos", () => {
+    render(<PedidosClient orders={[]} total={0} page={1} totalPages={1} periodo="hoje" />);
+
+    expect(screen.getByText("Nenhum pedido no período")).toBeTruthy();
+    expect(screen.getByText("Nenhum pedido no período selecionado.")).toBeTruthy();
+    expect(screen.queryByText("Nenhum pedido ainda")).toBeNull();
   });
 });
