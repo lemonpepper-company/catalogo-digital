@@ -45,12 +45,26 @@ export function SeoLandingPage({ content }: SeoLandingPageProps) {
             <p className="font-body text-[18px] text-graphite leading-relaxed mb-8 text-pretty max-w-[560px]">
               {heroSubtitle}
             </p>
-            <NextLink
-              href="/cadastro"
-              className="inline-flex items-center gap-2 h-[52px] px-8 rounded-btn bg-gold text-white font-display font-medium text-[16px] hover:bg-gold-hover transition-colors"
-            >
-              {ctaLabel}
-            </NextLink>
+            <div className="flex items-center gap-3 flex-wrap">
+              <NextLink
+                href="/cadastro"
+                className="inline-flex items-center gap-2 h-[52px] px-8 rounded-btn bg-gold text-white font-display font-medium text-[16px] hover:bg-gold-hover transition-colors"
+              >
+                {ctaLabel}
+              </NextLink>
+              <NextLink
+                href="/#recursos"
+                className="inline-flex items-center gap-2 h-[52px] px-6 rounded-btn border border-sand text-obsidian font-display font-medium text-[15px] hover:bg-linen transition-colors"
+              >
+                Como funciona
+              </NextLink>
+              <NextLink
+                href="/#precos"
+                className="inline-flex items-center gap-2 h-[52px] px-6 rounded-btn border border-sand text-obsidian font-display font-medium text-[15px] hover:bg-linen transition-colors"
+              >
+                Ver preços
+              </NextLink>
+            </div>
           </div>
         </div>
       </section>
