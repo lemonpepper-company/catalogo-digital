@@ -59,3 +59,20 @@ describe("bullets de plano (ORD-25/AC3)", () => {
     expect(freeFeatures.some((f) => /hist(ó|o)rico/i.test(f))).toBe(false);
   });
 });
+
+const DASHBOARD_FEATURE = "Dashboard com métricas de vendas";
+
+describe("bullets de plano — Dashboard exclusiva de planos pagos (ORD-48)", () => {
+  it("Starter lista 'Dashboard com métricas de vendas'", () => {
+    expect(starterFeatures).toContain(DASHBOARD_FEATURE);
+  });
+
+  it("Pro lista 'Dashboard com métricas de vendas'", () => {
+    expect(proFeatures).toContain(DASHBOARD_FEATURE);
+  });
+
+  it("Free não lista Dashboard em nenhuma variação", () => {
+    expect(freeFeatures).not.toContain(DASHBOARD_FEATURE);
+    expect(freeFeatures.some((f) => /dashboard/i.test(f))).toBe(false);
+  });
+});
