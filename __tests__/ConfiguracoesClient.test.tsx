@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { ConfiguracoesClient } from "@/app/painel/configuracoes/ConfiguracoesClient";
 import { getPlanLimits } from "@/lib/plan-limits";
@@ -43,6 +43,14 @@ const baseSettings: StoreSettings = {
 // trialEndsAt=null → acesso indeterminado, nunca expira (ver getEffectivePlan em lib/plan-limits.ts).
 const proLimits = getPlanLimits("pro", null);
 const starterLimits = getPlanLimits("starter", null);
+
+beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://vtrine.test");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("ConfiguracoesClient logo avatar", () => {
   it("renders the saved logo as an image", () => {
@@ -163,5 +171,34 @@ describe("ConfiguracoesClient — link de suporte", () => {
     render(<ConfiguracoesClient settings={baseSettings} limits={proLimits} />);
     const link = screen.getByRole("link", { name: /suporte/i });
     expect(link.closest("div")?.className).toContain("lg:hidden");
+  });
+});
+
+describe("ConfiguracoesClient — link do catálogo com domínio próprio", () => {
+  it("mostra o domínio próprio quando verificado", () => {
+    render(
+      <ConfiguracoesClient
+        settings={{
+          ...baseSettings,
+          trialEndsAt: null,
+          customDomain: "minhaloja.com.br",
+          customDomainVerified: true,
+        }}
+        limits={proLimits}
+      />
+    );
+
+    expect(screen.getByText("minhaloja.com.br")).toBeTruthy();
+  });
+
+  it("mostra o link de slug quando o domínio não está verificado", () => {
+    render(
+      <ConfiguracoesClient
+        settings={{ ...baseSettings, trialEndsAt: null }}
+        limits={proLimits}
+      />
+    );
+
+    expect(screen.getByText("vtrine.test/ateliemira")).toBeTruthy();
   });
 });

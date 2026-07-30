@@ -10,6 +10,7 @@ import { PagamentoEntregaFields } from "@/components/loja/PagamentoEntregaFields
 import { DominioField } from "@/components/loja/DominioField";
 import { signOut } from "@/app/actions/auth";
 import { vtrineWhatsAppHref, SUPPORT_WHATSAPP_MESSAGE } from "@/lib/contact";
+import { getCatalogUrl } from "@/lib/catalog-url";
 import type { StoreSettings } from "@/lib/types";
 import type { PlanLimits } from "@/lib/plan-limits";
 import { useConfiguracoes, MSG_VARS } from "./use-configuracoes";
@@ -69,7 +70,7 @@ export function ConfiguracoesClient({
 }) {
   const f = useConfiguracoes(settings);
   const dominio = useDominio(settings);
-  const catalogUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/${settings.slug}`;
+  const catalogUrl = getCatalogUrl(settings);
   const catalogLabel = catalogUrl.replace(/^https?:\/\//, "");
 
   return (
