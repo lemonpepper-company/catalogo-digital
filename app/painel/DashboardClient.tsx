@@ -6,6 +6,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { RecursoBloqueado } from "@/components/painel/RecursoBloqueado";
 import { PeriodoFiltro } from "@/components/painel/PeriodoFiltro";
 import type { OrderMetrics } from "@/lib/order-metrics";
+import type { CatalogAnalytics } from "@/lib/server/analytics";
 import type { StoreProduct } from "@/lib/types";
 import { useDashboard } from "./use-dashboard";
 
@@ -13,6 +14,8 @@ interface DashboardClientProps {
   products: StoreProduct[];
   storeName: string;
   metrics: OrderMetrics | null;
+  /** `null` = leitura das métricas da vitrine indisponível agora (≠ zero real). */
+  analytics: CatalogAnalytics | null;
   periodo?: string;
   de?: string;
   ate?: string;
@@ -22,6 +25,7 @@ export function DashboardClient({
   products,
   storeName,
   metrics,
+  analytics,
   periodo,
   de,
   ate,
