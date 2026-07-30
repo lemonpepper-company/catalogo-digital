@@ -98,12 +98,14 @@ export function PeriodoFiltro({
 
   return (
     <div role="group" aria-label="Filtrar por período">
-      <Select
-        value={periodDisplayLabel(active, de, ate)}
-        options={PRESET_OPTIONS}
-        onChange={selectPreset}
-        footer={{ label: "Período personalizado", onClick: openModal }}
-      />
+      <div className="w-full sm:w-64">
+        <Select
+          value={periodDisplayLabel(active, de, ate)}
+          options={PRESET_OPTIONS}
+          onChange={selectPreset}
+          footer={{ label: "Período personalizado", onClick: openModal }}
+        />
+      </div>
 
       {modalOpen && (
         <Modal title="Período personalizado" onClose={() => setModalOpen(false)}>
