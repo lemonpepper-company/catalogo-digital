@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore, mapProduct } from "@/lib/server/store";
-import { getPlanLimits } from "@/lib/plan-limits";
+import { getPlanLimits, getEffectivePlan } from "@/lib/plan-limits";
 import { getOrderMetrics } from "@/lib/server/pedidos";
 import { resolvePeriodRange } from "@/lib/period-filter";
 import { DashboardClient } from "./DashboardClient";
@@ -13,6 +13,12 @@ export default async function DashboardPage({
 }) {
   const store = await getCurrentStore();
   if (!store) redirect("/login");
+
+  // Dashboard é exclusiva de planos pagos: no Free, nada dela é buscado nem
+  // renderizado — redireciona antes de qualquer I/O.
+  if (getEffectivePlan(store.plan, store.trialEndsAt) === "free") {
+    redirect("/painel/produtos");
+  }
 
   const params = await searchParams;
 
