@@ -1,5 +1,6 @@
 "use client";
 
+import { useTransition } from "react";
 import Link from "next/link";
 import { Plus, ExternalLink, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -33,6 +34,7 @@ export function DashboardClient({
 }: DashboardClientProps) {
   const { copied, toast, handleCopy, activeProducts, soldOutProducts, total, orderStats } =
     useDashboard(products, catalogUrl, metrics);
+  const [isPending, startTransition] = useTransition();
 
   return (
     <div className="flex flex-col gap-6 w-full lg:max-w-content">
@@ -78,10 +80,22 @@ export function DashboardClient({
         </div>
         {orderStats ? (
           <div className="flex flex-col gap-3.5">
-            <PeriodoFiltro basePath="/painel" periodo={periodo} de={de} ate={ate} />
+            <PeriodoFiltro
+              basePath="/painel"
+              periodo={periodo}
+              de={de}
+              ate={ate}
+              isPending={isPending}
+              startTransition={startTransition}
+            />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {orderStats.map((stat) => (
-                <StatCard key={stat.label} value={stat.value} label={stat.label} />
+                <StatCard
+                  key={stat.label}
+                  value={stat.value}
+                  label={stat.label}
+                  loading={isPending}
+                />
               ))}
             </div>
           </div>

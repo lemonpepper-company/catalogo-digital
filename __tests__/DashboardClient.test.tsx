@@ -81,6 +81,12 @@ describe("DashboardClient — cards de ROI (ORD-17, ORD-18, ORD-19)", () => {
 
     expect(screen.getByRole("group", { name: "Filtrar por período" })).toBeTruthy();
   });
+
+  it("não mostra loading nos cards de vendas antes de qualquer troca de período", () => {
+    renderDashboard(metrics);
+
+    expect(screen.queryAllByTestId("statcard-loading")).toHaveLength(0);
+  });
 });
 
 describe("DashboardClient — métricas zeradas (ORD-20)", () => {
