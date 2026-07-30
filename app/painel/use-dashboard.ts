@@ -31,10 +31,10 @@ export function useDashboard(
   // `null` = plano sem histórico de pedidos: nenhum número real existe aqui.
   const orderStats = metrics
     ? [
-        { value: metrics.ordersThisMonth, label: "Pedidos no mês" },
+        { value: metrics.ordersThisMonth, label: "Pedidos" },
         {
           value: formatCents(metrics.confirmedCentsThisMonth),
-          label: "Vendas confirmadas no mês",
+          label: "Vendas confirmadas",
         },
         { value: metrics.pendingCount, label: "Aguardando confirmação" },
       ]

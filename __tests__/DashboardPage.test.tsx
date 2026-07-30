@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { Plan, StoreSettings } from "@/lib/types";
+import type { PeriodRange } from "@/lib/period-filter";
 
 const getCurrentStore = vi.fn();
 const getOrderMetrics = vi.fn();
 const from = vi.fn();
+const resolvePeriodRange = vi.fn();
 
 vi.mock("@/lib/server/store", () => ({
   getCurrentStore: () => getCurrentStore(),
@@ -13,6 +15,13 @@ vi.mock("@/lib/server/store", () => ({
 vi.mock("@/lib/server/pedidos", () => ({
   getOrderMetrics: (...args: unknown[]) => getOrderMetrics(...args),
 }));
+vi.mock("@/lib/period-filter", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/period-filter")>();
+  return {
+    ...actual,
+    resolvePeriodRange: (...args: unknown[]) => resolvePeriodRange(...args),
+  };
+});
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ from }),
 }));
@@ -20,9 +29,14 @@ vi.mock("next/navigation", () => ({
   redirect: () => {
     throw new Error("NEXT_REDIRECT");
   },
+  useRouter: () => ({ replace: vi.fn() }),
 }));
 
 const STORE_ID = "11111111-1111-4111-8111-111111111111";
+const RANGE: PeriodRange = {
+  from: new Date("2026-07-01T03:00:00.000Z"),
+  to: new Date("2026-07-15T12:00:00.000Z"),
+};
 
 function makeStore(plan: Plan, trialEndsAt: string | null = null): StoreSettings {
   return {
@@ -63,15 +77,17 @@ function setupProductsQuery() {
   from.mockImplementation(() => chain);
 }
 
-async function renderPage() {
+async function renderPage(params: { periodo?: string; de?: string; ate?: string } = {}) {
   const { default: DashboardPage } = await import("@/app/painel/page");
-  return render(await DashboardPage());
+  return render(await DashboardPage({ searchParams: Promise.resolve(params) }));
 }
 
 beforeEach(() => {
   getCurrentStore.mockReset();
   getOrderMetrics.mockReset();
   from.mockReset();
+  resolvePeriodRange.mockReset();
+  resolvePeriodRange.mockReturnValue(RANGE);
   setupProductsQuery();
   getOrderMetrics.mockResolvedValue({
     ordersThisMonth: 7,
@@ -81,27 +97,28 @@ beforeEach(() => {
 });
 
 describe("/painel — gate de plano dos cards de ROI (ORD-29)", () => {
-  it("no plano Free não busca métricas e mostra o aviso de upgrade", async () => {
+  it("no plano Free não busca métricas nem resolve o período, e mostra o aviso de upgrade", async () => {
     getCurrentStore.mockResolvedValue(makeStore("free"));
 
     const { container } = await renderPage();
 
     expect(getOrderMetrics).not.toHaveBeenCalled();
+    expect(resolvePeriodRange).not.toHaveBeenCalled();
     expect(screen.getByText("Disponível a partir do plano Starter")).toBeTruthy();
-    expect(screen.queryByText("Pedidos no mês")).toBeNull();
+    expect(screen.queryByText("Pedidos")).toBeNull();
     expect(container.textContent).not.toContain("R$");
   });
 });
 
 describe("/painel — cards de ROI nos planos pagos (ORD-30)", () => {
-  it("no plano Starter busca as métricas da loja e mostra os três cards", async () => {
+  it("no plano Starter busca as métricas da loja com o range resolvido e mostra os três cards", async () => {
     getCurrentStore.mockResolvedValue(makeStore("starter"));
 
     await renderPage();
 
-    expect(getOrderMetrics).toHaveBeenCalledWith(STORE_ID);
-    expect(screen.getByText("Pedidos no mês")).toBeTruthy();
-    expect(screen.getByText("Vendas confirmadas no mês")).toBeTruthy();
+    expect(getOrderMetrics).toHaveBeenCalledWith(STORE_ID, RANGE);
+    expect(screen.getByText("Pedidos")).toBeTruthy();
+    expect(screen.getByText("Vendas confirmadas")).toBeTruthy();
     expect(screen.getByText("Aguardando confirmação")).toBeTruthy();
   });
 
@@ -112,5 +129,31 @@ describe("/painel — cards de ROI nos planos pagos (ORD-30)", () => {
 
     expect(getOrderMetrics).not.toHaveBeenCalled();
     expect(screen.getByText("Disponível a partir do plano Starter")).toBeTruthy();
+  });
+});
+
+describe("/painel — filtro de período (ORD-46)", () => {
+  it("repassa periodo de searchParams para resolvePeriodRange", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("starter"));
+
+    await renderPage({ periodo: "hoje" });
+
+    expect(resolvePeriodRange).toHaveBeenCalledWith({
+      periodo: "hoje",
+      de: undefined,
+      ate: undefined,
+    });
+  });
+
+  it("repassa o período customizado (de/ate) para resolvePeriodRange", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("starter"));
+
+    await renderPage({ de: "2026-07-01", ate: "2026-07-10" });
+
+    expect(resolvePeriodRange).toHaveBeenCalledWith({
+      periodo: undefined,
+      de: "2026-07-01",
+      ate: "2026-07-10",
+    });
   });
 });

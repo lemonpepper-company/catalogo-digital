@@ -7,6 +7,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Card } from "@/components/ui/Card";
 import { Toast } from "@/components/ui/Toast";
 import { RecursoBloqueado } from "@/components/painel/RecursoBloqueado";
+import { PeriodoFiltro } from "@/components/painel/PeriodoFiltro";
 import type { OrderMetrics } from "@/lib/order-metrics";
 import type { StoreProduct } from "@/lib/types";
 import { useDashboard } from "./use-dashboard";
@@ -16,6 +17,9 @@ interface DashboardClientProps {
   storeName: string;
   catalogUrl: string;
   metrics: OrderMetrics | null;
+  periodo?: string;
+  de?: string;
+  ate?: string;
 }
 
 export function DashboardClient({
@@ -23,6 +27,9 @@ export function DashboardClient({
   storeName,
   catalogUrl,
   metrics,
+  periodo,
+  de,
+  ate,
 }: DashboardClientProps) {
   const { copied, toast, handleCopy, activeProducts, soldOutProducts, total, orderStats } =
     useDashboard(products, catalogUrl, metrics);
@@ -70,10 +77,13 @@ export function DashboardClient({
           </Link>
         </div>
         {orderStats ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {orderStats.map((stat) => (
-              <StatCard key={stat.label} value={stat.value} label={stat.label} />
-            ))}
+          <div className="flex flex-col gap-3.5">
+            <PeriodoFiltro basePath="/painel" periodo={periodo} de={de} ate={ate} />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {orderStats.map((stat) => (
+                <StatCard key={stat.label} value={stat.value} label={stat.label} />
+              ))}
+            </div>
           </div>
         ) : (
           <RecursoBloqueado
