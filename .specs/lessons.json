@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 8,
+  "next_id": 12,
   "lessons": [
     {
       "id": "L-001",
@@ -130,6 +130,78 @@
       ],
       "created": "2026-07-29T01:56:33Z",
       "last_seen": "2026-07-29T01:56:33Z"
+    },
+    {
+      "id": "L-008",
+      "key": "surviving_mutant::exercite campos opcionais do payload nos dois estados ausente e null expl cito ao testar a camada que persiste sen o o coalescing para null fica sem cobertura",
+      "text": "Exercite campos opcionais do payload nos dois estados — ausente e null explícito — ao testar a camada que persiste, senão o coalescing para null fica sem cobertura.",
+      "signal": "surviving_mutant",
+      "scope": "app/actions",
+      "status": "candidate",
+      "features": [
+        "analytics-nativo"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "app/actions/eventos.ts:69 (sensor mutation 2) (app/actions)"
+      ],
+      "created": "2026-07-30T21:47:21Z",
+      "last_seen": "2026-07-30T21:47:21Z"
+    },
+    {
+      "id": "L-009",
+      "key": "spec_precision_gap::decida a precis o de exibi o de um valor derivado na spec antes de trav la em teste caso contr rio o teste vira a nica fonte de verdade de um n mero que ningu m especificou",
+      "text": "Decida a precisão de exibição de um valor derivado na spec antes de travá-la em teste; caso contrário o teste vira a única fonte de verdade de um número que ninguém especificou.",
+      "signal": "spec_precision_gap",
+      "scope": "lib",
+      "status": "candidate",
+      "features": [
+        "analytics-nativo"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "lib/catalog-metrics.ts:29 / __tests__/catalog-metrics.test.ts:11 (lib)"
+      ],
+      "created": "2026-07-30T21:47:21Z",
+      "last_seen": "2026-07-30T21:47:21Z"
+    },
+    {
+      "id": "L-010",
+      "key": "spec_precision_gap::uma ac cuja garantia composicional entre dois m dulos precisa de um teste que atravesse os dois ou de nota expl cita de que a cobertura indireta",
+      "text": "Uma AC cuja garantia é composicional entre dois módulos precisa de um teste que atravesse os dois, ou de nota explícita de que a cobertura é indireta.",
+      "signal": "spec_precision_gap",
+      "scope": "app/painel",
+      "status": "candidate",
+      "features": [
+        "analytics-nativo"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "ANL-19 / __tests__/DashboardPage.test.tsx:213 (app/painel)"
+      ],
+      "created": "2026-07-30T21:47:21Z",
+      "last_seen": "2026-07-30T21:47:21Z"
+    },
+    {
+      "id": "L-011",
+      "key": "spec_deviation::quando um disparo de telemetria precisa ficar fora do try catch do caminho cr tico proteja o call site mesmo que o helper j engula erros e registre a redund ncia",
+      "text": "Quando um disparo de telemetria precisa ficar fora do try/catch do caminho crítico, proteja o call site mesmo que o helper já engula erros, e registre a redundância.",
+      "signal": "spec_deviation",
+      "scope": "app/[slug]",
+      "status": "candidate",
+      "features": [
+        "analytics-nativo"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "app/[slug]/use-catalogo.ts:23-38 SPEC_DEVIATION (app/[slug])"
+      ],
+      "created": "2026-07-30T21:47:21Z",
+      "last_seen": "2026-07-30T21:47:21Z"
     }
   ]
 }
