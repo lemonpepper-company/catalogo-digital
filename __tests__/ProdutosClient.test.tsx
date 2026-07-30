@@ -373,3 +373,65 @@ describe("ProdutosClient — feedback de carregamento (ORD-50)", () => {
     ).toBeTruthy();
   });
 });
+
+describe("ProdutosClient — produtos ocultos pelo limite do plano", () => {
+  function renderComOcultos(
+    over: {
+      products?: StoreProduct[];
+      hiddenCount: number;
+      visibleIds: string[];
+    }
+  ) {
+    return render(
+      <ProdutosClient
+        products={over.products ?? [makeProduct()]}
+        maxProducts={50}
+        limits={{ ...baseLimits, maxProducts: 50 }}
+        counts={baseCounts}
+        hiddenCount={over.hiddenCount}
+        visibleIds={over.visibleIds}
+        page={1}
+        totalPages={1}
+        categories={[]}
+        {...noFilters}
+      />
+    );
+  }
+
+  it("sem truncamento não mostra banner", () => {
+    renderComOcultos({ hiddenCount: 0, visibleIds: [] });
+    expect(screen.queryByText(/ocultos na sua vitrine/i)).toBeNull();
+  });
+
+  it("com truncamento mostra o banner com a contagem", () => {
+    renderComOcultos({ hiddenCount: 32, visibleIds: [] });
+    expect(screen.getByText(/32 produtos estão ocultos na sua vitrine/i)).toBeTruthy();
+  });
+
+  it("usa singular quando só um produto está oculto", () => {
+    renderComOcultos({ hiddenCount: 1, visibleIds: [] });
+    expect(screen.getByText(/1 produto está oculto na sua vitrine/i)).toBeTruthy();
+  });
+
+  it("marca com selo o produto ativo fora de visibleIds", () => {
+    renderComOcultos({
+      products: [
+        makeProduct({ id: "p1", isActive: true }),
+        makeProduct({ id: "p2", name: "Blusa linho", isActive: true }),
+      ],
+      hiddenCount: 1,
+      visibleIds: ["p1"],
+    });
+    // Dois layouts (mobile + desktop) renderizam o selo do mesmo produto.
+    expect(screen.getAllByText("Oculto na vitrine")).toHaveLength(2);
+  });
+
+  it("não marca produto inativo — ele já está fora da vitrine pelo toggle", () => {
+    renderComOcultos({
+      products: [makeProduct({ id: "p2", isActive: false })],
+      hiddenCount: 1,
+      visibleIds: ["p1"],
+    });
+    expect(screen.queryByText("Oculto na vitrine")).toBeNull();
+  });
+});

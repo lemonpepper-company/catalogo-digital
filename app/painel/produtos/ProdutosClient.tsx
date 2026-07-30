@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Pencil, Trash2, Package, Search, Star } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Search, Star, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Switch } from "@/components/ui/Switch";
@@ -22,12 +22,15 @@ import { useProdutosFiltros } from "./use-produtos-filtros";
 import { Pagination } from "@/components/ui/Pagination";
 import type { ProductCounts } from "./use-produtos";
 import { NO_CATEGORY_VALUE, STATUS_OPTIONS } from "@/lib/product-filters";
+import { vtrineWhatsAppHref } from "@/lib/contact";
 
 interface ProdutosClientProps {
   products: StoreProduct[];
   maxProducts: number;
   limits: PlanLimits;
   counts: ProductCounts;
+  hiddenCount: number;
+  visibleIds: string[];
   page: number;
   totalPages: number;
   categories: { id: string; name: string }[];
@@ -41,6 +44,8 @@ export function ProdutosClient({
   maxProducts,
   limits,
   counts,
+  hiddenCount,
+  visibleIds,
   page,
   totalPages,
   categories,
@@ -48,6 +53,7 @@ export function ProdutosClient({
   initialCategoria,
   initialStatus,
 }: ProdutosClientProps) {
+  const visibleIdSet = new Set(visibleIds);
   const [importOpen, setImportOpen] = useState(false);
   const {
     confirm,
@@ -92,6 +98,30 @@ export function ProdutosClient({
 
   return (
     <div className="flex flex-col gap-6 w-full lg:max-w-content">
+      {hiddenCount > 0 && (
+        <Card className="flex flex-col sm:flex-row sm:items-center gap-3 border-gold/40">
+          <div className="flex items-start gap-3 flex-1">
+            <EyeOff size={18} className="text-gold flex-shrink-0 mt-0.5" />
+            <p className="font-body text-[14px] text-graphite">
+              {hiddenCount === 1
+                ? "1 produto está oculto na sua vitrine"
+                : `${hiddenCount} produtos estão ocultos na sua vitrine`}{" "}
+              porque o seu plano exibe até {maxProducts}. Nada foi apagado — tudo
+              volta ao fazer upgrade.
+            </p>
+          </div>
+          <a
+            href={vtrineWhatsAppHref(
+              "Olá! Quero fazer upgrade para exibir todos os meus produtos na vitrine."
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-display font-semibold text-[14px] text-gold hover:underline whitespace-nowrap"
+          >
+            Fazer upgrade →
+          </a>
+        </Card>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <h1 className="font-display font-semibold text-[28px] text-obsidian">
@@ -290,6 +320,7 @@ export function ProdutosClient({
                     isSoldOut || p.stock <= 5
                       ? "text-soldout font-semibold"
                       : "text-graphite";
+                  const hiddenByPlan = p.isActive && !visibleIdSet.has(p.id);
                   return (
                     <div
                       key={p.id}
@@ -312,6 +343,7 @@ export function ProdutosClient({
                             <div className="font-body text-[13px] text-graphite mt-0.5">
                               {formatCents(p.priceCents)}
                             </div>
+                            {hiddenByPlan && <HiddenBadge />}
                           </div>
                           <ProductActions
                             editHref={`/painel/produtos/${p.id}`}
@@ -348,6 +380,7 @@ export function ProdutosClient({
                             <div className="font-body text-[13px] text-graphite mt-0.5">
                               {formatCents(p.priceCents)}
                             </div>
+                            {hiddenByPlan && <HiddenBadge />}
                           </div>
                         </div>
 
@@ -439,6 +472,15 @@ function ProductThumbnail({
         <Image src={src} alt={alt} fill sizes="52px" className="object-cover" />
       )}
     </div>
+  );
+}
+
+function HiddenBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 mt-1 font-body text-[11px] text-gold">
+      <EyeOff size={12} />
+      Oculto na vitrine
+    </span>
   );
 }
 

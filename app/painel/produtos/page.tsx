@@ -39,6 +39,7 @@ export default async function ProdutosPage({
 }) {
   const store = await getCurrentStore();
   if (!store) redirect("/login");
+  const limits = getPlanLimits(store.plan, store.trialEndsAt);
 
   const supabase = await createClient();
   const { page: pageParam, q, categoria, status } = await searchParams;
@@ -113,13 +114,37 @@ export default async function ProdutosPage({
     .range(from, to);
 
   const products = (data ?? []).map(mapProduct);
-  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+
+  // A vitrine exibe apenas is_active = true (lib/server/catalog.ts), então o
+  // truncamento incide só sobre ativos. `active` não serve aqui: ele é
+  // is_active AND stock > 0, e a vitrine exibe esgotados.
+  const activeOnVitrine = (storeTotal ?? 0) - (inactive ?? 0);
+  const hiddenCount = Number.isFinite(limits.maxProducts)
+    ? Math.max(0, activeOnVitrine - limits.maxProducts)
+    : 0;
+
+  let visibleIds: string[] = [];
+  if (hiddenCount > 0) {
+    // Mesma ordenação e mesmo filtro da vitrine — sem isso o painel marcaria
+    // como oculto um produto que a vitrine está exibindo.
+    const { data: visibleRows } = await supabase
+      .from("products")
+      .select("id")
+      .eq("store_id", store.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(limits.maxProducts);
+    visibleIds = (visibleRows ?? []).map((r) => r.id);
+  }
 
   return (
     <ProdutosClient
       products={products}
       maxProducts={limits.maxProducts}
       limits={limits}
+      hiddenCount={hiddenCount}
+      visibleIds={visibleIds}
       counts={{
         active: active ?? 0,
         soldOut: soldOut ?? 0,
