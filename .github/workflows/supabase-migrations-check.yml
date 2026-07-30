@@ -116,7 +116,7 @@ jobs:
       # Roda o psql de dentro do container do banco para não depender de
       # postgresql-client no runner. `do $$ ... raise exception` faz o passo
       # falhar com exit != 0.
-      - name: Check table privileges (orders/order_items)
+      - name: Check table privileges (orders/order_items, catalog_events)
         run: |
           docker exec -i supabase_db_catalogo-digital \
             psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
@@ -178,6 +178,87 @@ jobs:
             end if;
 
             raise notice 'grants ok: service_role com DML na captura, anon sem nada (tabela e coluna)';
+          end $$;
+
+          -- Mesmo guard para o analytics nativo (catalog_events + funções de
+          -- leitura). Duas armadilhas distintas cobertas aqui:
+          --   1. tabela nova não herda DML para service_role (default ACL Dxtm) —
+          --      sem o grant a Server Action registrarEvento morre em produção
+          --      com a suíte verde, exatamente como aconteceu com orders;
+          --   2. função nova herda EXECUTE para PUBLIC — sem o revoke o anon
+          --      poderia invocar a RPC de métricas de qualquer loja.
+          do $$
+          declare
+            faltando text;
+            vazando  text;
+          begin
+            -- service_role precisa de select + insert para gravar o evento.
+            select string_agg(format('%s:%s', req.tbl, req.priv), ', ' order by req.tbl, req.priv)
+              into faltando
+              from (values
+                ('public.catalog_events', 'select'),
+                ('public.catalog_events', 'insert')
+              ) as req(tbl, priv)
+             where not has_table_privilege('service_role', req.tbl, req.priv);
+
+            if faltando is not null then
+              raise exception 'service_role sem privilegio necessario: %', faltando;
+            end if;
+
+            -- anon não pode ter NENHUM privilégio em catalog_events (ANL-10/11),
+            -- nem de tabela nem por coluna (mesmo ponto cego de orders).
+            select string_agg(
+                     format('%s.%s:%s', c.table_name, c.column_name, p.priv),
+                     ', ' order by c.table_name, c.column_name, p.priv)
+              into vazando
+              from information_schema.columns c
+              cross join (values ('select'), ('insert'), ('update'), ('references')) as p(priv)
+             where c.table_schema = 'public'
+               and c.table_name = 'catalog_events'
+               and has_column_privilege('anon',
+                     format('public.%I', c.table_name), c.column_name, p.priv);
+
+            if vazando is not null then
+              raise exception 'anon com privilegio de coluna em catalog_events: %', vazando;
+            end if;
+
+            select string_agg(format('catalog_events:%s', p.priv), ', ' order by p.priv)
+              into vazando
+              from (values ('delete'), ('truncate'), ('trigger'), ('maintain')) as p(priv)
+             where has_table_privilege('anon', 'public.catalog_events', p.priv);
+
+            if vazando is not null then
+              raise exception 'anon com privilegio de tabela em catalog_events: %', vazando;
+            end if;
+
+            -- Funções de leitura: anon (e PUBLIC, de quem anon herda) sem EXECUTE.
+            select string_agg(f.sig, ', ' order by f.sig)
+              into vazando
+              from (values
+                ('public.get_catalog_metrics(uuid,timestamptz,timestamptz)'),
+                ('public.get_top_viewed_products(uuid,timestamptz,timestamptz,integer)')
+              ) as f(sig)
+             where has_function_privilege('anon', f.sig, 'execute');
+
+            if vazando is not null then
+              raise exception 'anon com EXECUTE nas funcoes de metricas: %', vazando;
+            end if;
+
+            -- E o lojista autenticado precisa conseguir executá-las (a RLS da
+            -- tabela é que limita o resultado à própria loja).
+            select string_agg(f.sig, ', ' order by f.sig)
+              into faltando
+              from (values
+                ('public.get_catalog_metrics(uuid,timestamptz,timestamptz)'),
+                ('public.get_top_viewed_products(uuid,timestamptz,timestamptz,integer)')
+              ) as f(sig)
+             where not has_function_privilege('authenticated', f.sig, 'execute');
+
+            if faltando is not null then
+              raise exception 'authenticated sem EXECUTE nas funcoes de metricas: %', faltando;
+            end if;
+
+            raise notice 'grants ok: service_role grava catalog_events, anon sem nada (tabela, coluna e funcoes)';
           end $$;
           SQL
 

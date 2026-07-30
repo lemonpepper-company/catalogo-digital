@@ -94,7 +94,7 @@ Phase 4 (Sequencial — integração final):
 
 ---
 
-### T2: Migration funções de leitura (`get_catalog_metrics`, `get_top_viewed_products`)
+### T2: Migration funções de leitura (`get_catalog_metrics`, `get_top_viewed_products`) — ✅ Concluída (`58d2552`)
 
 **What**: Criar migration com as duas funções `language sql stable` **security invoker** conforme assinaturas do design — `p_from`/`p_to` **anuláveis** (`(p_from is null or occurred_at >= p_from) and (p_to is null or occurred_at <= p_to)`, cobrindo presets, range customizado e "tudo") — com `revoke execute ... from public, anon` e `grant execute ... to authenticated, service_role`.
 **Where**: `supabase/migrations/<timestamp>_catalog_metrics_functions.sql`
@@ -106,10 +106,10 @@ Phase 4 (Sequencial — integração final):
 
 **Done when**:
 
-- [ ] Migration aplica sem erro
-- [ ] Seed SQL temporário (2 lojas, eventos dos 4 tipos, visitantes repetidos entre dias) → `get_catalog_metrics` devolve visits/únicos/buy_clicks/bag_visitors esperados (únicos SEM supercontagem entre dias) em 3 recortes: from+to, só from e `null`/`null` ("tudo"); `get_top_viewed_products` ordena por views desc e respeita `p_limit`; seed removido
-- [ ] `select has_function_privilege('anon','public.get_catalog_metrics(uuid,timestamptz,timestamptz)','execute');` → `false` (idem `get_top_viewed_products(uuid,timestamptz,timestamptz,integer)`)
-- [ ] Gate: `npx vitest run && npm run build`
+- [x] Migration aplica sem erro
+- [x] Seed SQL temporário (2 lojas, eventos dos 4 tipos, visitantes repetidos entre dias) → `get_catalog_metrics` devolve visits/únicos/buy_clicks/bag_visitors esperados (únicos SEM supercontagem entre dias) em 3 recortes: from+to, só from e `null`/`null` ("tudo"); `get_top_viewed_products` ordena por views desc e respeita `p_limit`; seed removido
+- [x] `select has_function_privilege('anon','public.get_catalog_metrics(uuid,timestamptz,timestamptz)','execute');` → `false` (idem `get_top_viewed_products(uuid,timestamptz,timestamptz,integer)`)
+- [x] Gate: `npx vitest run && npm run build`
 
 **Tests**: none (camada SQL) · **Gate**: build
 
@@ -117,7 +117,7 @@ Phase 4 (Sequencial — integração final):
 
 ---
 
-### T3: Estender guard de privilégios no CI
+### T3: Estender guard de privilégios no CI — ✅ Concluída
 
 **What**: No passo `Check table privileges` de `.github/workflows/supabase-migrations-check.yml`, adicionar: `service_role` com `select`+`insert` em `catalog_events`; `anon` com zero privilégio de tabela E de coluna em `catalog_events` (mesma técnica de `information_schema.column_privileges` usada para `orders`); `has_function_privilege('anon', …)` = false para `get_catalog_metrics(uuid,timestamptz,timestamptz)` e `get_top_viewed_products(uuid,timestamptz,timestamptz,integer)`.
 **Where**: `.github/workflows/supabase-migrations-check.yml`
@@ -129,10 +129,10 @@ Phase 4 (Sequencial — integração final):
 
 **Done when**:
 
-- [ ] Bloco SQL novo executado manualmente via `docker exec -i supabase_db_catalogo-digital psql ...` contra o banco local migrado → passa
-- [ ] Teste negativo: rodar o mesmo bloco após `revoke insert on public.catalog_events from service_role` em transação (`begin; revoke ...; <bloco>; rollback;`) → falha como esperado
-- [ ] YAML válido (`git diff` revisado; sintaxe conferida)
-- [ ] Gate: `npx vitest run && npm run build`
+- [x] Passo do CI extraído do YAML e executado como o CI faria contra o banco local migrado → exit 0
+- [x] Testes negativos (3): `revoke insert ... from service_role`, `grant select (visitor_id) ... to anon` e `grant execute ... to anon` → cada um faz o passo falhar com exit 3 e mensagem específica; privilégios restaurados e passo volta a exit 0
+- [x] YAML válido (parseado com js-yaml; passo extraído programaticamente)
+- [x] Gate: `npx vitest run && npm run build`
 
 **Tests**: none (workflow) · **Gate**: build
 
