@@ -109,8 +109,12 @@ A função devolve o plano como texto; **a decisão fica em TypeScript**, via `g
 
 A listagem é paginada e filtrada ([use-produtos.ts](../../../app/painel/produtos/use-produtos.ts)), então um card não conhece sua posição no ranking global. A página passa a calcular no servidor e repassar ao client:
 
-- `hiddenCount`: `total - maxProducts` (zero quando não há truncamento)
-- `visibleIds`: os IDs que sobrevivem, na mesma ordenação da vitrine
+- `hiddenCount`: `max(0, ativos - maxProducts)`, zero quando o plano não tem teto
+- `visibleIds`: os IDs que sobrevivem, na mesma ordenação e com o mesmo filtro da vitrine
+
+**A base de cálculo são os produtos ativos, não o total.** [server/catalog.ts:55](../../../lib/server/catalog.ts) filtra `is_active = true`, então o truncamento incide só sobre eles. Usar o total contaria produtos que já estão fora da vitrine por decisão do lojista e inflaria a contagem. O número sai de `storeTotal - inactive`, contagens que a página já faz — sem query nova. Atenção: o `active` que a página calcula hoje é `is_active AND stock > 0` e **não** serve aqui, porque a vitrine exibe esgotados.
+
+Pelo mesmo motivo, o selo só aparece em produto **ativo** fora de `visibleIds`. Produto inativo já está fora da vitrine pelo toggle do lojista; marcá-lo como limite de plano seria mentira.
 
 `visibleIds` é barato por construção: só existe quando há truncamento, e truncamento só ocorre em plano com teto finito — no máximo 50 IDs. Um card exibe o selo quando seu `id` não está no conjunto, o que funciona igual em qualquer página e sob qualquer filtro.
 
