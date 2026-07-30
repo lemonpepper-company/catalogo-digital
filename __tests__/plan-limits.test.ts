@@ -42,8 +42,8 @@ describe("getPlanLimits", () => {
 
   it("starter tem limites intermediários", () => {
     expect(getPlanLimits("starter", null)).toEqual({
-      maxProducts: 30,
-      maxCategories: 5,
+      maxProducts: 50,
+      maxCategories: 7,
       maxPhotos: 3,
       hasOrderHistory: true,
       maxFeaturedProducts: 3,
