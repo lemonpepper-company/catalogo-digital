@@ -69,3 +69,20 @@ describe("MobileTabBar — item Pedidos (ORD-16)", () => {
     ).toBe("page");
   });
 });
+
+describe("MobileTabBar — Dashboard exclusiva de planos pagos", () => {
+  it("esconde a aba Dashboard quando hideDashboard é true", () => {
+    render(<MobileTabBar hideDashboard />);
+
+    expect(screen.queryByRole("link", { name: "Dashboard" })).toBeNull();
+    const nav = screen.getByRole("navigation", { name: "Navegação do painel" });
+    const labels = Array.from(nav.querySelectorAll("a")).map((a) => a.textContent);
+    expect(labels).toEqual(["Produtos", "Pedidos", "Categorias", "Estilo", "Config."]);
+  });
+
+  it("mostra a aba Dashboard por padrão (hideDashboard ausente)", () => {
+    render(<MobileTabBar />);
+
+    expect(screen.getByRole("link", { name: "Dashboard" })).toBeTruthy();
+  });
+});

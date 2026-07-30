@@ -42,7 +42,7 @@ function TabItem({ href, icon, label, active }: TabItemProps) {
   );
 }
 
-export function MobileTabBar() {
+export function MobileTabBar({ hideDashboard = false }: { hideDashboard?: boolean }) {
   const pathname = usePathname();
 
   const isActive = (path: string) =>
@@ -53,12 +53,14 @@ export function MobileTabBar() {
       aria-label="Navegação do painel"
       className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch h-16 bg-ivory border-t border-sand/50"
     >
-      <TabItem
-        href="/painel"
-        icon={<LayoutDashboard size={20} />}
-        label="Dashboard"
-        active={isActive("/painel")}
-      />
+      {!hideDashboard && (
+        <TabItem
+          href="/painel"
+          icon={<LayoutDashboard size={20} />}
+          label="Dashboard"
+          active={isActive("/painel")}
+        />
+      )}
       <TabItem
         href="/painel/produtos"
         icon={<Tag size={20} />}
