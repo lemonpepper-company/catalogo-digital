@@ -156,6 +156,25 @@ describe("registrarEvento — gravação (ANL-10)", () => {
     });
   });
 
+  // O schema aceita productId ausente (`.nullish()`), e é assim que o payload
+  // chega de verdade: JSON.stringify descarta `undefined`. Sem este caso, a
+  // normalização `productId ?? null` do insert nunca é exercitada.
+  it("grava product_id null quando a chave productId nem vem no payload", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarEvento = await loadAction();
+    const { productId: _omit, ...semProduto } = payload({ eventType: "catalog_visit" });
+
+    const result = await registrarEvento(semProduto);
+
+    expect(result).toEqual({ ok: true });
+    expect(insertedRow(made)).toEqual({
+      store_id: STORE_ID,
+      event_type: "catalog_visit",
+      product_id: null,
+      visitor_id: VISITOR_ID,
+    });
+  });
+
   it("grava buy_click sem produto", async () => {
     const made = setupSupabase(happyPlan());
     const registrarEvento = await loadAction();
