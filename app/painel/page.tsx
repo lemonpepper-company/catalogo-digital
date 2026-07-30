@@ -39,13 +39,11 @@ export default async function DashboardPage({
     .order("created_at", { ascending: false });
 
   const products = (data ?? []).map(mapProduct);
-  const catalogUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/${store.slug}`;
 
   return (
     <DashboardClient
       products={products}
       storeName={store.name}
-      catalogUrl={catalogUrl}
       metrics={metrics}
       periodo={params.periodo}
       de={params.de}

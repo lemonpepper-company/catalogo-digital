@@ -29,12 +29,7 @@ function makeProduct(overrides: Partial<StoreProduct> = {}): StoreProduct {
 
 function renderDashboard(metrics: OrderMetrics | null, products: StoreProduct[] = []) {
   return render(
-    <DashboardClient
-      products={products}
-      storeName="Ateliê Mira"
-      catalogUrl="https://vtrine.test/ateliemira"
-      metrics={metrics}
-    />
+    <DashboardClient products={products} storeName="Ateliê Mira" metrics={metrics} />
   );
 }
 
@@ -141,5 +136,20 @@ describe("DashboardClient — produtos recentes removido (ORD-47)", () => {
 
     expect(screen.queryByText("Produtos recentes")).toBeNull();
     expect(screen.queryByText("Vestido midi")).toBeNull();
+  });
+});
+
+describe("DashboardClient — dashboard paga não tem link de catálogo nem novo produto (ORD-48)", () => {
+  it("não mostra o botão de cadastrar produto", () => {
+    renderDashboard(null);
+
+    expect(screen.queryByRole("link", { name: /cadastrar produto/i })).toBeNull();
+  });
+
+  it("não mostra o card de link do catálogo", () => {
+    renderDashboard(null);
+
+    expect(screen.queryByText("Link do catálogo")).toBeNull();
+    expect(screen.queryByRole("button", { name: /copiar link/i })).toBeNull();
   });
 });
