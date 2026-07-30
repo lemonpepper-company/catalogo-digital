@@ -3,6 +3,7 @@ import { DEFAULT_ACCENT_COLOR } from "@/lib/theme";
 import type { Product, ProductColor, Store } from "@/lib/types";
 import { getPlanLimits, type Plan } from "@/lib/plan-limits";
 import { resolveTheme } from "@/lib/theme-options";
+import { applyPlanVisibility } from "@/lib/plan-visibility";
 
 // Placeholder neutro (cor linen) para produtos sem imagem. next/image aceita data URIs.
 export const PLACEHOLDER_IMAGE =
@@ -102,8 +103,7 @@ export function mapPublicStore(
 
 export function mapPublicProduct(
   row: PublicProductRow,
-  categoryName: string | null,
-  allowFeatured: boolean
+  categoryName: string | null
 ): Product {
   return {
     id: row.id,
@@ -117,7 +117,7 @@ export function mapPublicProduct(
     soldSizes: row.sold_sizes ?? [],
     colors: row.colors ?? [],
     isNew: row.is_new,
-    isFeatured: allowFeatured && row.is_featured,
+    isFeatured: row.is_featured,
     stock: row.stock,
     active: row.is_active,
   };
@@ -175,11 +175,12 @@ export function resolveCatalog(
     return { status: "hidden", store: mapPublicStore(storeRow, [], effectivePlan) };
   }
   const limits = getPlanLimits(effectivePlan, null);
-  const allowFeatured = limits.maxFeaturedProducts > 0;
-  const nameById = new Map(categoryRows.map((c) => [c.id, c.name]));
-  const products = productRows.map((p) =>
-    mapPublicProduct(p, p.category_id ? nameById.get(p.category_id) ?? null : null, allowFeatured)
+  const { products: visibleRows, categories: visibleCategories } =
+    applyPlanVisibility(productRows, categoryRows, limits);
+  const nameById = new Map(visibleCategories.map((c) => [c.id, c.name]));
+  const products = visibleRows.map((p) =>
+    mapPublicProduct(p, p.category_id ? nameById.get(p.category_id) ?? null : null)
   );
-  const pills = computePills(categoryRows, productRows);
+  const pills = computePills(visibleCategories, visibleRows);
   return { status: "ok", store: mapPublicStore(storeRow, pills, effectivePlan), products };
 }
