@@ -70,7 +70,7 @@ Phase 4 (Sequencial — integração final):
 
 ## Task Breakdown
 
-### T1: Migration `catalog_events` (tabela + RLS + grants)
+### T1: Migration `catalog_events` (tabela + RLS + grants) — ✅ Concluída (`3f768a7`)
 
 **What**: Criar `supabase/migrations/<timestamp>_catalog_events.sql` com a DDL exata do design (tabela, 3 índices, RLS + policy own-store para `authenticated`, revokes, `grant select to authenticated`, `grant select, insert to service_role`). Timestamp mais novo que toda migration existente (guard de ordem do CI).
 **Where**: `supabase/migrations/`
@@ -82,11 +82,11 @@ Phase 4 (Sequencial — integração final):
 
 **Done when**:
 
-- [ ] `npx supabase migration up` aplica sem erro no banco local
-- [ ] `select has_table_privilege('service_role','public.catalog_events','insert') and has_table_privilege('service_role','public.catalog_events','select');` → `true`
-- [ ] `select count(*) from information_schema.role_table_grants where table_name='catalog_events' and grantee='anon';` → `0` e mesma consulta em `column_privileges` → `0`
-- [ ] Insert com `event_type` fora do check → erro; insert válido via psql (role postgres) → ok; linha de teste removida
-- [ ] Gate: `npx vitest run && npm run build` (suíte intacta: ≥ 837)
+- [x] `npx supabase migration up` aplica sem erro no banco local
+- [x] `select has_table_privilege('service_role','public.catalog_events','insert') and has_table_privilege('service_role','public.catalog_events','select');` → `true`
+- [x] `select count(*) from information_schema.role_table_grants where table_name='catalog_events' and grantee='anon';` → `0` e mesma consulta em `column_privileges` → `0`
+- [x] Insert com `event_type` fora do check → erro; insert válido via psql (role postgres) → ok; linha de teste removida (rollback)
+- [x] Gate: `npx vitest run && npm run build` (837 testes verdes, build ok)
 
 **Tests**: none (matriz: camada SQL) · **Gate**: build
 
