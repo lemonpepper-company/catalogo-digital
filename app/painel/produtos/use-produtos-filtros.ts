@@ -8,7 +8,8 @@ const DEBOUNCE_MS = 400;
 export function useProdutosFiltros(
   initialQ: string,
   initialCategoria: string,
-  initialStatus: string
+  initialStatus: string,
+  startTransition: (callback: () => void) => void
 ) {
   const router = useRouter();
   const [q, setQ] = useState(initialQ);
@@ -23,7 +24,9 @@ export function useProdutosFiltros(
     if (nextCategoria) params.set("categoria", nextCategoria);
     if (nextStatus) params.set("status", nextStatus);
     const qs = params.toString();
-    router.replace(`/painel/produtos${qs ? `?${qs}` : ""}`, { scroll: false });
+    startTransition(() => {
+      router.replace(`/painel/produtos${qs ? `?${qs}` : ""}`, { scroll: false });
+    });
   };
 
   const onQChange = (value: string) => {

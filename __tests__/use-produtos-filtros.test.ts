@@ -7,6 +7,8 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
 }));
 
+const startTransition = (callback: () => void) => callback();
+
 describe("useProdutosFiltros", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -18,13 +20,13 @@ describe("useProdutosFiltros", () => {
   });
 
   it("não chama router.replace imediatamente ao digitar", () => {
-    const { result } = renderHook(() => useProdutosFiltros("", "", ""));
+    const { result } = renderHook(() => useProdutosFiltros("", "", "", startTransition));
     act(() => result.current.onQChange("vestido"));
     expect(replace).not.toHaveBeenCalled();
   });
 
   it("chama router.replace com ?q= após o debounce de 400ms", () => {
-    const { result } = renderHook(() => useProdutosFiltros("", "", ""));
+    const { result } = renderHook(() => useProdutosFiltros("", "", "", startTransition));
     act(() => result.current.onQChange("vestido"));
     act(() => vi.advanceTimersByTime(400));
     expect(replace).toHaveBeenCalledWith("/painel/produtos?q=vestido", {
@@ -33,7 +35,7 @@ describe("useProdutosFiltros", () => {
   });
 
   it("cancela o debounce anterior se o usuário digitar de novo antes de 400ms", () => {
-    const { result } = renderHook(() => useProdutosFiltros("", "", ""));
+    const { result } = renderHook(() => useProdutosFiltros("", "", "", startTransition));
     act(() => result.current.onQChange("ves"));
     act(() => vi.advanceTimersByTime(200));
     act(() => result.current.onQChange("vestido"));
@@ -45,7 +47,7 @@ describe("useProdutosFiltros", () => {
   });
 
   it("aplica o filtro de categoria imediatamente, sem esperar debounce", () => {
-    const { result } = renderHook(() => useProdutosFiltros("", "", ""));
+    const { result } = renderHook(() => useProdutosFiltros("", "", "", startTransition));
     act(() => result.current.onCategoriaChange("cat-1"));
     expect(replace).toHaveBeenCalledWith("/painel/produtos?categoria=cat-1", {
       scroll: false,
@@ -53,7 +55,7 @@ describe("useProdutosFiltros", () => {
   });
 
   it("aplica o filtro de status imediatamente, sem esperar debounce", () => {
-    const { result } = renderHook(() => useProdutosFiltros("", "", ""));
+    const { result } = renderHook(() => useProdutosFiltros("", "", "", startTransition));
     act(() => result.current.onStatusChange("ativo"));
     expect(replace).toHaveBeenCalledWith("/painel/produtos?status=ativo", {
       scroll: false,
@@ -62,7 +64,7 @@ describe("useProdutosFiltros", () => {
 
   it("combina q, categoria e status na mesma URL", () => {
     const { result } = renderHook(() =>
-      useProdutosFiltros("vestido", "cat-1", "")
+      useProdutosFiltros("vestido", "cat-1", "", startTransition)
     );
     act(() => result.current.onStatusChange("ativo"));
     expect(replace).toHaveBeenCalledWith(
@@ -73,7 +75,7 @@ describe("useProdutosFiltros", () => {
 
   it("clearFilters limpa a URL e o estado local de busca", () => {
     const { result } = renderHook(() =>
-      useProdutosFiltros("vestido", "cat-1", "ativo")
+      useProdutosFiltros("vestido", "cat-1", "ativo", startTransition)
     );
     act(() => result.current.clearFilters());
     expect(replace).toHaveBeenCalledWith("/painel/produtos", {
@@ -83,7 +85,7 @@ describe("useProdutosFiltros", () => {
   });
 
   it("não reverte categoria escolhida quando o debounce de busca dispara depois", () => {
-    const { result } = renderHook(() => useProdutosFiltros("", "", ""));
+    const { result } = renderHook(() => useProdutosFiltros("", "", "", startTransition));
     act(() => result.current.onCategoriaChange("cat-1"));
     act(() => result.current.onQChange("vestido"));
     act(() => vi.advanceTimersByTime(400));

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   render,
   screen,
@@ -19,6 +19,21 @@ vi.mock("@/app/actions/produtos", () => ({
   toggleProductActive: vi.fn(async () => ({ ok: true })),
   deleteProduct: vi.fn(async () => ({ ok: true })),
 }));
+
+/**
+ * ProdutosClient possui seu próprio useTransition (compartilhado entre busca,
+ * categoria e status — ORD-50). Com router.replace mockado (síncrono),
+ * controlamos isPending diretamente, mesma técnica de
+ * `__tests__/PedidosClient.test.tsx`.
+ */
+let mockFiltersPending = false;
+vi.mock("react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react")>();
+  return {
+    ...actual,
+    useTransition: () => [mockFiltersPending, (callback: () => void) => callback()],
+  };
+});
 
 function makeProduct(overrides: Partial<StoreProduct> = {}): StoreProduct {
   return {
@@ -55,6 +70,12 @@ const baseLimits: PlanLimits = {
 };
 
 const noFilters = { initialQ: "", initialCategoria: "", initialStatus: "" };
+
+beforeEach(() => {
+  push.mockReset();
+  replace.mockReset();
+  mockFiltersPending = false;
+});
 
 describe("ProdutosClient — contadores e paginação", () => {
   it("mostra o total da loja no cabeçalho, não o tamanho da página atual", () => {
@@ -292,5 +313,64 @@ describe("ProdutosClient — contadores e paginação", () => {
     expect(replace).toHaveBeenCalledWith("/painel/produtos?categoria=cat-1", {
       scroll: false,
     });
+  });
+});
+
+describe("ProdutosClient — feedback de carregamento (ORD-50)", () => {
+  it("mostra o skeleton da listagem no lugar dos produtos reais enquanto o filtro está pendente", () => {
+    mockFiltersPending = true;
+    render(
+      <ProdutosClient
+        products={[makeProduct()]}
+        maxProducts={Infinity}
+        limits={baseLimits}
+        counts={baseCounts}
+        page={1}
+        totalPages={1}
+        categories={[]}
+        {...noFilters}
+      />
+    );
+
+    expect(screen.queryAllByText("Vestido midi")).toHaveLength(0);
+  });
+
+  it("não mostra o skeleton quando o filtro não está pendente", () => {
+    render(
+      <ProdutosClient
+        products={[makeProduct()]}
+        maxProducts={Infinity}
+        limits={baseLimits}
+        counts={baseCounts}
+        page={1}
+        totalPages={1}
+        categories={[]}
+        {...noFilters}
+      />
+    );
+
+    expect(screen.queryAllByText("Vestido midi").length).toBeGreaterThan(0);
+  });
+
+  it("desabilita os filtros de categoria e status enquanto o filtro está pendente", () => {
+    mockFiltersPending = true;
+    render(
+      <ProdutosClient
+        products={[makeProduct()]}
+        maxProducts={Infinity}
+        limits={baseLimits}
+        counts={baseCounts}
+        page={1}
+        totalPages={1}
+        categories={[{ id: "cat-1", name: "Vestidos" }]}
+        {...noFilters}
+      />
+    );
+
+    expect(
+      screen
+        .getByText("Todas as categorias")
+        .closest('[class*="pointer-events-none"]')
+    ).toBeTruthy();
   });
 });
