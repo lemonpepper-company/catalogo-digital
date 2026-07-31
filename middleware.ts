@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createAnonClient } from '@/lib/supabase/server'
 import { isOwnHost, stripWwwPrefix } from '@/lib/domain-routing'
+import { getPlanLimits, type Plan } from '@/lib/plan-limits'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -17,28 +18,42 @@ export async function middleware(request: NextRequest) {
     // ver lib/validation/painel.ts). Remove o prefixo pros dois formatos
     // apontarem pra mesma loja.
     const anon = createAnonClient()
-    const { data: store, error } = await anon
-      .from('stores')
-      .select('slug, custom_domain_verified')
-      .eq('custom_domain', stripWwwPrefix(hostname))
-      .maybeSingle()
+    const { data, error } = await anon.rpc('resolve_custom_domain', {
+      p_hostname: stripWwwPrefix(hostname),
+    })
 
     if (error) {
-      console.error('[middleware] falha ao buscar domínio próprio:', error)
+      console.error('[middleware] falha ao resolver domínio próprio:', error)
     }
 
-    // Três desfechos possíveis:
-    // 1. Nenhuma loja usa esse domínio → host desconhecido, segue o fluxo
-    //    normal (a rota "/" é a landing de marketing, sempre 200).
-    // 2. Loja com domínio verificado → rewrite transparente para a vitrine.
-    // 3. Loja com domínio ainda não verificado → rewrite transparente para a
-    //    página de espera, para não exibir a landing da Vtrine no domínio do
-    //    lojista durante a janela de verificação.
+    const store = data?.[0] ?? null
+
+    // Quatro desfechos:
+    // 1. Nenhuma loja usa esse domínio (ou a RPC falhou) → host desconhecido,
+    //    segue o fluxo normal. Fail-open: preferível a derrubar o site inteiro.
+    // 2. Domínio ainda não verificado → página de espera, para não exibir a
+    //    landing da Vtrine no domínio do lojista durante a verificação.
+    // 3. Verificado, mas o plano não inclui domínio próprio (rebaixamento) →
+    //    redirect para o slug. 307 e nunca 301: o rebaixamento é reversível e
+    //    um 301 fica cacheado no browser do visitante mesmo após o re-upgrade.
+    // 4. Verificado e plano com domínio → rewrite transparente.
     if (store) {
       const url = request.nextUrl.clone()
-      url.pathname = store.custom_domain_verified
-        ? `/${store.slug}`
-        : '/dominio-pendente'
+
+      if (!store.domain_verified) {
+        url.pathname = '/dominio-pendente'
+        return NextResponse.rewrite(url)
+      }
+
+      const limits = getPlanLimits(store.effective_plan as Plan, null)
+      if (!limits.customDomain) {
+        return NextResponse.redirect(
+          new URL(`/${store.store_slug}`, process.env.NEXT_PUBLIC_SITE_URL),
+          307
+        )
+      }
+
+      url.pathname = `/${store.store_slug}`
       return NextResponse.rewrite(url)
     }
   }

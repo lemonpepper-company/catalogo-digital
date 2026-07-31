@@ -33,7 +33,6 @@ describe("getPlanLimits", () => {
       hasOrderHistory: false,
       maxFeaturedProducts: 0,
       themeOptions: false,
-      advancedTheme: false,
       gridDensity: false,
       csvImport: false,
       customDomain: false,
@@ -42,13 +41,12 @@ describe("getPlanLimits", () => {
 
   it("starter tem limites intermediários", () => {
     expect(getPlanLimits("starter", null)).toEqual({
-      maxProducts: 30,
-      maxCategories: 5,
+      maxProducts: 50,
+      maxCategories: 7,
       maxPhotos: 3,
       hasOrderHistory: true,
       maxFeaturedProducts: 3,
       themeOptions: true,
-      advancedTheme: false,
       gridDensity: true,
       csvImport: false,
       customDomain: false,
@@ -63,7 +61,6 @@ describe("getPlanLimits", () => {
       hasOrderHistory: true,
       maxFeaturedProducts: Infinity,
       themeOptions: true,
-      advancedTheme: true,
       gridDensity: true,
       csvImport: true,
       customDomain: true,
@@ -79,7 +76,6 @@ describe("getPlanLimits", () => {
       hasOrderHistory: false,
       maxFeaturedProducts: 0,
       themeOptions: false,
-      advancedTheme: false,
       gridDensity: false,
       csvImport: false,
       customDomain: false,
@@ -95,7 +91,6 @@ describe("getPlanLimits", () => {
       hasOrderHistory: false,
       maxFeaturedProducts: 0,
       themeOptions: false,
-      advancedTheme: false,
       gridDensity: false,
       csvImport: false,
       customDomain: false,
@@ -137,23 +132,20 @@ describe("getPlanLimits — feature flags de personalização", () => {
     const limits = getPlanLimits("free", null);
     expect(limits.maxFeaturedProducts).toBe(0);
     expect(limits.themeOptions).toBe(false);
-    expect(limits.advancedTheme).toBe(false);
     expect(limits.gridDensity).toBe(false);
   });
 
-  it("starter libera fonte/fundo/cantos, densidade e até 3 destaques, mas não cor secundária", () => {
+  it("starter libera fonte/fundo/cantos, densidade e até 3 destaques", () => {
     const limits = getPlanLimits("starter", null);
     expect(limits.maxFeaturedProducts).toBe(3);
     expect(limits.themeOptions).toBe(true);
     expect(limits.gridDensity).toBe(true);
-    expect(limits.advancedTheme).toBe(false);
   });
 
-  it("pro libera tudo, incluindo cor secundária e destaques ilimitados", () => {
+  it("pro libera tudo, incluindo destaques ilimitados", () => {
     const limits = getPlanLimits("pro", null);
     expect(limits.maxFeaturedProducts).toBe(Infinity);
     expect(limits.themeOptions).toBe(true);
-    expect(limits.advancedTheme).toBe(true);
     expect(limits.gridDensity).toBe(true);
   });
 

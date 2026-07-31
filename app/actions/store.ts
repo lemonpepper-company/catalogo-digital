@@ -124,7 +124,7 @@ export async function updatePersonalizacao(
   const cornerStyle = limits.themeOptions
     ? getCornerStyle(parsed.data.cornerStyle).key
     : DEFAULT_CORNER_STYLE_KEY;
-  const secondaryColor = limits.advancedTheme ? parsed.data.secondaryColor : null;
+  const secondaryColor = parsed.data.secondaryColor;
   const gridDensity = limits.gridDensity ? parsed.data.gridDensity : "padrao";
 
   let coverUrl = store.coverUrl;

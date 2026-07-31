@@ -49,47 +49,26 @@ export function PersonalizacaoClient({
               </span>
             </label>
             <div className="flex items-center gap-3 flex-wrap">
-              {SECONDARY_COLOR_OPTIONS.map((c) => {
-                const locked = !f.limits.advancedTheme;
-                const button = (
-                  <button
-                    type="button"
-                    disabled={locked}
-                    onClick={() => !locked && f.setSecondaryColor(c)}
-                    aria-label={c}
-                    className={cn(
-                      "w-10 h-10 rounded-full transition-all duration-200",
-                      locked && "opacity-50 cursor-not-allowed"
-                    )}
-                    style={{
-                      background: c,
-                      border:
-                        f.secondaryColor === c
-                          ? "2px solid var(--color-primary)"
-                          : "1px solid var(--color-border)",
-                      outline: f.secondaryColor === c ? "2px solid var(--color-bg)" : "none",
-                      outlineOffset: f.secondaryColor === c ? "-4px" : "0",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                );
-                return locked ? (
-                  <Tooltip key={c} label={PLAN_GATE_LABEL.pro}>
-                    {button}
-                  </Tooltip>
-                ) : (
-                  <Fragment key={c}>{button}</Fragment>
-                );
-              })}
-            </div>
-            {!f.limits.advancedTheme && (
-              <div className="mt-2">
-                <UpsellHint
-                  label={`${PLAN_GATE_LABEL.pro} — fale conosco`}
-                  whatsappMessage="Olá! Quero saber mais sobre desbloquear a cor secundária."
+              {SECONDARY_COLOR_OPTIONS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => f.setSecondaryColor(c)}
+                  aria-label={c}
+                  className="w-10 h-10 rounded-full transition-all duration-200"
+                  style={{
+                    background: c,
+                    border:
+                      f.secondaryColor === c
+                        ? "2px solid var(--color-primary)"
+                        : "1px solid var(--color-border)",
+                    outline: f.secondaryColor === c ? "2px solid var(--color-bg)" : "none",
+                    outlineOffset: f.secondaryColor === c ? "-4px" : "0",
+                    boxSizing: "border-box",
+                  }}
                 />
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         </Card>
 

@@ -58,33 +58,19 @@ describe("PersonalizacaoClient — localização do card de cor secundária", ()
   });
 });
 
-describe("PersonalizacaoClient — cor secundária bloqueada (Free/Starter)", () => {
-  it("swatches ficam desabilitados com tooltip 'Disponível no Pro'", () => {
-    render(
-      <PersonalizacaoClient settings={makeSettings()} limits={getPlanLimits("starter", null)} />
-    );
-    const swatch = screen.getByRole("button", { name: "#1F2D5A" });
-    expect(swatch).toBeDisabled();
-    const tooltips = screen.getAllByRole("tooltip");
-    expect(tooltips.some((t) => t.textContent === "Disponível no Pro")).toBe(true);
-  });
-
-  it("mostra o aviso 'Disponível no Pro' mesmo no plano Starter (antes não mostrava nada)", () => {
-    render(
-      <PersonalizacaoClient settings={makeSettings()} limits={getPlanLimits("starter", null)} />
-    );
-    expect(
-      screen.getByRole("link", { name: "Disponível no Pro — fale conosco" })
-    ).toBeTruthy();
-  });
-
-  it("mostra o mesmo aviso no plano Free", () => {
+describe("PersonalizacaoClient — cor secundária liberada em todos os planos", () => {
+  it("swatch é editável no plano Free", () => {
     render(
       <PersonalizacaoClient settings={makeSettings()} limits={getPlanLimits("free", null)} />
     );
-    expect(
-      screen.getByRole("link", { name: "Disponível no Pro — fale conosco" })
-    ).toBeTruthy();
+    expect(screen.getByLabelText("#1F2D5A")).not.toBeDisabled();
+  });
+
+  it("não exibe upsell de cor secundária no plano Free", () => {
+    render(
+      <PersonalizacaoClient settings={makeSettings()} limits={getPlanLimits("free", null)} />
+    );
+    expect(screen.queryByText(/desbloquear a cor secundária/i)).toBeNull();
   });
 });
 

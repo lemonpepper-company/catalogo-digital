@@ -116,8 +116,8 @@ export const freeFeatures = [
 ];
 
 export const starterFeatures = [
-  "Até 30 produtos",
-  "5 categorias",
+  "Até 50 produtos",
+  "7 categorias",
   "3 fotos por produto",
   "Temas, fundos e formatos personalizáveis",
   "Até 3 produtos em destaque",
@@ -133,7 +133,6 @@ export const proFeatures = [
   "Produtos em destaque ilimitados",
   "Histórico de pedidos",
   "Dashboard com métricas de vendas",
-  "Cor secundária exclusiva",
   "Domínio próprio",
   "Importação de produtos por planilha",
 ];

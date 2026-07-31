@@ -71,27 +71,27 @@ describe("initialsFromName", () => {
 
 describe("mapPublicProduct (CAT-06)", () => {
   it("formata price_cents como string em reais", () => {
-    expect(mapPublicProduct(product({ price_cents: 28990 }), "Vestidos", true).price).toBe(
+    expect(mapPublicProduct(product({ price_cents: 28990 }), "Vestidos").price).toBe(
       "R$ 289,90"
     );
   });
   it("usa a primeira imagem de images[]", () => {
     expect(
-      mapPublicProduct(product({ images: ["a.jpg", "b.jpg"] }), "Vestidos", true).image
+      mapPublicProduct(product({ images: ["a.jpg", "b.jpg"] }), "Vestidos").image
     ).toBe("a.jpg");
   });
   it("usa placeholder quando images está vazio", () => {
-    expect(mapPublicProduct(product({ images: [] }), "Vestidos", true).image).toBe(
+    expect(mapPublicProduct(product({ images: [] }), "Vestidos").image).toBe(
       PLACEHOLDER_IMAGE
     );
   });
   it("usa placeholder quando images é null", () => {
-    expect(mapPublicProduct(product({ images: null }), "Vestidos", true).image).toBe(
+    expect(mapPublicProduct(product({ images: null }), "Vestidos").image).toBe(
       PLACEHOLDER_IMAGE
     );
   });
   it("cai em 'Todos' quando não há categoria", () => {
-    expect(mapPublicProduct(product({ category_id: null }), null, true).category).toBe(
+    expect(mapPublicProduct(product({ category_id: null }), null).category).toBe(
       "Todos"
     );
   });
@@ -325,11 +325,11 @@ describe("resolveCatalog — gating de tema/densidade/destaques por plano", () =
     expect(result.store.gridDensity).toBe("compacto");
   });
 
-  it("loja starter: cor secundária é ignorada (só Pro)", () => {
+  it("loja free: aplica cor secundária salva (disponível em todos os planos)", () => {
     const store = baseStoreRow({ secondary_color: "#112233" });
-    const result = resolveCatalog(store, [], [], "starter");
+    const result = resolveCatalog(store, [], [], "free");
     if (result.status !== "ok" && result.status !== "hidden") throw new Error("esperado ok/hidden");
-    expect(result.store.theme.secondaryColor).toBeNull();
+    expect(result.store.theme.secondaryColor).toBe("#112233");
   });
 
   it("loja pro: aplica cor secundária salva", () => {
@@ -338,30 +338,68 @@ describe("resolveCatalog — gating de tema/densidade/destaques por plano", () =
     if (result.status !== "ok" && result.status !== "hidden") throw new Error("esperado ok/hidden");
     expect(result.store.theme.secondaryColor).toBe("#112233");
   });
+});
 
-  it("produtos em destaque só aparecem marcados quando o plano permite", () => {
-    const productRow: PublicProductRow = {
-      id: "p1",
-      name: "Produto 1",
+describe("resolveCatalog — degradação por plano", () => {
+  function row(id: string, over: Partial<PublicProductRow> = {}): PublicProductRow {
+    return {
+      id,
+      name: `Produto ${id}`,
       price_cents: 1000,
       description: null,
       category_id: null,
-      sizes: [],
-      sold_sizes: [],
-      colors: [],
-      images: [],
+      sizes: null,
+      sold_sizes: null,
+      colors: null,
+      images: ["1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg"],
       stock: 5,
       is_active: true,
       is_new: false,
-      is_featured: true,
+      is_featured: false,
+      ...over,
     };
+  }
 
-    const freeResult = resolveCatalog(baseStoreRow(), [productRow], [], "free");
-    const proResult = resolveCatalog(baseStoreRow(), [productRow], [], "pro");
+  const categorias: PublicCategoryRow[] = [
+    { id: "c1", name: "Vestidos", position: 1 },
+    { id: "c2", name: "Blusas", position: 2 },
+  ];
 
-    if (freeResult.status !== "ok") throw new Error("esperado ok");
-    if (proResult.status !== "ok") throw new Error("esperado ok");
-    expect(freeResult.products[0].isFeatured).toBe(false);
-    expect(proResult.products[0].isFeatured).toBe(true);
+  it("loja Pro rebaixada para Free exibe 8 produtos, 1 foto e nenhum destaque", () => {
+    const rows = Array.from({ length: 30 }, (_, i) =>
+      row(`p${i}`, { is_featured: true, category_id: i < 20 ? "c1" : "c2" })
+    );
+    const result = resolveCatalog(storeRow, rows, categorias, "free");
+    if (result.status !== "ok") throw new Error("esperava status ok");
+
+    expect(result.products).toHaveLength(8);
+    expect(result.products[0].images).toEqual(["1.jpg"]);
+    expect(result.products.some((p) => p.isFeatured)).toBe(false);
+    expect(result.store.categories).toEqual(["Todos", "Vestidos"]);
+  });
+
+  it("mesma loja em Pro exibe tudo", () => {
+    const rows = Array.from({ length: 30 }, (_, i) =>
+      row(`p${i}`, { is_featured: true, category_id: i < 20 ? "c1" : "c2" })
+    );
+    const result = resolveCatalog(storeRow, rows, categorias, "pro");
+    if (result.status !== "ok") throw new Error("esperava status ok");
+
+    expect(result.products).toHaveLength(30);
+    expect(result.products[0].images).toHaveLength(5);
+    expect(result.products.every((p) => p.isFeatured)).toBe(true);
+    expect(result.store.categories).toEqual(["Todos", "Vestidos", "Blusas"]);
+  });
+
+  it("produto de categoria cortada aparece como Todos", () => {
+    const rows = [
+      ...Array.from({ length: 8 }, (_, i) => row(`p${i}`, { category_id: "c1" })),
+      row("p9", { category_id: "c2" }),
+    ];
+    const result = resolveCatalog(storeRow, rows, categorias, "free");
+    if (result.status !== "ok") throw new Error("esperava status ok");
+
+    expect(result.store.categories).toEqual(["Todos", "Vestidos"]);
+    expect(result.products.every((p) => p.category !== "Blusas")).toBe(true);
   });
 });

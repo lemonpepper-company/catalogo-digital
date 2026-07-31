@@ -61,7 +61,6 @@ export function getCornerStyle(key: string): CornerStyle {
 
 export interface ThemeLimits {
   themeOptions: boolean;
-  advancedTheme: boolean;
 }
 
 export interface ResolvedTheme {
@@ -100,6 +99,6 @@ export function resolveTheme(
     borderColor: background.border,
     cardRadius: corner.cardRadius,
     btnRadius: corner.btnRadius,
-    secondaryColor: limits.advancedTheme ? secondaryColor : null,
+    secondaryColor,
   };
 }
