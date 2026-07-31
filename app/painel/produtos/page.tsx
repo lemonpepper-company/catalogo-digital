@@ -111,6 +111,7 @@ export default async function ProdutosPage({
     validStatus
   )
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .range(from, to);
 
   const products = (data ?? []).map(mapProduct);
