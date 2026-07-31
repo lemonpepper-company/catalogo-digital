@@ -52,6 +52,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
     toggleSearch,
     openProduct,
     setOpenProduct,
+    handleOpenProduct,
     cart,
     bagOpen,
     setBagOpen,
@@ -166,7 +167,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
         ))}
       </div>
 
-      <FeaturedRail products={products} onOpen={setOpenProduct} />
+      <FeaturedRail products={products} onOpen={handleOpenProduct} />
 
       {visibleProducts.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 px-4 py-24 text-center">
@@ -195,7 +196,7 @@ export function CatalogoClient({ store, products }: CatalogoClientProps) {
               <ProductCard
                 key={product.id}
                 product={product}
-                onOpen={setOpenProduct}
+                onOpen={handleOpenProduct}
                 priority={index < 2}
               />
             ))}

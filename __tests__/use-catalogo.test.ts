@@ -13,6 +13,27 @@ vi.mock("@/app/actions/pedidos", () => ({
   registrarPedido: (payload: unknown) => registrarPedido(payload),
 }));
 
+// A telemetria é mockada aqui em vez de deixar o client real rodar: ele importa a
+// Server Action, que por sua vez importa o admin client `server-only`.
+const trackEvent = vi.fn();
+const shouldTrackVisit = vi.fn(() => true);
+
+vi.mock("@/lib/analytics-client", () => ({
+  trackEvent: (...args: unknown[]) => trackEvent(...args),
+  shouldTrackVisit: (slug: string) => shouldTrackVisit(slug),
+}));
+
+/** Chamadas de trackEvent de um tipo de evento, sem o ruído dos demais. */
+function eventsOf(eventType: string): unknown[][] {
+  return trackEvent.mock.calls.filter((call) => call[1] === eventType);
+}
+
+beforeEach(() => {
+  trackEvent.mockReset();
+  shouldTrackVisit.mockReset();
+  shouldTrackVisit.mockReturnValue(true);
+});
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const baseStore: Store = {
@@ -545,5 +566,218 @@ describe("useCatalogo — clientOrderId por conteúdo da sacola (ORD-05)", () =>
     await checkout(result);
 
     expect(capturePayload(1).clientOrderId).not.toBe(capturePayload(0).clientOrderId);
+  });
+});
+
+describe("useCatalogo — telemetria do catálogo (ANL-01..05, ANL-07)", () => {
+  let tab: FakeTab;
+
+  beforeEach(() => {
+    registrarPedido.mockReset();
+    registrarPedido.mockResolvedValue({ ok: true });
+    tab = newTab();
+    vi.stubGlobal("open", vi.fn(() => tab));
+  });
+
+  const originalLocation = Object.getOwnPropertyDescriptor(window, "location");
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    if (originalLocation) Object.defineProperty(window, "location", originalLocation);
+  });
+
+  it("registra uma catalog_visit na montagem quando shouldTrackVisit libera (ANL-01)", () => {
+    renderHook(() => useCatalogo({ store: baseStore, products: [productA] }));
+
+    expect(shouldTrackVisit).toHaveBeenCalledWith("ateliemira");
+    expect(eventsOf("catalog_visit")).toEqual([["ateliemira", "catalog_visit"]]);
+  });
+
+  it("não registra catalog_visit quando a sessão já visitou este slug (ANL-02)", () => {
+    shouldTrackVisit.mockReturnValue(false);
+
+    renderHook(() => useCatalogo({ store: baseStore, products: [productA] }));
+
+    expect(eventsOf("catalog_visit")).toHaveLength(0);
+  });
+
+  it("não registra catalog_visit de novo ao remontar na mesma sessão (ANL-02)", () => {
+    const primeira = renderHook(() => useCatalogo({ store: baseStore, products: [productA] }));
+    expect(eventsOf("catalog_visit")).toHaveLength(1);
+    primeira.unmount();
+
+    // Remount = recarga da página: o dedup real vive no sessionStorage, e é ele
+    // que shouldTrackVisit passa a negar.
+    shouldTrackVisit.mockReturnValue(false);
+    renderHook(() => useCatalogo({ store: baseStore, products: [productA] }));
+
+    expect(eventsOf("catalog_visit")).toHaveLength(1);
+  });
+
+  it("registra product_view com o id do produto ao abrir o detalhe (ANL-03)", () => {
+    const { result } = renderHook(() =>
+      useCatalogo({ store: baseStore, products: [productA] })
+    );
+
+    act(() => result.current.handleOpenProduct(productA));
+
+    expect(eventsOf("product_view")).toEqual([["ateliemira", "product_view", "p1"]]);
+    expect(result.current.openProduct).toBe(productA);
+  });
+
+  it("registra add_to_bag com o id do produto adicionado (ANL-04)", () => {
+    const { result } = renderHook(() =>
+      useCatalogo({ store: baseStore, products: [productA] })
+    );
+
+    act(() => result.current.handleAdd(productA, "M", "Areia", 2));
+
+    expect(eventsOf("add_to_bag")).toEqual([["ateliemira", "add_to_bag", "p1"]]);
+    expect(result.current.cart).toHaveLength(1);
+  });
+
+  it("registra buy_click uma vez no checkout válido, sem product_id (ANL-05)", async () => {
+    const { result } = renderHook(() =>
+      useCatalogo({ store: baseStore, products: [productA] })
+    );
+    act(() => result.current.handleAdd(productA, "M", "Areia", 2));
+    act(() => result.current.setCustomerName("Ana"));
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(eventsOf("buy_click")).toEqual([["ateliemira", "buy_click"]]);
+  });
+
+  it("não registra buy_click quando a loja não tem WhatsApp configurado", async () => {
+    const { result } = renderHook(() =>
+      useCatalogo({ store: { ...baseStore, whatsapp: "" }, products: [productA] })
+    );
+    act(() => result.current.handleAdd(productA, "M", "Areia", 2));
+    act(() => result.current.setCustomerName("Ana"));
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(eventsOf("buy_click")).toHaveLength(0);
+  });
+
+  it("registra buy_click mesmo quando registrarPedido falha (edge da spec)", async () => {
+    registrarPedido.mockRejectedValue(new Error("banco fora"));
+    const { result } = renderHook(() =>
+      useCatalogo({ store: baseStore, products: [productA] })
+    );
+    act(() => result.current.handleAdd(productA, "M", "Areia", 2));
+    act(() => result.current.setCustomerName("Ana"));
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(eventsOf("buy_click")).toEqual([["ateliemira", "buy_click"]]);
+    expect(tab.location.href).toContain("https://wa.me/");
+  });
+
+  it("registra buy_click mesmo quando registrarPedido estoura o timeout", async () => {
+    vi.useFakeTimers();
+    registrarPedido.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() =>
+      useCatalogo({ store: baseStore, products: [productA] })
+    );
+    act(() => result.current.handleAdd(productA, "M", "Areia", 2));
+    act(() => result.current.setCustomerName("Ana"));
+
+    let pending: Promise<void> | undefined;
+    act(() => {
+      pending = result.current.handleCheckout();
+    });
+    expect(eventsOf("buy_click")).toEqual([["ateliemira", "buy_click"]]);
+
+    await act(async () => {
+      vi.advanceTimersByTime(ORDER_CAPTURE_TIMEOUT_MS);
+      await pending;
+    });
+
+    expect(tab.location.href).toContain("https://wa.me/");
+  });
+
+  it("abre o WhatsApp normalmente quando trackEvent lança no checkout (ANL-07)", async () => {
+    // A falha é injetada só no buy_click: é o disparo que fica no caminho crítico
+    // da venda, e é dele que a AC fala. (O trackEvent real nunca lança — engole
+    // tudo internamente —, o que é verificado em analytics-client.test.ts.)
+    trackEvent.mockImplementation((_slug: string, eventType: string) => {
+      if (eventType === "buy_click") throw new Error("telemetria quebrada");
+    });
+    const { result } = renderHook(() =>
+      useCatalogo({ store: baseStore, products: [productA] })
+    );
+    act(() => result.current.handleAdd(productA, "M", "Areia", 2));
+    act(() => result.current.setCustomerName("Ana"));
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(tab.location.href).toContain("https://wa.me/5511999990000");
+    expect(registrarPedido).toHaveBeenCalledTimes(1);
+  });
+
+  it("renderiza o catálogo normalmente quando trackEvent lança na montagem (ANL-07)", () => {
+    trackEvent.mockImplementation(() => {
+      throw new Error("telemetria quebrada");
+    });
+
+    const { result } = renderHook(() =>
+      useCatalogo({ store: baseStore, products: [productA] })
+    );
+
+    expect(result.current.visibleProducts).toHaveLength(1);
+    expect(result.current.canCheckout).toBe(false);
+  });
+
+  it("adiciona à sacola normalmente quando trackEvent lança (ANL-07)", () => {
+    trackEvent.mockImplementation(() => {
+      throw new Error("telemetria quebrada");
+    });
+    const { result } = renderHook(() =>
+      useCatalogo({ store: baseStore, products: [productA] })
+    );
+
+    act(() => result.current.handleAdd(productA, "M", "Areia", 2));
+
+    expect(result.current.cart).toHaveLength(1);
+    expect(result.current.bagOpen).toBe(true);
+  });
+
+  it("dispara buy_click antes de abrir a aba do WhatsApp (fora do Promise.race)", async () => {
+    const ordem: string[] = [];
+    trackEvent.mockImplementation((_slug: string, eventType: string) => {
+      ordem.push(`track:${eventType}`);
+    });
+    vi.stubGlobal(
+      "open",
+      vi.fn(() => {
+        ordem.push("window.open");
+        return tab;
+      })
+    );
+    registrarPedido.mockImplementation(() => {
+      ordem.push("registrarPedido");
+      return Promise.resolve({ ok: true });
+    });
+    const { result } = renderHook(() =>
+      useCatalogo({ store: baseStore, products: [productA] })
+    );
+    act(() => result.current.handleAdd(productA, "M", "Areia", 2));
+    act(() => result.current.setCustomerName("Ana"));
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(ordem.slice(-3)).toEqual(["track:buy_click", "window.open", "registrarPedido"]);
   });
 });

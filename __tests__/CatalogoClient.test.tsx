@@ -6,6 +6,16 @@ import type { Product, Store } from "@/lib/types";
 import { resolveTheme } from "@/lib/theme-options";
 import { getPlanLimits } from "@/lib/plan-limits";
 
+// A telemetria é mockada: o client real importa a Server Action, que importa o
+// admin client `server-only`. Aqui o que interessa é o wiring — qual callback o
+// ProductCard/FeaturedRail recebe.
+const trackEvent = vi.fn();
+
+vi.mock("@/lib/analytics-client", () => ({
+  trackEvent: (...args: unknown[]) => trackEvent(...args),
+  shouldTrackVisit: () => true,
+}));
+
 class FakeIntersectionObserver {
   static instances: FakeIntersectionObserver[] = [];
   callback: IntersectionObserverCallback;
@@ -27,6 +37,7 @@ class FakeIntersectionObserver {
 }
 
 beforeEach(() => {
+  trackEvent.mockReset();
   FakeIntersectionObserver.instances = [];
   vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
   vi.stubGlobal(
@@ -216,5 +227,47 @@ describe("CatalogoClient — modal de produto com blur no desktop", () => {
     const grid = container.querySelector(".grid");
     expect(grid).not.toBeNull();
     expect(grid!.querySelectorAll('img[alt^="Produto "]').length).toBe(2);
+  });
+});
+
+describe("CatalogoClient — telemetria de abertura de produto (ANL-03)", () => {
+  it("registra product_view com o id do produto ao clicar no card da grade", () => {
+    const products = makeProducts(2, "Vestidos");
+    render(<CatalogoClient store={store} products={products} />);
+    trackEvent.mockClear();
+
+    fireEvent.click(screen.getByText(products[0].name));
+
+    expect(trackEvent.mock.calls).toEqual([
+      ["ateliemira", "product_view", products[0].id],
+    ]);
+    expect(screen.getByLabelText("Voltar")).toBeTruthy();
+  });
+
+  it("registra product_view ao abrir um produto pela vitrine de destaques", () => {
+    const products = makeProducts(2, "Vestidos").map((product, index) => ({
+      ...product,
+      isFeatured: index === 0,
+    }));
+    render(<CatalogoClient store={store} products={products} />);
+    trackEvent.mockClear();
+
+    // O card de destaque é o primeiro nó com o nome do produto em destaque.
+    fireEvent.click(screen.getAllByText(products[0].name)[0]);
+
+    expect(trackEvent.mock.calls).toEqual([
+      ["ateliemira", "product_view", products[0].id],
+    ]);
+  });
+
+  it("não registra product_view ao fechar o modal do produto", () => {
+    const products = makeProducts(1, "Vestidos");
+    render(<CatalogoClient store={store} products={products} />);
+    fireEvent.click(screen.getByText(products[0].name));
+    trackEvent.mockClear();
+
+    fireEvent.click(screen.getByLabelText("Voltar"));
+
+    expect(trackEvent).not.toHaveBeenCalled();
   });
 });

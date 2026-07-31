@@ -10,6 +10,7 @@ import {
   sanitizeCustomerName,
 } from "@/lib/orders";
 import { registrarPedido } from "@/app/actions/pedidos";
+import { shouldTrackVisit, trackEvent } from "@/lib/analytics-client";
 import type { CartItem, Product, Store } from "@/lib/types";
 
 export const CATALOG_BATCH_SIZE = 24;
@@ -17,6 +18,22 @@ export const ORDER_CAPTURE_TIMEOUT_MS = 2500;
 
 function cartSignature(cart: CartItem[]): string {
   return cart.map((it) => `${it.key}x${it.qty}`).join("|");
+}
+
+// SPEC_DEVIATION: o design deposita a garantia de "nunca bloqueia" apenas dentro
+// de trackEvent (que já engole tudo). Aqui ela é reforçada no call site.
+// Reason: ANL-07 exige que a navegação e o checkout prossigam quando o registro
+// falha — inclusive de forma síncrona. Sem esta borda, um throw síncrono no
+// buy_click escapa de handleCheckout (o disparo fica FORA do try/Promise.race,
+// por exigência da própria AC) e a aba do WhatsApp nunca recebe a URL; no efeito
+// de montagem, derrubaria o render do catálogo. Duas linhas no ponto mais caro
+// do produto — a venda.
+function track(...args: Parameters<typeof trackEvent>): void {
+  try {
+    trackEvent(...args);
+  } catch {
+    // Telemetria jamais interrompe navegação ou venda (ANL-07).
+  }
 }
 
 interface UseCatalogoArgs {
@@ -64,6 +81,14 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     });
   }, []);
 
+  // Uma visita por slug por sessão do navegador (ANL-01/02). O dedup vive no
+  // sessionStorage, então recarregar a página não conta de novo.
+  useEffect(() => {
+    if (shouldTrackVisit(store.slug)) {
+      track(store.slug, "catalog_visit");
+    }
+  }, [store.slug]);
+
   const filteredProducts = filterCatalog(products, activeCategory, searchQuery);
 
   // Volta pro lote inicial sempre que o filtro muda — senão o scroll fica
@@ -98,9 +123,20 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
         ? "Informe seu nome para continuar"
         : "Selecione forma de pagamento e entrega para continuar.";
 
+  // Abrir o detalhe do produto é o gatilho de product_view (ANL-03). Fica aqui, e
+  // não no componente, para que o contrato de props do catálogo não mude (AD-006).
+  const handleOpenProduct = useCallback(
+    (product: Product) => {
+      setOpenProduct(product);
+      track(store.slug, "product_view", product.id);
+    },
+    [store.slug]
+  );
+
   const handleAdd = useCallback(
     (product: Product, size: string | null, color: string | null, qty: number) => {
       const key = `${product.id}|${size ?? ""}|${color ?? ""}`;
+      track(store.slug, "add_to_bag", product.id);
       setCart((prev) => {
         const found = prev.find((it) => it.key === key);
         if (found) {
@@ -113,7 +149,7 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
       setOpenProduct(null);
       setBagOpen(true);
     },
-    []
+    [store.slug]
   );
 
   const handleQty = useCallback((key: string, qty: number) => {
@@ -133,6 +169,11 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
       flash("Esta loja ainda não configurou o WhatsApp.");
       return;
     }
+    // buy_click mede a INTENÇÃO de compra, então dispara aqui: depois do guard de
+    // WhatsApp, antes do window.open e fora do Promise.race abaixo (ANL-05/07).
+    // Registrar aqui garante o evento mesmo se registrarPedido falhar ou estourar
+    // o timeout — o pedido em si vem de `orders`.
+    track(store.slug, "buy_click");
     // Nome e código entram na mensagem antes de qualquer ida ao servidor: o
     // código é derivado do clientOrderId no próprio cliente, então a mensagem
     // continua completa mesmo se a gravação falhar ou estourar o timeout
@@ -203,6 +244,7 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     toggleSearch,
     openProduct,
     setOpenProduct,
+    handleOpenProduct,
     cart,
     bagOpen,
     setBagOpen,
