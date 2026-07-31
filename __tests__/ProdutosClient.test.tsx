@@ -68,7 +68,13 @@ const baseLimits: PlanLimits = {
   customDomain: true,
 };
 
-const noFilters = { initialQ: "", initialCategoria: "", initialStatus: "" };
+const noFilters = {
+  initialQ: "",
+  initialCategoria: "",
+  initialStatus: "",
+  hiddenCount: 0,
+  visibleIds: [],
+};
 
 beforeEach(() => {
   push.mockReset();
@@ -165,6 +171,8 @@ describe("ProdutosClient — contadores e paginação", () => {
         initialQ="vestido"
         initialCategoria="cat-1"
         initialStatus="ativo"
+        hiddenCount={0}
+        visibleIds={[]}
       />
     );
 
@@ -210,6 +218,8 @@ describe("ProdutosClient — contadores e paginação", () => {
         initialQ="vestido"
         initialCategoria=""
         initialStatus=""
+        hiddenCount={0}
+        visibleIds={[]}
       />
     );
     expect(
@@ -230,6 +240,8 @@ describe("ProdutosClient — contadores e paginação", () => {
         initialQ="produto-inexistente"
         initialCategoria=""
         initialStatus=""
+        hiddenCount={0}
+        visibleIds={[]}
       />
     );
     expect(screen.getByText("Nenhum produto encontrado")).toBeTruthy();
@@ -388,12 +400,12 @@ describe("ProdutosClient — produtos ocultos pelo limite do plano", () => {
         maxProducts={50}
         limits={{ ...baseLimits, maxProducts: 50 }}
         counts={baseCounts}
-        hiddenCount={over.hiddenCount}
-        visibleIds={over.visibleIds}
         page={1}
         totalPages={1}
         categories={[]}
         {...noFilters}
+        hiddenCount={over.hiddenCount}
+        visibleIds={over.visibleIds}
       />
     );
   }
