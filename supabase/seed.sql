@@ -21,10 +21,10 @@ insert into public.profiles (id, full_name)
 values ('11111111-1111-1111-1111-111111111111', 'Demo Ateliê')
 on conflict (id) do nothing;
 
-insert into public.stores (id, owner_id, name, slug, plan, trial_ends_at, is_active,
+insert into public.stores (id, owner_id, name, slug, plan, plan_expires_at, is_active,
                            whatsapp, accent_color, monogram, description, message_template)
 values ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111',
-        'Ateliê Mira', 'atelie-mira', 'pro', now() + interval '3650 days', true,
+        'Ateliê Mira', 'atelie-mira', 'pro', null, true,
         '5511999990000', '#C9A96E', 'AM', 'Vitrine digital premium · moda feminina autoral', null)
 on conflict (id) do nothing;
 

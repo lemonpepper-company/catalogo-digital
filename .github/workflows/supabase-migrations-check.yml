@@ -260,6 +260,77 @@ jobs:
 
             raise notice 'grants ok: service_role grava catalog_events, anon sem nada (tabela, coluna e funcoes)';
           end $$;
+
+          -- Mesmo guard para as colunas de assinatura em stores
+          -- (20260801000000_subscription_columns.sql). O ponto crítico aqui
+          -- é o inverso do de catalog_events: a coluna nova não pode
+          -- VAZAR update/insert para authenticated/anon, porque isso
+          -- reabriria a auto-promoção a plano pago via PostgREST — o grant
+          -- de authenticated é uma allowlist nominal (20260728110000) e o
+          -- select do anon é por coluna (20260709000000), então as colunas
+          -- novas já nascem inacessíveis; este guard garante que continuam.
+          --
+          -- Não checa REFERENCES: essa é a ACL default do schema (Dxtm) já
+          -- concedida a todo mundo em toda tabela, mencionada no AGENTS.md —
+          -- checá-la aqui só geraria falso positivo. Também não checa SELECT
+          -- para authenticated: a tabela já tem GRANT SELECT de nível
+          -- tabela para authenticated de antes desta feature (a RLS é quem
+          -- restringe à própria loja), então qualquer coluna nova herda
+          -- select automaticamente — não é um vazamento novo. anon nunca
+          -- teve select de tabela em stores, só por coluna, então SELECT
+          -- entra na checagem dele.
+          do $$
+          declare
+            faltando text;
+            vazando  text;
+          begin
+            -- service_role precisa conseguir escrever as cinco colunas
+            -- novas (o webhook da Spec 2B vai gravar nelas).
+            select string_agg(format('stores.%s:update', col), ', ' order by col)
+              into faltando
+              from unnest(array[
+                'plan_expires_at', 'subscription_status', 'billing_cycle',
+                'asaas_customer_id', 'asaas_subscription_id'
+              ]) as col
+             where not has_column_privilege('service_role', 'public.stores', col, 'update');
+
+            if faltando is not null then
+              raise exception 'service_role sem privilegio necessario: %', faltando;
+            end if;
+
+            -- anon não pode LER nenhuma das colunas novas.
+            select string_agg(format('stores.%s:select (anon)', col), ', ' order by col)
+              into vazando
+              from unnest(array[
+                'plan_expires_at', 'subscription_status', 'billing_cycle',
+                'asaas_customer_id', 'asaas_subscription_id'
+              ]) as col
+             where has_column_privilege('anon', 'public.stores', col, 'select');
+
+            if vazando is not null then
+              raise exception 'anon com select nas colunas novas de stores: %', vazando;
+            end if;
+
+            -- Nem authenticated nem anon podem ESCREVER nas colunas novas
+            -- (só service_role escreve; o webhook da Spec 2B roda com ela).
+            select string_agg(
+                     format('stores.%s:%s (role=%s)', col, priv, role),
+                     ', ' order by role, col, priv)
+              into vazando
+              from unnest(array[
+                     'plan_expires_at', 'subscription_status', 'billing_cycle',
+                     'asaas_customer_id', 'asaas_subscription_id'
+                   ]) as col
+              cross join unnest(array['insert', 'update']) as priv
+              cross join unnest(array['authenticated', 'anon']) as role
+             where has_column_privilege(role, 'public.stores', col, priv);
+
+            if vazando is not null then
+              raise exception 'authenticated/anon com insert/update nas colunas novas de stores: %', vazando;
+            end if;
+
+            raise notice 'grants ok: service_role grava colunas de assinatura, authenticated/anon sem select/insert/update nelas';
+          end $$;
           SQL
 
       - name: Stop Supabase
