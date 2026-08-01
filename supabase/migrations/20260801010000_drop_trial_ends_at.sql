@@ -1,0 +1,11 @@
+-- Última referência a trial_ends_at. As duas funções que replicavam a regra
+-- de expiração (get_effective_plan e resolve_custom_domain) migraram para
+-- plan_expires_at em 20260801000000, e o TypeScript migrou junto.
+--
+-- Nenhum backfill: a coluna está nula em TODAS as linhas desde
+-- 20260725000000, e plan_expires_at nulo significa exatamente o mesmo que
+-- aquele nulo significava — não expira.
+--
+-- O grant de update (plan, trial_ends_at) concedido a service_role em
+-- 20260728120000 some junto com a coluna; o grant de plan permanece.
+alter table public.stores drop column trial_ends_at;
