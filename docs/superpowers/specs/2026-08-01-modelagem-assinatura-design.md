@@ -79,16 +79,23 @@ Isso mantém `get_effective_plan` tão barato quanto hoje — troca o nome de um
 
 ### Ordem da migration
 
-O Postgres **não rastreia dependências dentro do corpo de funções SQL**. Um `drop column trial_ends_at` antes da reescrita de `get_effective_plan` passa sem erro e deixa a função quebrada só em runtime — e a superfície da quebra é a vitrine pública, ou seja, HTTP 500 em toda página de loja.
+O Postgres **não rastreia dependências dentro do corpo de funções SQL**. Um `drop column trial_ends_at` antes da reescrita das funções passa sem erro e as deixa quebradas só em runtime.
 
-Ordem obrigatória dentro do arquivo:
+**São duas funções, não uma.** Além de `get_effective_plan`, a `resolve_custom_domain` ([20260730020000, linha 32](../../../supabase/migrations/20260730020000_resolve_custom_domain.sql)) replica a mesma regra de expiração inline — ela nasceu na Spec 1 justamente para devolver o plano efetivo ao middleware numa única chamada. Esquecer dela quebra o domínio próprio de todas as lojas Pro, e o middleware faz *fail-open*: o erro é logado e o visitante vê a landing da Vtrine no domínio do lojista, sem 500 e sem alarme.
+
+A superfície combinada das duas é toda a leitura pública: vitrine por slug e vitrine por domínio próprio.
+
+Ordem obrigatória:
 
 1. `alter table` adicionando as cinco colunas
 2. `create or replace function public.get_effective_plan` sobre `plan_expires_at`
-3. `grant update (...) on public.stores to service_role`
-4. `alter table public.stores drop column trial_ends_at`
+3. `create or replace function public.resolve_custom_domain` sobre `plan_expires_at`
+4. `grant update (...) on public.stores to service_role`
+5. `alter table public.stores drop column trial_ends_at`
 
 Migrations do Supabase rodam em transação: ou tudo entra na ordem certa, ou nada entra.
+
+A implementação pode dividir isso em duas migrations — passos 1 a 4 numa, o `drop` noutra — desde que o `drop` venha depois. Separar tem uma vantagem: entre as duas, a aplicação continua funcionando com qualquer uma das colunas, o que dá margem para o deploy do TypeScript acontecer no meio sem janela de quebra.
 
 Nenhum backfill é necessário — `trial_ends_at` está nulo em todas as linhas desde [20260725000000](../../../supabase/migrations/20260725000000_backfill_null_trial_ends_at.sql), e `plan_expires_at` nulo significa exatamente a mesma coisa que aquele nulo significava: não expira.
 
