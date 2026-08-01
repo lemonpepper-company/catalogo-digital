@@ -47,13 +47,13 @@ function setupOrders(result: Result = { data: [{ id: ORDER_ID }], error: null })
   from.mockImplementation(() => chain);
 }
 
-function makeStore(plan: Plan, trialEndsAt: string | null = null): StoreSettings {
+function makeStore(plan: Plan, planExpiresAt: string | null = null): StoreSettings {
   return {
     id: STORE_ID,
     name: "Ateliê Mira",
     slug: "ateliemira",
     plan,
-    trialEndsAt,
+    planExpiresAt,
     whatsapp: "35999999999",
     accentColor: "#C9A96E",
     logoUrl: null,

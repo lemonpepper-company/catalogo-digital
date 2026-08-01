@@ -48,22 +48,28 @@ const PRO_LIMITS: PlanLimits = {
   customDomain: true,
 };
 
-function isPaidAccessExpired(trialEndsAt: string | null): boolean {
-  if (!trialEndsAt) return false;
-  return new Date(trialEndsAt).getTime() <= Date.now();
+function isPlanAccessExpired(planExpiresAt: string | null): boolean {
+  if (!planExpiresAt) return false;
+  return new Date(planExpiresAt).getTime() <= Date.now();
 }
 
 /**
- * Starter/Pro liberado manualmente cai para Free quando trial_ends_at vence.
- * trial_ends_at nulo = acesso indeterminado, nunca expira.
+ * O plano contratado (`plan`) vale até `plan_expires_at`. Nulo = não expira:
+ * loja free, ou liberação manual indeterminada feita direto no banco.
+ *
+ * `subscription_status` NÃO entra aqui de propósito. Acesso é decidido só por
+ * data — é o que mantém esta regra barata o bastante para rodar a cada request
+ * de vitrine (get_effective_plan roda fora do unstable_cache em
+ * lib/server/catalog.ts) e o que faz o período de graça funcionar sem que a
+ * leitura conheça o conceito: a graça é a data empurrada, não um estado.
  */
-export function getEffectivePlan(plan: Plan, trialEndsAt: string | null): Plan {
-  if (plan !== "free" && isPaidAccessExpired(trialEndsAt)) return "free";
+export function getEffectivePlan(plan: Plan, planExpiresAt: string | null): Plan {
+  if (plan !== "free" && isPlanAccessExpired(planExpiresAt)) return "free";
   return plan;
 }
 
-export function getPlanLimits(plan: Plan, trialEndsAt: string | null): PlanLimits {
-  switch (getEffectivePlan(plan, trialEndsAt)) {
+export function getPlanLimits(plan: Plan, planExpiresAt: string | null): PlanLimits {
+  switch (getEffectivePlan(plan, planExpiresAt)) {
     case "pro":
       return PRO_LIMITS;
     case "starter":

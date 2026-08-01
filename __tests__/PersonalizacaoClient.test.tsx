@@ -17,7 +17,7 @@ function makeSettings(): StoreSettings {
     name: "Ateliê Mira",
     slug: "ateliemira",
     plan: "free",
-    trialEndsAt: null,
+    planExpiresAt: null,
     whatsapp: "5511999990000",
     accentColor: "#C9A96E",
     logoUrl: null,

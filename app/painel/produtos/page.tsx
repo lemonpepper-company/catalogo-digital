@@ -39,7 +39,7 @@ export default async function ProdutosPage({
 }) {
   const store = await getCurrentStore();
   if (!store) redirect("/login");
-  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  const limits = getPlanLimits(store.plan, store.planExpiresAt);
 
   const supabase = await createClient();
   const { page: pageParam, q, categoria, status } = await searchParams;

@@ -18,7 +18,7 @@ const baseSettings: StoreSettings = {
   name: "Ateliê Mira",
   slug: "ateliemira",
   plan: "pro",
-  trialEndsAt: new Date().toISOString(),
+  planExpiresAt: new Date().toISOString(),
   whatsapp: "5511999990000",
   accentColor: "#C9A96E",
   logoUrl: null,
@@ -40,7 +40,7 @@ const baseSettings: StoreSettings = {
   gridDensity: "padrao",
 };
 
-// trialEndsAt=null → acesso indeterminado, nunca expira (ver getEffectivePlan em lib/plan-limits.ts).
+// planExpiresAt=null → acesso indeterminado, nunca expira (ver getEffectivePlan em lib/plan-limits.ts).
 const proLimits = getPlanLimits("pro", null);
 const starterLimits = getPlanLimits("starter", null);
 
@@ -180,7 +180,7 @@ describe("ConfiguracoesClient — link do catálogo com domínio próprio", () =
       <ConfiguracoesClient
         settings={{
           ...baseSettings,
-          trialEndsAt: null,
+          planExpiresAt: null,
           customDomain: "minhaloja.com.br",
           customDomainVerified: true,
         }}
@@ -194,7 +194,7 @@ describe("ConfiguracoesClient — link do catálogo com domínio próprio", () =
   it("mostra o link de slug quando o domínio não está verificado", () => {
     render(
       <ConfiguracoesClient
-        settings={{ ...baseSettings, trialEndsAt: null }}
+        settings={{ ...baseSettings, planExpiresAt: null }}
         limits={proLimits}
       />
     );

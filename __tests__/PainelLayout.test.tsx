@@ -22,7 +22,7 @@ function makeStore(overrides: Partial<StoreSettings> = {}): StoreSettings {
     name: "Ateliê Mira",
     slug: "ateliemira",
     plan: "free",
-    trialEndsAt: null,
+    planExpiresAt: null,
     whatsapp: "35999999999",
     accentColor: "#C9A96E",
     logoUrl: null,

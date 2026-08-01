@@ -22,7 +22,7 @@ export default async function PainelLayout({
     redirect('/login')
   }
 
-  const isFree = getEffectivePlan(store.plan, store.trialEndsAt) === 'free'
+  const isFree = getEffectivePlan(store.plan, store.planExpiresAt) === 'free'
   const catalogUrl = getCatalogUrl(store)
   const upgradeWhatsAppHref = `https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
     'Olá! Quero saber mais sobre os planos pagos da Vtrine.'

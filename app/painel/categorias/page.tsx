@@ -34,7 +34,7 @@ export default async function CategoriasPage() {
     productCount: counts.get(c.id) ?? 0,
   }));
 
-  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  const limits = getPlanLimits(store.plan, store.planExpiresAt);
 
   return (
     <CategoriasClient

@@ -19,7 +19,7 @@ export default async function DashboardPage({
   // Dashboard é exclusiva de planos pagos: no Free, nenhum dado real
   // (produtos, pedidos, faturamento) chega ao HTML — mesmo padrão de bloqueio
   // já usado em /painel/pedidos.
-  if (getEffectivePlan(store.plan, store.trialEndsAt) === "free") {
+  if (getEffectivePlan(store.plan, store.planExpiresAt) === "free") {
     return (
       <RecursoBloqueado
         titulo="Dashboard"
@@ -37,7 +37,7 @@ export default async function DashboardPage({
   // vitrine recebem exatamente o mesmo objeto (ANL-14/ANL-15).
   const range = resolvePeriodRange(params);
 
-  const metrics = getPlanLimits(store.plan, store.trialEndsAt).hasOrderHistory
+  const metrics = getPlanLimits(store.plan, store.planExpiresAt).hasOrderHistory
     ? await getOrderMetrics(store.id, range)
     : null;
 

@@ -161,10 +161,10 @@ export async function createStore(
 
   // Toda loja nasce no plano Free, sem expiração. Starter/Pro são liberados
   // manualmente depois, direto na tabela stores do Supabase (ver AGENTS.md /
-  // docs/roadmap/Escopo.md §4.3). plan/trial_ends_at nem entram neste insert —
+  // docs/roadmap/Escopo.md §4.3). plan/plan_expires_at nem entram neste insert —
   // authenticated não tem mais grant de escrita nessas colunas (ver
   // supabase/migrations/20260728110000_*); os valores vêm do default do banco
-  // (plan default 'free', trial_ends_at já nasce null por ser nullable sem
+  // (plan default 'free', plan_expires_at já nasce null por ser nullable sem
   // valor informado).
 
   const { data: store, error } = await supabase

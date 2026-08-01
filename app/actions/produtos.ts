@@ -61,7 +61,7 @@ export async function createProduct(
   const parsed = parseFormProduct(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  const limits = getPlanLimits(store.plan, store.planExpiresAt);
 
   const { count } = await supabase
     .from("products")
@@ -128,7 +128,7 @@ export async function updateProduct(
   const parsed = parseFormProduct(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  const limits = getPlanLimits(store.plan, store.planExpiresAt);
 
   const { data: current } = await supabase
     .from("products")
@@ -283,7 +283,7 @@ export async function toggleProductFeatured(
   const store = await getCurrentStore();
   if (!store) return { error: "Loja não encontrada." };
 
-  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  const limits = getPlanLimits(store.plan, store.planExpiresAt);
 
   if (next) {
     const { count, error: countError } = await supabase
@@ -332,7 +332,7 @@ export async function importProductsCsv(
   const store = await getCurrentStore();
   if (!store) return { error: "Loja não encontrada." };
 
-  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  const limits = getPlanLimits(store.plan, store.planExpiresAt);
   if (!limits.csvImport) {
     return { error: "Importação em massa disponível apenas no plano Pro. Fale conosco para liberar." };
   }

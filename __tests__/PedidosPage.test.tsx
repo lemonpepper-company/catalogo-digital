@@ -34,13 +34,13 @@ const RANGE: PeriodRange = {
   to: new Date("2026-07-15T12:00:00.000Z"),
 };
 
-function makeStore(plan: Plan, trialEndsAt: string | null = null): StoreSettings {
+function makeStore(plan: Plan, planExpiresAt: string | null = null): StoreSettings {
   return {
     id: STORE_ID,
     name: "Ateliê Mira",
     slug: "ateliemira",
     plan,
-    trialEndsAt,
+    planExpiresAt,
     whatsapp: "35999999999",
     accentColor: "#C9A96E",
     logoUrl: null,
@@ -202,7 +202,7 @@ describe("/painel/pedidos — planos pagos (ORD-30)", () => {
     expect(screen.getByText("Ana")).toBeTruthy();
   });
 
-  it("rebaixa Starter com trial_ends_at vencido para o estado bloqueado", async () => {
+  it("rebaixa Starter com plan_expires_at vencido para o estado bloqueado", async () => {
     getCurrentStore.mockResolvedValue(makeStore("starter", "2020-01-01T00:00:00.000Z"));
 
     await renderPage();

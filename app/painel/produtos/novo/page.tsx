@@ -27,7 +27,7 @@ export default async function NovoProdutoPage() {
     productCount: 0,
   }));
 
-  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  const limits = getPlanLimits(store.plan, store.planExpiresAt);
 
   return <ProdutoFormClient categories={categories} maxPhotos={limits.maxPhotos} />;
 }

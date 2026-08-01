@@ -42,13 +42,13 @@ const RANGE: PeriodRange = {
   to: new Date("2026-07-15T12:00:00.000Z"),
 };
 
-function makeStore(plan: Plan, trialEndsAt: string | null = null): StoreSettings {
+function makeStore(plan: Plan, planExpiresAt: string | null = null): StoreSettings {
   return {
     id: STORE_ID,
     name: "Ateliê Mira",
     slug: "ateliemira",
     plan,
-    trialEndsAt,
+    planExpiresAt,
     whatsapp: "35999999999",
     accentColor: "#C9A96E",
     logoUrl: null,
@@ -132,7 +132,7 @@ describe("/painel — Dashboard exclusiva de planos pagos", () => {
     expect(screen.getByText("Dashboard")).toBeTruthy();
   });
 
-  it("rebaixa Starter/Pro com trial_ends_at vencido para o bloqueio do Free", async () => {
+  it("rebaixa Starter/Pro com plan_expires_at vencido para o bloqueio do Free", async () => {
     getCurrentStore.mockResolvedValue(makeStore("pro", "2020-01-01T00:00:00.000Z"));
 
     await renderPage();

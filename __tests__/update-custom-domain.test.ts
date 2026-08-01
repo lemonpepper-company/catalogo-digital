@@ -32,7 +32,7 @@ function baseStore(overrides: Partial<StoreSettings> = {}): StoreSettings {
     name: "Ateliê Mira",
     slug: "atelie-mira",
     plan: "pro",
-    trialEndsAt: null,
+    planExpiresAt: null,
     whatsapp: "5511999990000",
     accentColor: "#C9A96E",
     logoUrl: null,

@@ -17,7 +17,7 @@ function makeSettings(messageTemplate: string | null): StoreSettings {
     name: "Ateliê Mira",
     slug: "ateliemira",
     plan: "pro",
-    trialEndsAt: null,
+    planExpiresAt: null,
     whatsapp: "35999999999",
     accentColor: "#C9A96E",
     logoUrl: null,
@@ -40,7 +40,7 @@ function makeSettings(messageTemplate: string | null): StoreSettings {
   };
 }
 
-// trialEndsAt=null → acesso indeterminado (ver getEffectivePlan).
+// planExpiresAt=null → acesso indeterminado (ver getEffectivePlan).
 const proLimits = getPlanLimits("pro", null);
 
 function templateTextarea(): HTMLTextAreaElement {

@@ -121,7 +121,7 @@ export interface StoreSettings {
   name: string;
   slug: string;
   plan: Plan;
-  trialEndsAt: string | null;
+  planExpiresAt: string | null;
   whatsapp: string | null;
   accentColor: string;
   logoUrl: string | null;

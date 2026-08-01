@@ -101,7 +101,7 @@ export async function updatePersonalizacao(
   const store = await getCurrentStore();
   if (!store) return { error: "Loja não encontrada." };
 
-  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  const limits = getPlanLimits(store.plan, store.planExpiresAt);
 
   const parsed = personalizacaoSchema.safeParse({
     accentColor: formData.get("accentColor"),
@@ -181,7 +181,7 @@ export async function updateCustomDomain(
   const store = await getCurrentStore();
   if (!store) return { error: "Loja não encontrada." };
 
-  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  const limits = getPlanLimits(store.plan, store.planExpiresAt);
   if (!limits.customDomain) {
     return { error: "Domínio próprio disponível apenas no plano Pro. Fale conosco para liberar." };
   }
