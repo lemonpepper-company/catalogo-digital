@@ -52,7 +52,18 @@ export async function POST(request: Request) {
   if (!loja) return NextResponse.json({ ok: true });
 
   const cycle = (loja.billing_cycle ?? "monthly") as BillingCycle;
-  const mudanca = translateEvent(evento, cycle, new Date());
+
+  // Payload malformado (ex.: dueDate inválido) faz translateEvent lançar.
+  // Não é falha nossa: é dado externo não processável, e a política é a mesma
+  // de "evento não tratado" — 200 sem gravar, para não queimar uma das 15
+  // tentativas que pausam a fila do Asaas.
+  let mudanca;
+  try {
+    mudanca = translateEvent(evento, cycle, new Date());
+  } catch (err) {
+    console.error(`[webhook asaas] payload não processável para loja ${storeId}:`, err);
+    return NextResponse.json({ ok: true });
+  }
   if (!mudanca) return NextResponse.json({ ok: true });
 
   const patch: Record<string, unknown> = {

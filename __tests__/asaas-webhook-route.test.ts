@@ -105,4 +105,26 @@ describe("POST /api/webhooks/asaas — aplicação", () => {
     const { POST } = await import("@/app/api/webhooks/asaas/route");
     expect((await POST(req(CONFIRMADO))).status).toBe(500);
   });
+
+  /**
+   * translateEvent lança RangeError quando dueDate não é uma data válida.
+   * Isso é dado externo malformado, não falha nossa de escrita — precisa sair
+   * 200 sem gravar, como um evento não tratado, ou queimaria uma das 15
+   * tentativas que pausam a fila do Asaas.
+   */
+  it("dueDate inválido em PAYMENT_CONFIRMED devolve 200 sem escrever", async () => {
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_CONFIRMED",
+        payment: {
+          dueDate: "not-a-date",
+          subscription: "sub_1",
+          externalReference: "loja-1",
+        },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(update).not.toHaveBeenCalled();
+  });
 });
