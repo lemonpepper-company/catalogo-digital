@@ -15,7 +15,7 @@ afterEach(() => {
 
 describe("asaasFetch", () => {
   it("envia a chave no header access_token e devolve o JSON", async () => {
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
       new Response(JSON.stringify({ id: "sub_1" }), { status: 200 })
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -29,7 +29,7 @@ describe("asaasFetch", () => {
     expect(r).toEqual({ id: "sub_1" });
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("https://api-sandbox.asaas.com/v3/subscriptions");
-    expect((init as RequestInit).headers).toMatchObject({
+    expect(init?.headers).toMatchObject({
       access_token: "chave-de-teste",
       "Content-Type": "application/json",
     });
@@ -38,7 +38,7 @@ describe("asaasFetch", () => {
   it("lança com a descrição do erro devolvida pelo Asaas", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () =>
+      vi.fn(async (_url: string, _init?: RequestInit) =>
         new Response(
           JSON.stringify({ errors: [{ description: "O campo subscription é inválido." }] }),
           { status: 400 }
@@ -58,12 +58,16 @@ describe("asaasFetch", () => {
     await expect(asaasFetch("/subscriptions")).rejects.toThrow(/ASAAS_API_KEY/);
   });
 
-  it("nunca inclui a chave na mensagem de erro", async () => {
+  it("nunca inclui a chave nem o corpo cru na mensagem de erro", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => new Response("erro opaco", { status: 500 }))
+      vi.fn(async (_url: string, _init?: RequestInit) => new Response("erro opaco", { status: 500 }))
     );
     const { asaasFetch } = await import("@/lib/asaas/client");
+    // Corpo não é JSON válido: o cliente cai no fallback `HTTP ${status}` e
+    // nunca ecoa o texto cru da resposta (que poderia conter dados sensíveis).
+    await expect(asaasFetch("/subscriptions")).rejects.toThrow("Asaas: HTTP 500");
     await expect(asaasFetch("/subscriptions")).rejects.not.toThrow(/chave-de-teste/);
+    await expect(asaasFetch("/subscriptions")).rejects.not.toThrow(/erro opaco/);
   });
 });
