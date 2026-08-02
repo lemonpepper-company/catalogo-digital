@@ -223,6 +223,8 @@ export function AssinaturaClient({
                     type="button"
                     variant={ehAtual || somenteCicloDiferente ? "ghost" : "primary"}
                     size="sm"
+                    className="min-h-9 py-2 text-center leading-snug"
+                    style={{ height: "auto", whiteSpace: "normal" }}
                     disabled={ehAtual || somenteCicloDiferente || carregando}
                     title={
                       somenteCicloDiferente
