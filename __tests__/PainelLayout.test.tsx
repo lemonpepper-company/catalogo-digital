@@ -43,6 +43,11 @@ function makeStore(overrides: Partial<StoreSettings> = {}): StoreSettings {
     customDomain: null,
     customDomainVerified: false,
     document: null,
+    asaasCustomerId: null,
+    asaasSubscriptionId: null,
+    billingCycle: null,
+    subscriptionStatus: null,
+    pendingPlan: null,
     ...overrides,
   };
 }

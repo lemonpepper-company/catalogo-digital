@@ -69,6 +69,11 @@ function makeStore(plan: Plan, planExpiresAt: string | null = null): StoreSettin
     customDomain: null,
     customDomainVerified: false,
     document: null,
+    asaasCustomerId: null,
+    asaasSubscriptionId: null,
+    billingCycle: null,
+    subscriptionStatus: null,
+    pendingPlan: null,
   };
 }
 

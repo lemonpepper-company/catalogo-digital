@@ -53,6 +53,11 @@ function baseStore(overrides: Partial<StoreSettings> = {}): StoreSettings {
     secondaryColor: null,
     gridDensity: "padrao",
     document: null,
+    asaasCustomerId: null,
+    asaasSubscriptionId: null,
+    billingCycle: null,
+    subscriptionStatus: null,
+    pendingPlan: null,
     ...overrides,
   };
 }

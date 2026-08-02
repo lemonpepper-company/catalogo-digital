@@ -39,6 +39,11 @@ const baseSettings: StoreSettings = {
   secondaryColor: null,
   gridDensity: "padrao",
   document: null,
+  asaasCustomerId: null,
+  asaasSubscriptionId: null,
+  billingCycle: null,
+  subscriptionStatus: null,
+  pendingPlan: null,
 };
 
 // planExpiresAt=null → acesso indeterminado, nunca expira (ver getEffectivePlan em lib/plan-limits.ts).
