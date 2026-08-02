@@ -92,7 +92,11 @@ Sem isso, nós e o gateway divergem, e "esse lojista pagou?" passa a ter duas re
 
 **Cartão** — Server Action cria um checkout hospedado (`chargeTypes: ["RECURRENT"]`) e devolve a URL; o lojista paga no Asaas e volta pelo `callback`. O Asaas cria a assinatura e cobra sozinho daí em diante.
 
-**Pix** — o checkout recorrente está documentado com `billingTypes: ["CREDIT_CARD"]` e a documentação **não confirma** se Pix é aceito nesse modo. Se não for, o caminho é criar a assinatura direto via `/v3/subscriptions` com `billingType: PIX`, e o Asaas gera uma cobrança por ciclo. Nenhum dado sensível nos toca em qualquer das duas formas.
+**Pix** — confirmado no sandbox em 2026-08-02: o checkout recorrente **não aceita Pix**. `POST /v3/checkouts` com `chargeTypes: ["RECURRENT"]` e Pix em `billingTypes` responde 400 — *"O método de pagamento CREDIT_CARD é o único método de pagamento permitido para operações RECURRENT"* —, sozinho ou acompanhado do cartão. O Asaas exige `DETACHED` para Pix.
+
+Portanto Pix segue outro caminho: criar a assinatura direto em `POST /v3/subscriptions` com `billingType: PIX`. O Asaas gera uma cobrança por ciclo e o lojista paga cada uma; não há checkout hospedado envolvido. Nenhum dado sensível nos toca em nenhuma das duas formas.
+
+**São dois caminhos de código, e isso é estrutural, não acidental.** Cartão passa por checkout hospedado e o lojista sai do site; Pix é criado pela API e o lojista recebe uma cobrança. A página de assinatura precisa refletir essa diferença — no cartão, "você será redirecionado"; no Pix, "geramos sua cobrança mensal".
 
 **Upgrade** — atualizar a assinatura no Asaas, criar a cobrança avulsa da diferença proporcional, e trocar o plano **só quando o webhook confirmar**. Um caminho para cartão e Pix. Nunca existe plano liberado sem pagamento correspondente.
 
@@ -112,7 +116,11 @@ A coluna segue as mesmas regras das da Spec 2A: `grant update` só para `service
 
 ## Webhook
 
-**Autenticação** no padrão de [app/api/admin/revalidate/route.ts](../../../app/api/admin/revalidate/route.ts): token comparado com `timingSafeEqual`, nunca `===`. O nome do header que o Asaas envia não está documentado — **item do spike**.
+**Autenticação** no padrão de [app/api/admin/revalidate/route.ts](../../../app/api/admin/revalidate/route.ts): token comparado com `timingSafeEqual`, nunca `===`. O header é **`asaas-access-token`**, e o valor é o token configurado ao registrar o webhook no Asaas.
+
+**A fila do Asaas pausa sozinha.** A entrega é *at-least-once*, mas **15 respostas não-2xx consecutivas interrompem a sincronização**: os eventos continuam sendo gerados e enfileirados, e param de ser enviados até reativação manual no painel. Um bug na rota não causa atraso — congela o estado de assinatura de toda a base, em silêncio, até alguém perceber.
+
+Duas consequências de desenho: responder `200` para qualquer evento não tratado (já previsto acima) deixa de ser cortesia e vira proteção; e o erro de escrita precisa ser logado de forma visível, porque é a única pista antes da fila parar.
 
 **Correlação** por `externalReference`, gravado com o `store.id` na criação da assinatura. Mais robusto que mapear por `asaas_customer_id` e imune a cliente duplicado no Asaas.
 
@@ -214,18 +222,25 @@ A rota de webhook é testada com payloads gravados e Supabase mockado, no padrã
 
 A página `/painel/assinatura` ganha testes de renderização por estado (`active`, `past_due`, `canceled`, sem assinatura), e os sete CTAs ganham asserção de destino — nenhum `wa.me` restante em superfície de upsell.
 
-## Spike, antes de qualquer código
+## Spike — concluído em 2026-08-02
 
-Duas perguntas que a documentação não responde e que mudam código:
+As duas perguntas em aberto foram respondidas antes de qualquer código.
 
-1. O checkout recorrente aceita `PIX` em `billingTypes`, ou Pix exige criar a assinatura direto pela API?
-2. Qual header o Asaas usa para autenticar o webhook?
+**1. O checkout recorrente aceita Pix?** Não. Verificado contra `POST https://api-sandbox.asaas.com/v3/checkouts`:
 
-Ambas se respondem em minutos no sandbox. Nesta rodada de design a documentação já contrariou duas premissas — é barato confirmar antes de construir.
+| `billingTypes` com `chargeTypes: ["RECURRENT"]` | Resultado |
+|---|---|
+| `["CREDIT_CARD"]` | `200` — devolve `id` e `link` do checkout hospedado |
+| `["PIX"]` | `400` — *"CREDIT_CARD é o único método permitido para operações RECURRENT"* |
+| `["CREDIT_CARD","PIX"]` | `400` — mesmo erro |
+
+**2. Qual o header de autenticação do webhook?** `asaas-access-token`, confirmado na documentação oficial.
+
+O spike também trouxe um fato não perguntado e relevante: a fila de webhooks pausa após 15 respostas não-2xx consecutivas (ver seção Webhook).
 
 ## Riscos
 
-**O spike pode revelar um terceiro fato inesperado.** O padrão desta spec foi documentação divergindo da expectativa. Se o checkout recorrente não aceitar Pix, o fluxo de Pix passa a ser criação direta de assinatura — mais código, e uma experiência diferente da do cartão. O design comporta os dois caminhos, mas o plano precisa ser escrito depois do spike, não antes.
+**Dois caminhos de cobrança dobram a superfície de teste.** O spike confirmou que cartão e Pix não compartilham fluxo: um é checkout hospedado, o outro é criação direta de assinatura. Cada transição da máquina de estados — assinar, renovar, falhar, upgrade — precisa ser exercitada nos dois, e a página de assinatura tem duas narrativas diferentes para o lojista.
 
 **Cobrança proporcional não paga.** Se o lojista pede upgrade, gera a cobrança avulsa e nunca paga, a assinatura já foi atualizada no Asaas para o valor novo enquanto o plano local segue no antigo. O próximo ciclo cobra o valor do plano novo e o webhook então promove. É uma inconsistência temporária aceitável — o lojista paga o novo e recebe o novo —, mas precisa estar visível na página de assinatura para não parecer erro.
 
