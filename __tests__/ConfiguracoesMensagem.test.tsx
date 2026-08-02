@@ -37,6 +37,7 @@ function makeSettings(messageTemplate: string | null): StoreSettings {
     gridDensity: "padrao",
     customDomain: null,
     customDomainVerified: false,
+    document: null,
   };
 }
 

@@ -10,6 +10,7 @@ const validInput = {
   instagram: null,
   paymentMethods: [],
   deliveryMethods: [],
+  document: null,
 }
 
 describe('storeSchema', () => {

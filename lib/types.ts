@@ -141,4 +141,5 @@ export interface StoreSettings {
   cornerStyle: string;
   secondaryColor: string | null;
   gridDensity: "padrao" | "compacto";
+  document: string | null;
 }

@@ -37,6 +37,7 @@ function makeSettings(): StoreSettings {
     gridDensity: "padrao",
     customDomain: null,
     customDomainVerified: false,
+    document: null,
   };
 }
 

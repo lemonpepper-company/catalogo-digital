@@ -52,6 +52,7 @@ function baseStore(overrides: Partial<StoreSettings> = {}): StoreSettings {
     cornerStyle: "padrao",
     secondaryColor: null,
     gridDensity: "padrao",
+    document: null,
     ...overrides,
   };
 }

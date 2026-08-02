@@ -38,6 +38,7 @@ const baseSettings: StoreSettings = {
   cornerStyle: "padrao",
   secondaryColor: null,
   gridDensity: "padrao",
+  document: null,
 };
 
 // planExpiresAt=null → acesso indeterminado, nunca expira (ver getEffectivePlan em lib/plan-limits.ts).

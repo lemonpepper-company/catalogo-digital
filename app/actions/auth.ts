@@ -7,6 +7,7 @@ import { DEFAULT_ACCENT_COLOR } from '@/lib/theme'
 import { uploadToBucket } from '@/lib/server/upload'
 import { getSafeRedirect } from '@/lib/auth/safe-redirect'
 import { storeSchema } from '@/lib/validation/auth'
+import { normalizarDocumento } from '@/lib/validation/documento'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -140,6 +141,7 @@ export async function createStore(
     instagram: (formData.get('instagram') as string)?.replace(/^@+/, '').trim() || null,
     paymentMethods: JSON.parse((formData.get('paymentMethods') as string) || '[]'),
     deliveryMethods: JSON.parse((formData.get('deliveryMethods') as string) || '[]'),
+    document: (formData.get('document') as string) || null,
   })
 
   if (!result.success) {
@@ -180,6 +182,7 @@ export async function createStore(
       accent_color: DEFAULT_ACCENT_COLOR, // Gold Dust; o lojista ajusta na aba Personalização
       payment_methods: result.data.paymentMethods,
       delivery_methods: result.data.deliveryMethods,
+      document: result.data.document ? normalizarDocumento(result.data.document) : null,
     })
     .select('id')
     .single()

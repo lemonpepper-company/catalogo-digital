@@ -97,6 +97,14 @@ export function IdentidadeFields({
             onChange={(e) => onStoreDescriptionChange(e.target.value)}
           />
         </div>
+        <div className="sm:col-span-2">
+          <Input
+            name="document"
+            label="CPF ou CNPJ"
+            hint="Opcional — necessário apenas para assinar um plano pago"
+            placeholder="000.000.000-00"
+          />
+        </div>
       </div>
     </>
   );

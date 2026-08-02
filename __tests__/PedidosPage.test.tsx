@@ -60,6 +60,7 @@ function makeStore(plan: Plan, planExpiresAt: string | null = null): StoreSettin
     gridDensity: "padrao",
     customDomain: null,
     customDomainVerified: false,
+    document: null,
   };
 }
 

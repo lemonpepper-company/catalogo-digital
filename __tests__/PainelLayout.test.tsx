@@ -42,6 +42,7 @@ function makeStore(overrides: Partial<StoreSettings> = {}): StoreSettings {
     gridDensity: "padrao",
     customDomain: null,
     customDomainVerified: false,
+    document: null,
     ...overrides,
   };
 }
