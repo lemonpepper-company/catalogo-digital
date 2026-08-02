@@ -83,6 +83,31 @@ describe("AssinaturaClient", () => {
     render(<AssinaturaClient {...BASE} />);
     expect(screen.getByText(/voc(ê|e) ser(á|a) redirecionado/i)).toBeTruthy();
   });
+
+  it("mesmo plano com ciclo diferente fica desabilitado e não chama trocarPlano", async () => {
+    const { trocarPlano } = await import("@/app/actions/assinatura");
+    vi.mocked(trocarPlano).mockClear();
+
+    render(
+      <AssinaturaClient
+        {...BASE}
+        plan="pro"
+        subscriptionStatus="active"
+        planExpiresAt="2026-09-12T00:00:00.000Z"
+        billingCycle="monthly"
+      />
+    );
+
+    const botaoCicloAnual = screen.getByRole("button", { name: /fale com o suporte/i });
+    expect(botaoCicloAnual).toBeDisabled();
+
+    fireEvent.click(botaoCicloAnual);
+    expect(trocarPlano).not.toHaveBeenCalled();
+
+    // upgrade real (Starter) continua habilitado e chamável.
+    const botaoUpgrade = screen.getByRole("button", { name: /assinar starter mensal/i });
+    expect(botaoUpgrade).not.toBeDisabled();
+  });
 });
 
 describe("AssinaturaClient — modal de documento", () => {

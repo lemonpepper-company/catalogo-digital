@@ -78,6 +78,7 @@ export function AssinaturaClient({
   subscriptionStatus,
   billingCycle,
   pendingPlan,
+  document,
 }: AssinaturaClientProps) {
   const [status, setStatus] = useState<Status>(subscriptionStatus);
   const [pending, setPending] = useState<PaidPlan | null>(pendingPlan);
@@ -100,6 +101,10 @@ export function AssinaturaClient({
       // DOCUMENTO_NECESSARIO é um código de controle — nunca vira texto na tela.
       if (result.error === "DOCUMENTO_NECESSARIO") {
         setDocumentIntencao(intencao);
+        // A loja já pode ter um documento salvo (ex: dado ficou defasado
+        // entre o carregamento da página e o clique) — pré-popula em vez de
+        // pedir para redigitar do zero.
+        setDocumentValue(document ?? "");
         return;
       }
       setErrorMsg(result.error);
@@ -206,21 +211,33 @@ export function AssinaturaClient({
               {CICLOS.map((cycle) => {
                 const key = `${p}-${cycle}`;
                 const ehAtual = plan === p && billingCycle === cycle && status === "active";
+                // Mesmo plano, só o ciclo muda: trocarPlano(destino) reusa
+                // store.billingCycle e não tem como agir aqui — daria um
+                // "muda para X" sem nenhuma troca real. Bloqueia no client.
+                const somenteCicloDiferente =
+                  !ehAtual && plan !== "free" && plan === p && billingCycle !== cycle;
                 const carregando = loadingKey === key;
                 return (
                   <Button
                     key={key}
                     type="button"
-                    variant={ehAtual ? "ghost" : "primary"}
+                    variant={ehAtual || somenteCicloDiferente ? "ghost" : "primary"}
                     size="sm"
-                    disabled={ehAtual || carregando}
+                    disabled={ehAtual || somenteCicloDiferente || carregando}
+                    title={
+                      somenteCicloDiferente
+                        ? "Fale com o suporte para mudar o ciclo de cobrança de uma assinatura ativa."
+                        : undefined
+                    }
                     onClick={() => assinar(p, cycle)}
                   >
                     {ehAtual
                       ? "Plano atual"
-                      : carregando
-                        ? "Assinando…"
-                        : `Assinar ${PLAN_LABELS[p]} ${CYCLE_LABELS[cycle]} — ${precoLabel(p, cycle)}`}
+                      : somenteCicloDiferente
+                        ? "Fale com o suporte para mudar o ciclo"
+                        : carregando
+                          ? "Assinando…"
+                          : `Assinar ${PLAN_LABELS[p]} ${CYCLE_LABELS[cycle]} — ${precoLabel(p, cycle)}`}
                   </Button>
                 );
               })}
