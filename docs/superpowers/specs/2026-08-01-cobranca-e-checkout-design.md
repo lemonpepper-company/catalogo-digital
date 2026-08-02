@@ -52,6 +52,7 @@ Parcelar em 12x seria comercialmente melhor, mas deixaria de ser assinatura: vir
 
 **Dentro:**
 - Migration adicionando `pending_plan` em `stores`, com `grant update` para `service_role` e a checagem no guard de privilégios do CI.
+- Migration adicionando `document` (CPF/CNPJ) em `stores`, campo opcional no cadastro e modal de coleta no momento de assinar.
 - `lib/asaas/` — client HTTP, operações de assinatura, tradução pura de eventos.
 - `app/api/webhooks/asaas/route.ts` — recebe, autentica e aplica.
 - Server Actions de assinar, trocar de plano e cancelar.
@@ -97,6 +98,20 @@ Sem isso, nós e o gateway divergem, e "esse lojista pagou?" passa a ter duas re
 Portanto Pix segue outro caminho: criar a assinatura direto em `POST /v3/subscriptions` com `billingType: PIX`. O Asaas gera uma cobrança por ciclo e o lojista paga cada uma; não há checkout hospedado envolvido. Nenhum dado sensível nos toca em nenhuma das duas formas.
 
 **São dois caminhos de código, e isso é estrutural, não acidental.** Cartão passa por checkout hospedado e o lojista sai do site; Pix é criado pela API e o lojista recebe uma cobrança. A página de assinatura precisa refletir essa diferença — no cartão, "você será redirecionado"; no Pix, "geramos sua cobrança mensal".
+
+### O documento do lojista
+
+A assimetria acima tem uma consequência que quase passou batido: **`POST /v3/customers` exige `cpfCnpj`**, e o Vtrine nunca coletou esse dado. No cartão isso não aparece — o checkout hospedado pede os dados do pagador na tela do Asaas. No Pix, que cria o cliente pela nossa API, a chamada falharia com erro de validação.
+
+A solução coleta o dado em dois momentos, nenhum deles bloqueando quem só quer experimentar o produto:
+
+**No cadastro**, um campo `document` opcional, rotulado como tal e com a razão à vista: *"Opcional — necessário apenas para assinar um plano pago"*. Quem está criando a loja para testar não é barrado por um formulário mais longo.
+
+**No momento de assinar**, se `document` estiver vazio, uma modal coleta antes de seguir para o gateway. É o instante em que o lojista já decidiu pagar, então o campo deixa de ser fricção e vira parte natural do checkout.
+
+**`document` entra no grant de `authenticated` — ao contrário de todas as outras colunas desta spec.** A distinção é deliberada e vale explicitar: `plan`, `plan_expires_at`, `subscription_status` e `pending_plan` são estado de acesso, e o lojista poder escrevê-los seria auto-promoção. `document` é dado de identidade da própria loja, da mesma natureza de `name` e `whatsapp`, que `authenticated` já escreve. Tratá-lo como as colunas de plano obrigaria a service role em uma edição trivial de perfil.
+
+Validação de CPF/CNPJ acontece antes de qualquer chamada ao Asaas: erro de dígito verificador é do nosso lado, e devolver a mensagem crua de um terceiro para um erro que sabemos diagnosticar é ruim.
 
 **Upgrade** — atualizar a assinatura no Asaas, criar a cobrança avulsa da diferença proporcional, e trocar o plano **só quando o webhook confirmar**. Um caminho para cartão e Pix. Nunca existe plano liberado sem pagamento correspondente.
 

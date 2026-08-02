@@ -19,7 +19,8 @@
 - **Graça é absoluta:** `plan_expires_at = dueDate + 3 dias`. Nunca somar sobre o valor atual da coluna — o Asaas reenvia eventos e a soma acumularia.
 - **`PAYMENT_CONFIRMED`, não `PAYMENT_RECEIVED`.** Confirmado é o cliente ter pago; recebido é o dinheiro cair, dias depois.
 - **Preços:** Starter R$ 29,90/mês e R$ 299/ano; Pro R$ 59,90/mês e R$ 599/ano. Anual à vista — assinatura no Asaas não aceita parcelamento.
-- **Coluna nova em `stores` não entra no grant de `authenticated` nem no de `anon`.** O grant de `authenticated` é allowlist nominal (`20260728110000`); o select do `anon` é por coluna (`20260709000000`).
+- **Coluna de estado de acesso não entra no grant de `authenticated` nem no de `anon`.** Vale para `plan`, `plan_expires_at`, `subscription_status` e `pending_plan` — dar escrita ao lojista seria auto-promoção. O grant de `authenticated` é allowlist nominal (`20260728110000`); o select do `anon` é por coluna (`20260709000000`).
+- **`document` é a exceção, e de propósito.** É dado de identidade da loja, da mesma natureza de `name` e `whatsapp`, que `authenticated` já escreve. Entra no grant de `authenticated` (insert e update) e no do `anon` não entra em nada.
 - **Fora de escopo:** Pix Automático, anual parcelado, histórico de faturas, cupom, e-mail transacional.
 - **Comandos:** `npx vitest run <caminho>`, `npx tsc --noEmit`, `npx supabase db push`, `npx eslint .`.
 
@@ -110,6 +111,208 @@ Em `.github/workflows/supabase-migrations-check.yml`, adicionar `'pending_plan'`
 ```bash
 git add supabase/migrations/20260802000000_pending_plan.sql .github/workflows/supabase-migrations-check.yml
 git commit -m "feat: coluna pending_plan para downgrade na virada do ciclo"
+```
+
+---
+
+### Task 1B: Documento do lojista (CPF/CNPJ)
+
+Numerada `1B` para não renumerar as tasks seguintes. Roda depois da Task 1 e **antes da Task 6**, que depende dela para o caminho Pix.
+
+`POST /v3/customers` exige `cpfCnpj` e o Vtrine nunca coletou esse dado. No cartão não aparece — o checkout hospedado pede na tela do Asaas. No Pix, a chamada falharia.
+
+**Files:**
+- Create: `supabase/migrations/20260802010000_store_document.sql`
+- Create: `lib/validation/documento.ts`
+- Modify: `lib/validation/auth.ts:6` (`storeSchema`), `app/actions/auth.ts:172-183` (insert)
+- Modify: `lib/server/store.ts:62,114`, `lib/types.ts`
+- Test: `__tests__/documento.test.ts`
+
+**Interfaces:**
+- Consumes: nada.
+- Produces: coluna `stores.document text null`; `validarDocumento(valor: string): boolean` e `normalizarDocumento(valor: string): string` em `lib/validation/documento.ts`; campo `document: string | null` em `StoreSettings`. Tasks 6 e 7 consomem.
+
+- [ ] **Step 1: Escrever os testes de validação**
+
+Criar `__tests__/documento.test.ts`:
+
+```ts
+import { describe, it, expect } from "vitest";
+import { validarDocumento, normalizarDocumento } from "@/lib/validation/documento";
+
+describe("normalizarDocumento", () => {
+  it("remove pontuação", () => {
+    expect(normalizarDocumento("529.982.247-25")).toBe("52998224725");
+    expect(normalizarDocumento("11.222.333/0001-81")).toBe("11222333000181");
+  });
+});
+
+describe("validarDocumento — CPF", () => {
+  it("aceita CPF válido, com ou sem máscara", () => {
+    expect(validarDocumento("529.982.247-25")).toBe(true);
+    expect(validarDocumento("52998224725")).toBe(true);
+  });
+
+  it("rejeita dígito verificador errado", () => {
+    expect(validarDocumento("529.982.247-26")).toBe(false);
+  });
+
+  it("rejeita sequência repetida", () => {
+    expect(validarDocumento("111.111.111-11")).toBe(false);
+  });
+});
+
+describe("validarDocumento — CNPJ", () => {
+  it("aceita CNPJ válido", () => {
+    expect(validarDocumento("11.222.333/0001-81")).toBe(true);
+  });
+
+  it("rejeita dígito verificador errado", () => {
+    expect(validarDocumento("11.222.333/0001-82")).toBe(false);
+  });
+});
+
+describe("validarDocumento — entradas inválidas", () => {
+  it.each(["", "   ", "123", "abcdefghijk", "5299822472"])("%s é inválido", (v) => {
+    expect(validarDocumento(v)).toBe(false);
+  });
+});
+```
+
+- [ ] **Step 2: Rodar e confirmar que falha**
+
+Run: `npx vitest run __tests__/documento.test.ts`
+Expected: FAIL — módulo inexistente.
+
+- [ ] **Step 3: Implementar a validação**
+
+Criar `lib/validation/documento.ts`:
+
+```ts
+/** Só dígitos — é como o Asaas espera e como gravamos. */
+export function normalizarDocumento(valor: string): string {
+  return valor.replace(/\D/g, "");
+}
+
+function digitosIguais(d: string): boolean {
+  return /^(\d)\1+$/.test(d);
+}
+
+function validarCpf(cpf: string): boolean {
+  if (cpf.length !== 11 || digitosIguais(cpf)) return false;
+
+  const dv = (ate: number, pesoInicial: number) => {
+    let soma = 0;
+    for (let i = 0; i < ate; i++) soma += Number(cpf[i]) * (pesoInicial - i);
+    const resto = (soma * 10) % 11;
+    return resto === 10 ? 0 : resto;
+  };
+
+  return dv(9, 10) === Number(cpf[9]) && dv(10, 11) === Number(cpf[10]);
+}
+
+function validarCnpj(cnpj: string): boolean {
+  if (cnpj.length !== 14 || digitosIguais(cnpj)) return false;
+
+  const dv = (ate: number) => {
+    let soma = 0;
+    let peso = ate - 7;
+    for (let i = 0; i < ate; i++) {
+      soma += Number(cnpj[i]) * peso;
+      peso = peso === 2 ? 9 : peso - 1;
+    }
+    const resto = soma % 11;
+    return resto < 2 ? 0 : 11 - resto;
+  };
+
+  return dv(12) === Number(cnpj[12]) && dv(13) === Number(cnpj[13]);
+}
+
+/**
+ * Aceita CPF ou CNPJ, com ou sem máscara. Validado ANTES de qualquer chamada ao
+ * Asaas: erro de dígito verificador é diagnóstico nosso, e devolver a mensagem
+ * crua de um terceiro para algo que sabemos explicar é ruim para o lojista.
+ */
+export function validarDocumento(valor: string): boolean {
+  const d = normalizarDocumento(valor);
+  if (d.length === 11) return validarCpf(d);
+  if (d.length === 14) return validarCnpj(d);
+  return false;
+}
+```
+
+- [ ] **Step 4: Rodar e confirmar que passa**
+
+Run: `npx vitest run __tests__/documento.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Escrever a migration**
+
+Criar `supabase/migrations/20260802010000_store_document.sql`:
+
+```sql
+-- CPF ou CNPJ do lojista, só dígitos. Exigido pelo Asaas em POST /v3/customers,
+-- que é o caminho do Pix (no cartão, o checkout hospedado coleta na tela deles).
+--
+-- Opcional: quem cria a loja para experimentar não é barrado por um formulário
+-- maior. A coleta obrigatória acontece na modal, no momento de assinar.
+alter table public.stores add column document text;
+
+-- Ao contrário das colunas de plano, esta ENTRA no grant de authenticated: é
+-- dado de identidade da própria loja, da mesma natureza de name e whatsapp, e
+-- exigir service_role para uma edição de perfil seria desproporcional. O risco
+-- que o grant restrito de 20260728110000 existe para conter é auto-promoção de
+-- plano — document não concede acesso a nada.
+grant insert (document), update (document) on public.stores to authenticated;
+```
+
+- [ ] **Step 6: Aplicar e verificar**
+
+Run: `npx supabase db push`
+
+Run:
+```bash
+npx supabase db execute --sql "select has_column_privilege('authenticated','public.stores','document','update') as auth_update, has_column_privilege('anon','public.stores','document','select') as anon_select;"
+```
+Expected: `auth_update = t`, `anon_select = f`. O `anon` continua sem enxergar — o select dele é por coluna e `document` não foi adicionada lá.
+
+- [ ] **Step 7: Adicionar o campo ao cadastro**
+
+Em `lib/validation/auth.ts`, dentro de `storeSchema`:
+
+```ts
+  document: z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : v))
+    .nullable()
+    .refine((v) => v === null || validarDocumento(v), {
+      message: "CPF ou CNPJ inválido.",
+    }),
+```
+
+Em `app/actions/auth.ts`, incluir no insert (linhas 172-183):
+
+```ts
+      document: result.data.document ? normalizarDocumento(result.data.document) : null,
+```
+
+No formulário de cadastro, um campo com rótulo `CPF ou CNPJ` e a legenda `Opcional — necessário apenas para assinar um plano pago`.
+
+- [ ] **Step 8: Expor em `getCurrentStore`**
+
+Em `lib/server/store.ts`, adicionar `document` à string do `.select(...)` (linha 114) e `document: row.document` ao mapeamento (linha 62). Em `lib/types.ts`, `document: string | null` em `StoreSettings`.
+
+- [ ] **Step 9: Verificar tipos e rodar a suíte**
+
+Run: `npx vitest run && npx tsc --noEmit`
+Expected: PASS.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add supabase/migrations/20260802010000_store_document.sql lib/validation/documento.ts lib/validation/auth.ts app/actions/auth.ts lib/server/store.ts lib/types.ts __tests__/documento.test.ts
+git commit -m "feat: campo de documento opcional no cadastro"
 ```
 
 ---
@@ -1014,12 +1217,9 @@ git commit -m "feat: rota de webhook do Asaas"
 - Consumes: Tasks 3 e 4, `getCurrentStore` de `@/lib/server/store`, `createAdminClient`.
 - Produces: `iniciarAssinatura`, `trocarPlano`, `cancelarAssinatura` — todas devolvendo `AssinaturaState = { error: string } | { ok: true; redirectUrl?: string } | null`.
 
-> **Bloqueio conhecido — o caminho Pix precisa de CPF/CNPJ.**
-> `POST /v3/customers` exige `cpfCnpj`, e o Vtrine não coleta esse dado: `stores` não tem a coluna e o cadastro não pergunta. O caminho de cartão não sofre — o checkout hospedado coleta os dados do pagador na tela do Asaas.
+> **Depende da Task 1B.** `POST /v3/customers` exige `cpfCnpj`, coletado pela coluna `document`. Quando ela estiver vazia, `iniciarAssinatura` com Pix devolve `{ error: "DOCUMENTO_NECESSARIO" }` — um código, não uma frase, porque a Task 7 usa esse retorno para abrir a modal de coleta em vez de exibir um erro.
 >
-> Resolver isso é uma decisão de produto que não cabe a esta task: exige coluna nova, campo no formulário e validação de CPF/CNPJ. **Implemente o cartão por completo e deixe o Pix atrás de uma verificação explícita**, devolvendo `{ error: "Pagamento via Pix ainda não disponível." }` quando o dado faltar. O código de `criarAssinaturaPix` (Task 4) fica pronto e testado; só o gatilho espera.
->
-> Sem isso, a chamada falharia no Asaas com erro de validação, e o lojista veria uma mensagem crua de terceiro.
+> O caminho de cartão não depende de `document`: o checkout hospedado coleta os dados do pagador na tela do Asaas.
 
 - [ ] **Step 1: Escrever os testes**
 
@@ -1328,6 +1528,46 @@ export async function cancelarAssinatura(): Promise<AssinaturaState> {
 }
 ```
 
+- [ ] **Step 3B: Adicionar a action que grava o documento**
+
+Ainda em `app/actions/assinatura.ts`. Roda com o client autenticado, não com a service role: `document` é dado da própria loja e `authenticated` tem grant nela (Task 1B), então a RLS "own store only" já é a fronteira correta.
+
+```ts
+import { createClient } from "@/lib/supabase/server";
+import { validarDocumento, normalizarDocumento } from "@/lib/validation/documento";
+
+/**
+ * Coletado pela modal quando o lojista tenta assinar via Pix sem documento.
+ * Validado aqui antes de qualquer ida ao Asaas: dígito verificador errado é
+ * diagnóstico nosso, e repassar a mensagem crua do gateway seria pior.
+ */
+export async function salvarDocumento(valor: string): Promise<AssinaturaState> {
+  if (!validarDocumento(valor)) return { error: "CPF ou CNPJ inválido." };
+
+  const store = await getCurrentStore();
+  if (!store) return { error: "Loja não encontrada." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("stores")
+    .update({ document: normalizarDocumento(valor) })
+    .eq("id", store.id);
+
+  if (error) return { error: "Não foi possível salvar o documento." };
+
+  revalidatePath("/painel/assinatura");
+  return { ok: true };
+}
+```
+
+E em `iniciarAssinatura`, no ramo do Pix, antes de criar o cliente:
+
+```ts
+    if (!store.document) return { error: "DOCUMENTO_NECESSARIO" };
+```
+
+O `criarCliente` passa a receber `cpfCnpj: store.document`.
+
 - [ ] **Step 4: Expor os campos novos em `getCurrentStore`**
 
 Em `lib/server/store.ts`, adicionar ao `.select(...)` da linha 114 as colunas `asaas_customer_id, asaas_subscription_id, billing_cycle, subscription_status, pending_plan`, e ao mapeamento (linha 62 em diante):
@@ -1457,6 +1697,37 @@ describe("AssinaturaClient", () => {
     expect(screen.getByText(/voc(ê|e) ser(á|a) redirecionado/i)).toBeTruthy();
   });
 });
+
+describe("AssinaturaClient — modal de documento", () => {
+  it("não aparece antes de tentar assinar", () => {
+    render(<AssinaturaClient {...BASE} document={null} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("abre quando a action devolve DOCUMENTO_NECESSARIO", async () => {
+    const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+    vi.mocked(iniciarAssinatura).mockResolvedValue({ error: "DOCUMENTO_NECESSARIO" });
+
+    render(<AssinaturaClient {...BASE} document={null} />);
+    fireEvent.click(screen.getByRole("radio", { name: /pix/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /assinar/i })[0]);
+
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+    expect(screen.getByLabelText(/CPF ou CNPJ/i)).toBeTruthy();
+  });
+
+  it("nunca exibe DOCUMENTO_NECESSARIO como mensagem de erro", async () => {
+    const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+    vi.mocked(iniciarAssinatura).mockResolvedValue({ error: "DOCUMENTO_NECESSARIO" });
+
+    render(<AssinaturaClient {...BASE} document={null} />);
+    fireEvent.click(screen.getByRole("radio", { name: /pix/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /assinar/i })[0]);
+
+    await screen.findByRole("dialog");
+    expect(screen.queryByText(/DOCUMENTO_NECESSARIO/)).toBeNull();
+  });
+});
 ```
 
 - [ ] **Step 2: Rodar e confirmar que falha**
@@ -1506,6 +1777,12 @@ Estrutura obrigatória, seguindo os componentes de `components/ui/` e os tokens 
 - Datas formatadas em `pt-BR` com `America/Sao_Paulo`, reaproveitando `lib/timezone-sp.ts`.
 
 Ao receber `{ ok: true, redirectUrl }` de `iniciarAssinatura`, navegar com `window.location.href = redirectUrl`.
+
+**Modal de documento.** Ao receber `{ error: "DOCUMENTO_NECESSARIO" }`, em vez de exibir erro, abrir uma `Modal` (`components/ui/Modal.tsx`, já existente) com um campo `CPF ou CNPJ`. Ao confirmar, chamar `salvarDocumento` e, em caso de sucesso, refazer a chamada de `iniciarAssinatura` com o mesmo plano, ciclo e meio — o lojista não deve precisar clicar em "assinar" de novo.
+
+`DOCUMENTO_NECESSARIO` é um código de controle e **nunca** pode chegar à tela. Se aparecer para o lojista, é bug — e há um teste para isso.
+
+A modal também é o lugar de explicar o porquê em uma linha: *"O Asaas exige CPF ou CNPJ para emitir cobranças Pix."*
 
 - [ ] **Step 5: Implementar o Server Component**
 
