@@ -1,21 +1,16 @@
-import { vtrineWhatsAppHref } from "@/lib/contact";
+import Link from "next/link";
 
 interface UpsellHintProps {
   label: string;
-  whatsappMessage: string;
 }
 
-export function UpsellHint({ label, whatsappMessage }: UpsellHintProps) {
-  const href = vtrineWhatsAppHref(whatsappMessage);
-
+export function UpsellHint({ label }: UpsellHintProps) {
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      href="/painel/assinatura"
       className="font-body text-[13px] text-graphite underline"
     >
       {label}
-    </a>
+    </Link>
   );
 }

@@ -128,7 +128,7 @@ describe("/painel/pedidos — gate de plano (ORD-28)", () => {
     expect(getStoreOrders).not.toHaveBeenCalled();
     expect(resolvePeriodRange).not.toHaveBeenCalled();
     expect(screen.getByText("Disponível a partir do plano Starter")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Falar no WhatsApp →" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Fazer upgrade →" })).toBeTruthy();
   });
 
   it("no plano Free nenhum dado do histórico chega ao HTML", async () => {

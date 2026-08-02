@@ -1,8 +1,6 @@
 import { Lock } from "lucide-react";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { vtrineWhatsAppHref } from "@/lib/contact";
-
-const UPGRADE_MESSAGE = "Olá! Quero saber mais sobre os planos pagos da Vtrine.";
 
 interface RecursoBloqueadoProps {
   titulo: string;
@@ -14,8 +12,6 @@ interface RecursoBloqueadoProps {
  * dado real do recurso (pedido, contagem, total) chega até aqui (ORD-28).
  */
 export function RecursoBloqueado({ titulo, descricao }: RecursoBloqueadoProps) {
-  const upgradeWhatsAppHref = vtrineWhatsAppHref(UPGRADE_MESSAGE);
-
   return (
     <Card className="py-12 text-center">
       <div className="flex flex-col items-center gap-4">
@@ -33,14 +29,12 @@ export function RecursoBloqueado({ titulo, descricao }: RecursoBloqueadoProps) {
             {descricao}
           </p>
         </div>
-        <a
-          href={upgradeWhatsAppHref}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href="/painel/assinatura"
           className="font-display font-semibold text-[15px] text-gold hover:underline"
         >
-          Falar no WhatsApp →
-        </a>
+          Fazer upgrade →
+        </Link>
       </div>
     </Card>
   );

@@ -8,7 +8,6 @@ import {
   ChevronDown,
   Image as ImageIcon,
 } from "lucide-react";
-import { VTRINE_WHATSAPP_NUMBER } from "@/lib/contact";
 import {
   painCards,
   steps,
@@ -354,9 +353,13 @@ export default function LandingPage() {
               </div>
               <div className="mt-4 mb-1.5">
                 <span className="font-display font-semibold text-[28px] text-obsidian tracking-tight">
-                  Sob consulta
+                  R$ 29,90
                 </span>
+                <span className="font-body text-[15px] text-graphite">/mês</span>
               </div>
+              <p className="font-body text-[13px] text-graphite mb-6">
+                ou R$ 24,92/mês, cobrado anualmente
+              </p>
               <p className="font-body text-[14px] text-graphite mb-6">
                 Para quem já vende e quer crescer o catálogo.
               </p>
@@ -374,16 +377,12 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <a
-                href={`https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
-                  "Olá! Quero saber mais sobre o plano Starter da Vtrine."
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <NextLink
+                href="/cadastro"
                 className="inline-flex items-center justify-center h-11 rounded-btn border-2 border-obsidian text-obsidian font-display font-medium text-[15px] hover:bg-obsidian hover:text-white transition-colors"
               >
-                Fale conosco
-              </a>
+                Começar agora
+              </NextLink>
             </div>
 
             {/* Pro */}
@@ -396,9 +395,13 @@ export default function LandingPage() {
               </div>
               <div className="mt-4 mb-1.5">
                 <span className="font-display font-semibold text-[28px] text-obsidian tracking-tight">
-                  Sob consulta
+                  R$ 59,90
                 </span>
+                <span className="font-body text-[15px] text-graphite">/mês</span>
               </div>
+              <p className="font-body text-[13px] text-graphite mb-6">
+                ou R$ 49,92/mês, cobrado anualmente
+              </p>
               <p className="font-body text-[14px] text-graphite mb-6">
                 Para a loja que vende todo dia e quer crescer sem limites.
               </p>
@@ -416,16 +419,12 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <a
-                href={`https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
-                  "Olá! Quero saber mais sobre o plano Pro da Vtrine."
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <NextLink
+                href="/cadastro"
                 className="inline-flex items-center justify-center h-11 rounded-btn bg-obsidian text-white font-display font-medium text-[15px] hover:bg-[#1f1f1f] transition-colors"
               >
-                Fale conosco
-              </a>
+                Começar agora
+              </NextLink>
             </div>
           </div>
         </div>

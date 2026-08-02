@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { RecursoBloqueado } from "@/components/painel/RecursoBloqueado";
-import { VTRINE_WHATSAPP_NUMBER } from "@/lib/contact";
 
 describe("RecursoBloqueado — estado bloqueado de recurso pago (ORD-28)", () => {
   it("anuncia que o recurso começa no plano Starter", () => {
@@ -12,15 +11,11 @@ describe("RecursoBloqueado — estado bloqueado de recurso pago (ORD-28)", () =>
     expect(screen.getByText("Faça upgrade.")).toBeTruthy();
   });
 
-  it("oferece o CTA de WhatsApp da Vtrine no padrão do banner de upgrade", () => {
+  it("oferece o CTA de upgrade apontando para a página de assinatura", () => {
     render(<RecursoBloqueado titulo="Histórico de pedidos" descricao="Faça upgrade." />);
 
-    const link = screen.getByRole("link", { name: "Falar no WhatsApp →" });
-    expect(link.getAttribute("href")).toBe(
-      `https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
-        "Olá! Quero saber mais sobre os planos pagos da Vtrine."
-      )}`
-    );
+    const link = screen.getByRole("link", { name: "Fazer upgrade →" });
+    expect(link.getAttribute("href")).toBe("/painel/assinatura");
   });
 
   it("não exibe nenhum número real do recurso bloqueado", () => {

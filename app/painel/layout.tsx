@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { getCurrentStore } from '@/lib/server/store'
 import { getEffectivePlan } from '@/lib/plan-limits'
 import { getCatalogUrl } from '@/lib/catalog-url'
-import { VTRINE_WHATSAPP_NUMBER } from '@/lib/contact'
 import { Sidebar } from '@/components/painel/Sidebar'
 import { MobileTabBar } from '@/components/painel/MobileTabBar'
 
@@ -24,9 +24,6 @@ export default async function PainelLayout({
 
   const isFree = getEffectivePlan(store.plan, store.planExpiresAt) === 'free'
   const catalogUrl = getCatalogUrl(store)
-  const upgradeWhatsAppHref = `https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
-    'Olá! Quero saber mais sobre os planos pagos da Vtrine.'
-  )}`
 
   return (
     <div className="h-dvh flex flex-col bg-ivory overflow-hidden">
@@ -35,14 +32,12 @@ export default async function PainelLayout({
           <span className="font-semibold tracking-[0.02em]">Plano Free</span>
           <span className="opacity-55">·</span>
           <span>Fale conosco para liberar mais produtos</span>
-          <a
-            href={upgradeWhatsAppHref}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/painel/assinatura"
             className="font-display font-semibold text-[13.5px] text-gold hover:underline"
           >
-            Falar no WhatsApp →
-          </a>
+            Fazer upgrade →
+          </Link>
         </div>
       )}
 

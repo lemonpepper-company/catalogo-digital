@@ -22,7 +22,6 @@ import { useProdutosFiltros } from "./use-produtos-filtros";
 import { Pagination } from "@/components/ui/Pagination";
 import type { ProductCounts } from "./use-produtos";
 import { NO_CATEGORY_VALUE, STATUS_OPTIONS } from "@/lib/product-filters";
-import { vtrineWhatsAppHref } from "@/lib/contact";
 
 interface ProdutosClientProps {
   products: StoreProduct[];
@@ -110,16 +109,12 @@ export function ProdutosClient({
               volta ao fazer upgrade.
             </p>
           </div>
-          <a
-            href={vtrineWhatsAppHref(
-              "Olá! Quero fazer upgrade para exibir todos os meus produtos na vitrine."
-            )}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/painel/assinatura"
             className="font-display font-semibold text-[14px] text-gold hover:underline whitespace-nowrap"
           >
             Fazer upgrade →
-          </a>
+          </Link>
         </Card>
       )}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -139,14 +134,12 @@ export function ProdutosClient({
               Importar planilha
             </Button>
           ) : (
-            <a
-              href="https://wa.me/5535999931678?text=Ol%C3%A1!%20Quero%20saber%20mais%20sobre%20importa%C3%A7%C3%A3o%20de%20produtos."
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/painel/assinatura"
               className="font-body text-[13px] text-graphite underline text-center sm:text-left"
             >
               Importação em massa — disponível no Pro
-            </a>
+            </Link>
           )}
           {limitReached ? (
             <span className="inline-flex items-center justify-center min-h-11 px-6 py-2.5 rounded-btn bg-linen text-graphite font-display font-medium text-[15px] cursor-not-allowed text-center">

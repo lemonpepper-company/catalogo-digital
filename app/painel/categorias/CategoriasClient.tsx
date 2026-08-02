@@ -52,7 +52,6 @@ export function CategoriasClient({
           (limitReached ? (
             <UpsellHint
               label="Limite de categorias do plano atingido — fale conosco para aumentar"
-              whatsappMessage="Olá! Quero aumentar o limite de categorias da minha loja."
             />
           ) : (
             <Button
