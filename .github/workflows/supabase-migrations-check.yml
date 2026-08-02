@@ -290,7 +290,7 @@ jobs:
               into faltando
               from unnest(array[
                 'plan_expires_at', 'subscription_status', 'billing_cycle',
-                'asaas_customer_id', 'asaas_subscription_id'
+                'asaas_customer_id', 'asaas_subscription_id', 'pending_plan'
               ]) as col
              where not has_column_privilege('service_role', 'public.stores', col, 'update');
 
@@ -303,7 +303,7 @@ jobs:
               into vazando
               from unnest(array[
                 'plan_expires_at', 'subscription_status', 'billing_cycle',
-                'asaas_customer_id', 'asaas_subscription_id'
+                'asaas_customer_id', 'asaas_subscription_id', 'pending_plan'
               ]) as col
              where has_column_privilege('anon', 'public.stores', col, 'select');
 
@@ -319,7 +319,7 @@ jobs:
               into vazando
               from unnest(array[
                      'plan_expires_at', 'subscription_status', 'billing_cycle',
-                     'asaas_customer_id', 'asaas_subscription_id'
+                     'asaas_customer_id', 'asaas_subscription_id', 'pending_plan'
                    ]) as col
               cross join unnest(array['insert', 'update']) as priv
               cross join unnest(array['authenticated', 'anon']) as role
