@@ -13,7 +13,7 @@ beforeEach(() => {
 });
 
 describe("MobileTabBar — item Pedidos (ORD-16)", () => {
-  it("mostra as 6 abas com Pedidos logo depois de Produtos", () => {
+  it("mostra as 7 abas com Pedidos logo depois de Produtos", () => {
     render(<MobileTabBar />);
 
     const nav = screen.getByRole("navigation", { name: "Navegação do painel" });
@@ -25,6 +25,7 @@ describe("MobileTabBar — item Pedidos (ORD-16)", () => {
       "Categorias",
       "Estilo",
       "Config.",
+      "Plano",
     ]);
   });
 

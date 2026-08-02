@@ -9,6 +9,7 @@ import {
   Layers,
   Palette,
   Settings,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -88,6 +89,12 @@ export function MobileTabBar() {
         icon={<Settings size={20} />}
         label="Config."
         active={isActive("/painel/configuracoes")}
+      />
+      <TabItem
+        href="/painel/assinatura"
+        icon={<CreditCard size={20} />}
+        label="Plano"
+        active={isActive("/painel/assinatura")}
       />
     </nav>
   );

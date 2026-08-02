@@ -4,6 +4,7 @@ import {
   dayStartInSaoPaulo,
   dayEndInSaoPaulo,
   daysAgoStartInSaoPaulo,
+  formatarDataSP,
 } from "@/lib/timezone-sp";
 
 describe("monthStartInSaoPaulo", () => {
@@ -54,5 +55,19 @@ describe("daysAgoStartInSaoPaulo", () => {
   it("atravessa a virada de mês corretamente", () => {
     const start = daysAgoStartInSaoPaulo(new Date("2026-07-03T12:00:00.000Z"), 6);
     expect(start.toISOString()).toBe("2026-06-27T03:00:00.000Z");
+  });
+});
+
+describe("formatarDataSP", () => {
+  it("formata uma meia-noite UTC pelo dia que ela representa, não pelo instante", () => {
+    expect(formatarDataSP("2026-09-12T00:00:00.000Z")).toBe("12 de setembro");
+  });
+
+  it("não recua um dia por causa do offset de São Paulo (UTC-3)", () => {
+    expect(formatarDataSP("2026-08-15T00:00:00.000Z")).toBe("15 de agosto");
+  });
+
+  it("atravessa a virada de ano", () => {
+    expect(formatarDataSP("2027-01-01T00:00:00.000Z")).toBe("1 de janeiro");
   });
 });
