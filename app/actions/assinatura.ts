@@ -57,7 +57,14 @@ export async function iniciarAssinatura(
         expiredUrl: `${siteUrl()}/painel/assinatura?status=expirado`,
       });
 
-      await supabase.from("stores").update({ billing_cycle: cycle }).eq("id", store.id);
+      // pending_plan é o único jeito do webhook saber para qual plano promover
+      // quando PAYMENT_CONFIRMED chegar — sem isso a primeira assinatura nunca
+      // sai do Free, mesmo com o pagamento confirmado (mesma semântica do
+      // downgrade: "plano a aplicar na próxima confirmação").
+      await supabase
+        .from("stores")
+        .update({ billing_cycle: cycle, pending_plan: plan })
+        .eq("id", store.id);
       return { ok: true, redirectUrl: checkout.link };
     }
 
@@ -92,6 +99,7 @@ export async function iniciarAssinatura(
         asaas_customer_id: customerId,
         asaas_subscription_id: assinatura.id,
         billing_cycle: cycle,
+        pending_plan: plan,
       })
       .eq("id", store.id);
 

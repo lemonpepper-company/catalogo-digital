@@ -86,6 +86,19 @@ describe("iniciarAssinatura", () => {
     });
     expect(criarAssinaturaPix).not.toHaveBeenCalled();
   });
+
+  it("cartão grava pending_plan — é o único jeito do webhook saber para qual plano promover na primeira confirmação", async () => {
+    const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+    await iniciarAssinatura("pro", "monthly", "CREDIT_CARD");
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ pending_plan: "pro" }));
+  });
+
+  it("Pix grava pending_plan pelo mesmo motivo", async () => {
+    getCurrentStore.mockResolvedValue({ ...LOJA_FREE, document: "52998224725" });
+    const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+    await iniciarAssinatura("starter", "annual", "PIX");
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ pending_plan: "starter" }));
+  });
 });
 
 describe("trocarPlano", () => {
