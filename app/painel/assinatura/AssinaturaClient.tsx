@@ -82,7 +82,10 @@ export function AssinaturaClient({
 }: AssinaturaClientProps) {
   const [status, setStatus] = useState<Status>(subscriptionStatus);
   const [pending, setPending] = useState<PaidPlan | null>(pendingPlan);
-  const [meio, setMeio] = useState<MeioPagamento>("PIX");
+  // Sem valor padrão de propósito: o lojista precisa escolher explicitamente
+  // antes de ver os planos habilitados, ou corre o risco de assinar pelo
+  // meio errado sem perceber que havia uma escolha ali.
+  const [meio, setMeio] = useState<MeioPagamento | null>(null);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -120,6 +123,9 @@ export function AssinaturaClient({
   }
 
   async function assinar(destino: PaidPlan, cycle: BillingCycle) {
+    // Botões de plano ficam desabilitados até um meio ser escolhido — este
+    // guard é só defensivo (nunca deveria disparar via UI).
+    if (!meio) return;
     setErrorMsg(null);
     const key = `${destino}-${cycle}`;
     setLoadingKey(key);
@@ -199,59 +205,8 @@ export function AssinaturaClient({
       </Card>
 
       <Card>
-        <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">Planos</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {PLANOS.map((p) => (
-            <div
-              key={p}
-              className="flex flex-col gap-2 p-4 rounded-card border border-sand/50 bg-linen"
-            >
-              <span className="font-display font-medium text-[15px] text-obsidian">
-                {PLAN_LABELS[p]}
-              </span>
-              {CICLOS.map((cycle) => {
-                const key = `${p}-${cycle}`;
-                const ehAtual = plan === p && billingCycle === cycle && status === "active";
-                // Mesmo plano, só o ciclo muda: trocarPlano(destino) reusa
-                // store.billingCycle e não tem como agir aqui — daria um
-                // "muda para X" sem nenhuma troca real. Bloqueia no client.
-                const somenteCicloDiferente =
-                  !ehAtual && plan !== "free" && plan === p && billingCycle !== cycle;
-                const carregando = loadingKey === key;
-                return (
-                  <Button
-                    key={key}
-                    type="button"
-                    variant={ehAtual || somenteCicloDiferente ? "ghost" : "primary"}
-                    size="sm"
-                    className="min-h-9 py-2 text-center leading-snug"
-                    style={{ height: "auto", whiteSpace: "normal" }}
-                    disabled={ehAtual || somenteCicloDiferente || carregando}
-                    title={
-                      somenteCicloDiferente
-                        ? "Fale com o suporte para mudar o ciclo de cobrança de uma assinatura ativa."
-                        : undefined
-                    }
-                    onClick={() => assinar(p, cycle)}
-                  >
-                    {ehAtual
-                      ? "Plano atual"
-                      : somenteCicloDiferente
-                        ? "Fale com o suporte para mudar o ciclo"
-                        : carregando
-                          ? "Assinando…"
-                          : `Assinar ${PLAN_LABELS[p]} ${CYCLE_LABELS[cycle]} — ${precoLabel(p, cycle)}`}
-                  </Button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <Card>
         <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">
-          Meio de pagamento
+          1. Meio de pagamento
         </h2>
         <div className="flex flex-col gap-3">
           <label className="flex items-start gap-3 cursor-pointer">
@@ -288,6 +243,65 @@ export function AssinaturaClient({
               </span>
             </span>
           </label>
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="font-display font-medium text-[16px] text-obsidian mb-1">2. Escolha o plano</h2>
+        {!meio && (
+          <p className="font-body text-[13px] text-graphite mb-3">
+            Escolha um meio de pagamento acima para continuar.
+          </p>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+          {PLANOS.map((p) => (
+            <div
+              key={p}
+              className="flex flex-col gap-2 p-4 rounded-card border border-sand/50 bg-linen"
+            >
+              <span className="font-display font-medium text-[15px] text-obsidian">
+                {PLAN_LABELS[p]}
+              </span>
+              {CICLOS.map((cycle) => {
+                const key = `${p}-${cycle}`;
+                const ehAtual = plan === p && billingCycle === cycle && status === "active";
+                // Mesmo plano, só o ciclo muda: trocarPlano(destino) reusa
+                // store.billingCycle e não tem como agir aqui — daria um
+                // "muda para X" sem nenhuma troca real. Bloqueia no client.
+                const somenteCicloDiferente =
+                  !ehAtual && plan !== "free" && plan === p && billingCycle !== cycle;
+                const carregando = loadingKey === key;
+                const semMeioEscolhido = !meio && !ehAtual && !somenteCicloDiferente;
+                return (
+                  <Button
+                    key={key}
+                    type="button"
+                    variant={ehAtual || somenteCicloDiferente ? "ghost" : "primary"}
+                    size="sm"
+                    className="min-h-9 py-2 text-center leading-snug"
+                    style={{ height: "auto", whiteSpace: "normal" }}
+                    disabled={ehAtual || somenteCicloDiferente || carregando || semMeioEscolhido}
+                    title={
+                      somenteCicloDiferente
+                        ? "Fale com o suporte para mudar o ciclo de cobrança de uma assinatura ativa."
+                        : semMeioEscolhido
+                          ? "Escolha um meio de pagamento primeiro."
+                          : undefined
+                    }
+                    onClick={() => assinar(p, cycle)}
+                  >
+                    {ehAtual
+                      ? "Plano atual"
+                      : somenteCicloDiferente
+                        ? "Fale com o suporte para mudar o ciclo"
+                        : carregando
+                          ? "Assinando…"
+                          : `Assinar ${PLAN_LABELS[p]} ${CYCLE_LABELS[cycle]} — ${precoLabel(p, cycle)}`}
+                  </Button>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </Card>
 

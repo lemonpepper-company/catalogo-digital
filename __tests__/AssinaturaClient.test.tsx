@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { AssinaturaClient } from "@/app/painel/assinatura/AssinaturaClient";
 
 vi.mock("@/app/actions/assinatura", () => ({
@@ -84,6 +84,34 @@ describe("AssinaturaClient", () => {
     expect(screen.getByText(/voc(ê|e) ser(á|a) redirecionado/i)).toBeTruthy();
   });
 
+  /**
+   * Sem meio de pagamento escolhido, os botões de plano ficam desabilitados
+   * — o lojista precisa escolher explicitamente antes de disparar uma
+   * assinatura, em vez de cair num padrão (Pix) que ele pode nem notar.
+   */
+  it("botões de plano ficam desabilitados até escolher um meio de pagamento", async () => {
+    const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+    vi.mocked(iniciarAssinatura).mockClear();
+
+    render(<AssinaturaClient {...BASE} />);
+
+    const botaoStarter = screen.getByRole("button", { name: /assinar starter mensal/i });
+    expect(botaoStarter).toBeDisabled();
+    expect(screen.getByText(/escolha um meio de pagamento acima/i)).toBeTruthy();
+
+    fireEvent.click(botaoStarter);
+    expect(iniciarAssinatura).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+    expect(botaoStarter).not.toBeDisabled();
+    expect(screen.queryByText(/escolha um meio de pagamento acima/i)).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(botaoStarter);
+    });
+    expect(iniciarAssinatura).toHaveBeenCalledWith("starter", "monthly", "CREDIT_CARD");
+  });
+
   it("mesmo plano com ciclo diferente fica desabilitado e não chama trocarPlano", async () => {
     const { trocarPlano } = await import("@/app/actions/assinatura");
     vi.mocked(trocarPlano).mockClear();
@@ -97,6 +125,9 @@ describe("AssinaturaClient", () => {
         billingCycle="monthly"
       />
     );
+
+    // Botões de plano só habilitam depois de escolher um meio de pagamento.
+    fireEvent.click(screen.getByRole("radio", { name: /pix/i }));
 
     const botaoCicloAnual = screen.getByRole("button", { name: /fale com o suporte/i });
     expect(botaoCicloAnual).toBeDisabled();
