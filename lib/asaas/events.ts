@@ -75,9 +75,21 @@ export function translateEvent(
   if (!dueDate) return null;
 
   switch (event.event) {
-    // Confirmado, não recebido: recebido é o dinheiro cair na conta, dias
-    // depois. Punir o lojista por latência bancária seria errado.
+    // PAYMENT_CONFIRMED (cliente pagou) chega antes de PAYMENT_RECEIVED
+    // (dinheiro caiu na conta, dias depois) para cartão e boleto — por isso
+    // a spec original só reagia a CONFIRMED, pra não punir o lojista pela
+    // latência bancária do RECEIVED.
+    //
+    // Só que Pix PULA CONFIRMED inteiramente: confirmado no sandbox e na doc
+    // do Asaas, o fluxo de status é CREATED → RECEIVED direto (sem etapa
+    // intermediária), já que a transferência é instantânea. Reagir só a
+    // CONFIRMED significa que NENHUMA assinatura Pix jamais promove — é o
+    // único evento que o Asaas dispara pra ela. Tratar os dois igual resolve
+    // o Pix e é inofensivo pro cartão: o cálculo é absoluto a partir do
+    // dueDate (idempotente), então um RECEIVED que chegue depois do CONFIRMED
+    // do mesmo dueDate recomputa o mesmo resultado — não soma nem duplica.
     case "PAYMENT_CONFIRMED":
+    case "PAYMENT_RECEIVED":
       return {
         subscriptionStatus: "active",
         planExpiresAt: somarCiclo(dueDate, cycle),

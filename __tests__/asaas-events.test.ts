@@ -31,8 +31,27 @@ describe("translateEvent — pagamento confirmado", () => {
     expect(r?.planExpiresAt).toBe("2027-09-01T00:00:00.000Z");
   });
 
-  it("PAYMENT_RECEIVED é ignorado — confirmado já liberou o acesso", () => {
-    expect(translateEvent(evento("PAYMENT_RECEIVED"), "monthly", AGORA)).toBeNull();
+  /**
+   * Descoberto testando Pix de verdade no sandbox e confirmado na doc do
+   * Asaas: Pix pula PAYMENT_CONFIRMED inteiramente (CREATED → RECEIVED
+   * direto, sem etapa intermediária — a transferência é instantânea). Se
+   * RECEIVED fosse ignorado, nenhuma assinatura Pix jamais promoveria.
+   * Tratar igual a CONFIRMED é seguro pro cartão também: o cálculo é
+   * absoluto a partir do dueDate, então reaplicar não soma nem duplica.
+   */
+  it("PAYMENT_RECEIVED promove igual a PAYMENT_CONFIRMED — é o único evento que o Pix dispara", () => {
+    const r = translateEvent(evento("PAYMENT_RECEIVED"), "monthly", AGORA);
+    expect(r).toEqual({
+      subscriptionStatus: "active",
+      planExpiresAt: "2026-10-01T00:00:00.000Z",
+      applyPendingPlan: true,
+    });
+  });
+
+  it("CONFIRMED e RECEIVED do mesmo dueDate são idempotentes entre si", () => {
+    const confirmado = translateEvent(evento("PAYMENT_CONFIRMED"), "monthly", AGORA);
+    const recebido = translateEvent(evento("PAYMENT_RECEIVED"), "monthly", AGORA);
+    expect(confirmado).toEqual(recebido);
   });
 });
 
