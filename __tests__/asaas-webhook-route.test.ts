@@ -128,3 +128,53 @@ describe("POST /api/webhooks/asaas — aplicação", () => {
     expect(update).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * O checkout hospedado de cartão não propaga o externalReference do checkout
+ * para a subscription/payment gerada (confirmado no sandbox e na doc do
+ * Asaas). CHECKOUT_PAID é o evento que expõe esse vínculo, e PAYMENT_*
+ * seguintes sem externalReference casam pelo customer gravado ali.
+ */
+describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference)", () => {
+  it("CHECKOUT_PAID grava asaas_customer_id e não mexe em plan/status", async () => {
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "CHECKOUT_PAID",
+        checkout: { externalReference: "loja-1", customer: "cus_123" },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(update).toHaveBeenCalledWith({ asaas_customer_id: "cus_123" });
+  });
+
+  it("PAYMENT_CONFIRMED sem externalReference mas com customer casa a loja e aplica pending_plan", async () => {
+    single.mockResolvedValue({
+      data: { id: "loja-1", billing_cycle: "monthly", pending_plan: "pro" },
+      error: null,
+    });
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_CONFIRMED",
+        payment: { dueDate: "2026-09-01", subscription: "sub_1", externalReference: null, customer: "cus_123" },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ subscription_status: "active", plan: "pro", pending_plan: null })
+    );
+  });
+
+  it("PAYMENT_CONFIRMED sem externalReference e sem customer devolve 200 sem escrever", async () => {
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_CONFIRMED",
+        payment: { dueDate: "2026-09-01", subscription: "sub_1", externalReference: null },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(update).not.toHaveBeenCalled();
+  });
+});

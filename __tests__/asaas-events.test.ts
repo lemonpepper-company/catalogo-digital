@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { translateEvent, storeIdFromEvent } from "@/lib/asaas/events";
+import {
+  translateEvent,
+  storeIdFromEvent,
+  checkoutLinkFromEvent,
+  customerIdFromEvent,
+} from "@/lib/asaas/events";
 import type { AsaasWebhookEvent } from "@/lib/asaas/events";
 
 const AGORA = new Date("2026-08-02T12:00:00.000Z");
@@ -93,5 +98,50 @@ describe("storeIdFromEvent", () => {
 
   it("devolve null quando não há externalReference", () => {
     expect(storeIdFromEvent({ event: "PAYMENT_CONFIRMED", payment: { dueDate: "2026-09-01" } })).toBeNull();
+  });
+});
+
+/**
+ * O checkout hospedado de cartão não propaga o externalReference do checkout
+ * para a subscription/payment gerada (confirmado no sandbox e na doc do
+ * Asaas — só o objeto "checkout" retém o valor). CHECKOUT_PAID é o evento que
+ * expõe esse vínculo, para gravarmos asaas_customer_id e os eventos
+ * PAYMENT_* seguintes (sem externalReference) casarem pelo customer.
+ */
+describe("checkoutLinkFromEvent", () => {
+  it("lê storeId e customer de um evento CHECKOUT_PAID", () => {
+    const evento: AsaasWebhookEvent = {
+      event: "CHECKOUT_PAID",
+      checkout: { externalReference: "loja-1", customer: "cus_123" },
+    };
+    expect(checkoutLinkFromEvent(evento)).toEqual({ storeId: "loja-1", asaasCustomerId: "cus_123" });
+  });
+
+  it("devolve null para eventos que não são CHECKOUT_PAID", () => {
+    expect(checkoutLinkFromEvent(evento("PAYMENT_CONFIRMED"))).toBeNull();
+  });
+
+  it("devolve null se faltar externalReference ou customer", () => {
+    expect(
+      checkoutLinkFromEvent({ event: "CHECKOUT_PAID", checkout: { customer: "cus_123" } })
+    ).toBeNull();
+    expect(
+      checkoutLinkFromEvent({ event: "CHECKOUT_PAID", checkout: { externalReference: "loja-1" } })
+    ).toBeNull();
+  });
+});
+
+describe("customerIdFromEvent", () => {
+  it("lê o customer do payment", () => {
+    expect(
+      customerIdFromEvent({
+        event: "PAYMENT_CONFIRMED",
+        payment: { dueDate: "2026-09-01", customer: "cus_123" },
+      })
+    ).toBe("cus_123");
+  });
+
+  it("devolve null quando não há customer", () => {
+    expect(customerIdFromEvent({ event: "PAYMENT_CONFIRMED", payment: { dueDate: "2026-09-01" } })).toBeNull();
   });
 });

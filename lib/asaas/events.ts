@@ -7,6 +7,19 @@ export interface AsaasWebhookEvent {
     dueDate: string;
     subscription?: string | null;
     externalReference?: string | null;
+    /** Presente mesmo quando externalReference vem null — usado como fallback de identificação. */
+    customer?: string | null;
+  } | null;
+  /**
+   * Só presente em eventos CHECKOUT_*. O externalReference do checkout NÃO
+   * propaga para subscription/payment (confirmado no sandbox e na doc do
+   * Asaas) — é o único lugar onde ele sobrevive, daí o bootstrapping em
+   * CHECKOUT_PAID: usamos para gravar asaas_customer_id, e eventos de
+   * pagamento seguintes (sem externalReference) casam pelo customer.
+   */
+  checkout?: {
+    externalReference?: string | null;
+    customer?: string | null;
   } | null;
 }
 
@@ -86,4 +99,25 @@ export function translateEvent(
 /** O store.id vai em externalReference na criação — mais robusto que mapear por customer. */
 export function storeIdFromEvent(event: AsaasWebhookEvent): string | null {
   return event.payment?.externalReference ?? null;
+}
+
+/**
+ * CHECKOUT_PAID é o único evento onde o externalReference do checkout de
+ * cartão sobrevive. Devolve o par (loja, customer do Asaas) para a rota
+ * gravar asaas_customer_id — o vínculo que os eventos PAYMENT_* seguintes
+ * (sem externalReference) vão usar para se identificar.
+ */
+export function checkoutLinkFromEvent(
+  event: AsaasWebhookEvent
+): { storeId: string; asaasCustomerId: string } | null {
+  if (event.event !== "CHECKOUT_PAID") return null;
+  const storeId = event.checkout?.externalReference;
+  const asaasCustomerId = event.checkout?.customer;
+  if (!storeId || !asaasCustomerId) return null;
+  return { storeId, asaasCustomerId };
+}
+
+/** Fallback quando o pagamento chega sem externalReference (caminho de checkout hospedado). */
+export function customerIdFromEvent(event: AsaasWebhookEvent): string | null {
+  return event.payment?.customer ?? null;
 }

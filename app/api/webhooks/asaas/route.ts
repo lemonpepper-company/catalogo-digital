@@ -4,6 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   translateEvent,
   storeIdFromEvent,
+  checkoutLinkFromEvent,
+  customerIdFromEvent,
   type AsaasWebhookEvent,
   type BillingCycle,
 } from "@/lib/asaas/events";
@@ -37,15 +39,38 @@ export async function POST(request: Request) {
   const evento = (await request.json().catch(() => null)) as AsaasWebhookEvent | null;
   if (!evento?.event) return NextResponse.json({ ok: true });
 
-  const storeId = storeIdFromEvent(evento);
-  if (!storeId) return NextResponse.json({ ok: true });
-
   const supabase = createAdminClient();
-  const { data: loja } = await supabase
-    .from("stores")
-    .select("id, billing_cycle, pending_plan")
-    .eq("id", storeId)
-    .maybeSingle();
+
+  // Checkout hospedado (cartão): o externalReference do checkout NÃO propaga
+  // para a subscription/payment gerada (confirmado no sandbox e na doc do
+  // Asaas) — CHECKOUT_PAID é o único evento onde ele sobrevive. Usamos para
+  // gravar asaas_customer_id, e os eventos PAYMENT_* seguintes (que chegam
+  // com externalReference null) casam pelo customer em vez disso.
+  const link = checkoutLinkFromEvent(evento);
+  if (link) {
+    const { error } = await supabase
+      .from("stores")
+      .update({ asaas_customer_id: link.asaasCustomerId })
+      .eq("id", link.storeId);
+    if (error) {
+      console.error(`[webhook asaas] falha ao vincular customer da loja ${link.storeId}:`, error);
+      return NextResponse.json({ error: "Falha ao gravar." }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  const storeId = storeIdFromEvent(evento);
+
+  const supabaseLoja = supabase.from("stores").select("id, billing_cycle, pending_plan");
+  const { data: loja } = storeId
+    ? await supabaseLoja.eq("id", storeId).maybeSingle()
+    : await (async () => {
+        // Sem externalReference (caminho de checkout hospedado): casa pelo
+        // customer, gravado no bootstrapping do CHECKOUT_PAID acima.
+        const customerId = customerIdFromEvent(evento);
+        if (!customerId) return { data: null };
+        return supabaseLoja.eq("asaas_customer_id", customerId).maybeSingle();
+      })();
 
   // Loja inexistente é 200 de propósito: reenviar não faria a loja aparecer, e
   // insistir queimaria as 15 tentativas que pausam a fila.
@@ -61,7 +86,7 @@ export async function POST(request: Request) {
   try {
     mudanca = translateEvent(evento, cycle, new Date());
   } catch (err) {
-    console.error(`[webhook asaas] payload não processável para loja ${storeId}:`, err);
+    console.error(`[webhook asaas] payload não processável para loja ${loja.id}:`, err);
     return NextResponse.json({ ok: true });
   }
   if (!mudanca) return NextResponse.json({ ok: true });
@@ -77,11 +102,11 @@ export async function POST(request: Request) {
     patch.pending_plan = null;
   }
 
-  const { error } = await supabase.from("stores").update(patch).eq("id", storeId);
+  const { error } = await supabase.from("stores").update(patch).eq("id", loja.id);
 
   if (error) {
     // Único caso de 5xx: falha nossa, e queremos o reenvio.
-    console.error(`[webhook asaas] falha ao gravar loja ${storeId}:`, error);
+    console.error(`[webhook asaas] falha ao gravar loja ${loja.id}:`, error);
     return NextResponse.json({ error: "Falha ao gravar." }, { status: 500 });
   }
 
