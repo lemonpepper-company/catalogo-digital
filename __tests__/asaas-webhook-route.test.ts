@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const update = vi.fn();
 const eq = vi.fn();
+const or = vi.fn();
 const single = vi.fn();
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -10,7 +11,16 @@ vi.mock("@/lib/supabase/admin", () => ({
       select: () => ({ eq: () => ({ maybeSingle: single }) }),
       update: (v: unknown) => {
         update(v);
-        return { eq };
+        // .eq(...) é awaited direto na maioria dos updates, mas o vínculo de
+        // checkout hospedado encadeia .eq(...).or(...) — o resultado de eq()
+        // precisa ser thenable E ter .or() (espiado separadamente), então
+        // anexamos .or na própria Promise devolvida.
+        return {
+          eq: (...args: unknown[]) => {
+            const result = eq(...args) as Promise<{ error: unknown }>;
+            return Object.assign(result, { or: (...orArgs: unknown[]) => or(...orArgs) });
+          },
+        };
       },
     }),
   }),
@@ -33,6 +43,7 @@ beforeEach(() => {
   process.env.ASAAS_WEBHOOK_TOKEN = "segredo";
   update.mockReset();
   eq.mockReset().mockResolvedValue({ error: null });
+  or.mockReset().mockResolvedValue({ error: null });
   single.mockReset().mockResolvedValue({
     data: { id: "loja-1", billing_cycle: "monthly", pending_plan: null },
     error: null,
@@ -148,6 +159,29 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
     );
     expect(res.status).toBe(200);
     expect(update).toHaveBeenCalledWith({ asaas_subscription_id: "chk_123" });
+  });
+
+  /**
+   * A entrega é at-least-once. Se este evento for reentregue DEPOIS do
+   * PAYMENT_CONFIRMED já ter trocado o vínculo temporário (checkout.id) pelo
+   * id real da assinatura, uma escrita sem guarda reverteria a coluna,
+   * quebrando o match das renovações seguintes (que casam por
+   * payment.subscription). O filtro .or(...) só deve permitir a escrita
+   * quando a coluna ainda está vazia ou já é este mesmo checkout.id — nunca
+   * sobrescrever um valor diferente (um id de assinatura real já resolvido).
+   */
+  it("CHECKOUT_PAID só escreve se a coluna estiver vazia ou já for este checkout.id", async () => {
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    await POST(
+      req({
+        event: "CHECKOUT_PAID",
+        checkout: { id: "chk_123", externalReference: "loja-1" },
+      })
+    );
+    expect(eq).toHaveBeenCalledWith("id", "loja-1");
+    expect(or).toHaveBeenCalledWith(
+      "asaas_subscription_id.is.null,asaas_subscription_id.eq.chk_123"
+    );
   });
 
   it("PAYMENT_CONFIRMED sem externalReference casa pelo checkoutSession, aplica pending_plan e grava os identificadores reais", async () => {

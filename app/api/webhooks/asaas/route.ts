@@ -47,13 +47,21 @@ export async function POST(request: Request) {
   // vínculo temporário em asaas_subscription_id. Ele reaparece como
   // payment.checkoutSession no evento de pagamento seguinte, que é como os
   // eventos PAYMENT_* (sem externalReference) vão se identificar; uma vez
-  // casada a loja, o valor é substituído pelo id real da assinatura.
+  // casada a loja, o valor é substituído pelo id real da assinatura (abaixo).
+  //
+  // A entrega é at-least-once — se este CHECKOUT_PAID for reentregue DEPOIS
+  // do PAYMENT_CONFIRMED já ter trocado o vínculo pelo id real, a escrita
+  // sem guarda voltaria a apontar para checkout.id, quebrando o match das
+  // próximas renovações. O filtro abaixo só escreve se a coluna ainda
+  // estiver vazia ou já for este mesmo checkout.id — nunca sobrescreve um id
+  // de assinatura real já resolvido.
   const link = checkoutLinkFromEvent(evento);
   if (link) {
     const { error } = await supabase
       .from("stores")
       .update({ asaas_subscription_id: link.checkoutId })
-      .eq("id", link.storeId);
+      .eq("id", link.storeId)
+      .or(`asaas_subscription_id.is.null,asaas_subscription_id.eq.${link.checkoutId}`);
     if (error) {
       console.error(`[webhook asaas] falha ao vincular checkout da loja ${link.storeId}:`, error);
       return NextResponse.json({ error: "Falha ao gravar." }, { status: 500 });
@@ -81,8 +89,16 @@ export async function POST(request: Request) {
   }
 
   // Loja inexistente é 200 de propósito: reenviar não faria a loja aparecer, e
-  // insistir queimaria as 15 tentativas que pausam a fila.
-  if (!loja) return NextResponse.json({ ok: true });
+  // insistir queimaria as 15 tentativas que pausam a fila. Mas um
+  // PAYMENT_CONFIRMED sem loja casada é o sintoma de maior gravidade deste
+  // sistema — um cliente pagou e ninguém sabe para qual loja — por isso o log,
+  // mesmo respondendo 200.
+  if (!loja) {
+    console.warn(
+      `[webhook asaas] evento ${evento.event} sem loja casada (storeId=${storeId}, checkoutSession=${checkoutSession}, subscription=${evento.payment?.subscription})`
+    );
+    return NextResponse.json({ ok: true });
+  }
 
   const cycle = (loja.billing_cycle ?? "monthly") as BillingCycle;
 

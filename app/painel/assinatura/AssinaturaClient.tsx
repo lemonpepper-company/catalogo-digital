@@ -129,8 +129,9 @@ export function AssinaturaClient({
         plan === "free" ? await iniciarAssinatura(destino, cycle, meio) : await trocarPlano(destino);
 
       if (result && "ok" in result && plan !== "free") {
-        // trocarPlano: downgrade agenda pending_plan; upgrade cobra diferença
-        // avulsa e só promove no webhook — aqui só refletimos o downgrade.
+        // trocarPlano grava pending_plan tanto no upgrade quanto no downgrade
+        // (a promoção em si só acontece no webhook, quando a cobrança
+        // confirmar) — refletir aqui é verdade nos dois casos.
         setPending(destino);
       }
 

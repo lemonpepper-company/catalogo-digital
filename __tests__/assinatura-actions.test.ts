@@ -124,6 +124,22 @@ describe("trocarPlano", () => {
     }
   });
 
+  /**
+   * Sem pending_plan, o PAYMENT_CONFIRMED da cobrança avulsa não teria para
+   * qual plano promover — o lojista pagaria a diferença e nunca sairia do
+   * plano antigo. Mesma classe de bug que a Task 9 achou em iniciarAssinatura,
+   * aqui no caminho de upgrade.
+   */
+  it("upgrade grava pending_plan — é o que o webhook usa para promover quando a cobrança avulsa confirmar", async () => {
+    getCurrentStore.mockResolvedValue(LOJA_STARTER);
+    criarCobrancaAvulsa.mockResolvedValue({ id: "pay_1", invoiceUrl: "https://x" });
+    const { trocarPlano } = await import("@/app/actions/assinatura");
+
+    await trocarPlano("pro");
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ pending_plan: "pro" }));
+  });
+
   it("downgrade grava pending_plan e não cobra nada", async () => {
     getCurrentStore.mockResolvedValue({ ...LOJA_STARTER, plan: "pro" });
     const { trocarPlano } = await import("@/app/actions/assinatura");

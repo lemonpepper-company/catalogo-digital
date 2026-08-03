@@ -111,9 +111,13 @@ export async function iniciarAssinatura(
 }
 
 /**
- * Upgrade cobra a diferença proporcional e NÃO promove: a promoção vem do
- * webhook quando a cobrança confirmar. Downgrade agenda via pending_plan e o
- * webhook aplica na virada.
+ * Upgrade cobra a diferença proporcional e downgrade não cobra nada — mas os
+ * dois só agendam via pending_plan. NUNCA gravam plan diretamente: a
+ * promoção vem sempre do webhook, quando a cobrança (avulsa ou do ciclo)
+ * confirmar. Sem pending_plan no upgrade, o PAYMENT_CONFIRMED da cobrança
+ * avulsa não teria para qual plano promover — o lojista pagaria a diferença
+ * e nunca sairia do plano antigo (mesmo bug que a Task 9 achou em
+ * iniciarAssinatura, aqui no caminho de troca de plano).
  */
 export async function trocarPlano(destino: PaidPlan): Promise<AssinaturaState> {
   const store = await getCurrentStore();
@@ -131,6 +135,8 @@ export async function trocarPlano(destino: PaidPlan): Promise<AssinaturaState> {
         ? 0
         : proporcional(store.plan as PaidPlan, destino, cycle, store.planExpiresAt ?? "", new Date());
 
+    await supabase.from("stores").update({ pending_plan: destino }).eq("id", store.id);
+
     if (valor > 0) {
       await criarCobrancaAvulsa({
         customerId: store.asaasCustomerId!,
@@ -139,11 +145,8 @@ export async function trocarPlano(destino: PaidPlan): Promise<AssinaturaState> {
         vencimento: amanha(),
         descricao: `Upgrade para ${destino} — diferença proporcional`,
       });
-      revalidatePath("/painel/assinatura");
-      return { ok: true };
     }
 
-    await supabase.from("stores").update({ pending_plan: destino }).eq("id", store.id);
     revalidatePath("/painel/assinatura");
     return { ok: true };
   } catch (e) {
