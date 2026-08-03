@@ -226,6 +226,12 @@ describe("/painel — métricas da vitrine (ANL-14, ANL-15, ANL-18, ANL-19)", ()
     expect(screen.getByText("Pedidos")).toBeTruthy();
     expect(screen.getByText("7")).toBeTruthy();
     expect(errorSpy).toHaveBeenCalled();
+
+    // APO-11 na camada que DERIVA o estado, não só na que o consome: o `catch`
+    // tem de produzir "unavailable". Se produzisse "blocked", um lojista Pro com
+    // o banco fora do ar veria um convite para assinar o plano que já assina.
+    expect(screen.getByText("Não foi possível carregar agora.")).toBeTruthy();
+    expect(screen.queryByText("Disponível no plano Pro")).toBeNull();
     errorSpy.mockRestore();
   });
 });
