@@ -12,7 +12,7 @@ import {
   type PublicProductRow,
   type PublicCategoryRow,
 } from "@/lib/catalog";
-import type { Product } from "@/lib/types";
+import type { Product, Plan } from "@/lib/types";
 
 const storeRow: PublicStoreRow = {
   id: "s1",
@@ -323,6 +323,20 @@ describe("resolveCatalog — gating de tema/densidade/destaques por plano", () =
     expect(result.store.theme.backgroundColor).toBe("#EEEEEC");
     expect(result.store.theme.cardRadius).toBe("4px");
     expect(result.store.gridDensity).toBe("compacto");
+  });
+
+  it("hasAnalytics acompanha o plano efetivo: só o Pro gera métricas (APO-14)", () => {
+    const store = baseStoreRow();
+    const hasAnalyticsDo = (plan: Plan) => {
+      const result = resolveCatalog(store, [], [], plan);
+      if (result.status !== "ok" && result.status !== "hidden")
+        throw new Error("esperado ok/hidden");
+      return result.store.hasAnalytics;
+    };
+
+    expect(hasAnalyticsDo("free")).toBe(false);
+    expect(hasAnalyticsDo("starter")).toBe(false);
+    expect(hasAnalyticsDo("pro")).toBe(true);
   });
 
   it("loja free: aplica cor secundária salva (disponível em todos os planos)", () => {

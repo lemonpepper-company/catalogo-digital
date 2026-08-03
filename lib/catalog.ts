@@ -98,6 +98,7 @@ export function mapPublicStore(
       limits
     ),
     gridDensity: limits.gridDensity && row.grid_density === "compacto" ? "compacto" : "padrao",
+    hasAnalytics: limits.hasAnalytics,
   };
 }
 

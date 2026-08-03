@@ -47,6 +47,7 @@ const baseStore: Store = {
   catalogUrl: "vtrinedigital.com.br/ateliemira",
   theme: resolveTheme("padrao", "padrao", "padrao", null, getPlanLimits("free", null)),
   gridDensity: "padrao",
+  hasAnalytics: false,
 };
 
 const products: Product[] = [];
