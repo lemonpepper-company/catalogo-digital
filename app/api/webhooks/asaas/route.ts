@@ -37,7 +37,6 @@ export async function POST(request: Request) {
   }
 
   const evento = (await request.json().catch(() => null)) as AsaasWebhookEvent | null;
-  console.log("[webhook asaas][DEBUG-TASK9]", JSON.stringify(evento));
   if (!evento?.event) return NextResponse.json({ ok: true });
 
   const supabase = createAdminClient();

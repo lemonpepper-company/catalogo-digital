@@ -25,6 +25,11 @@ const csp = [
 ].join("; ");
 
 const nextConfig = {
+  // Permite testar o dev server via túnel (ex.: cloudflared) — sem isso o
+  // Next bloqueia recursos de dev de origem cruzada e a hidratação falha
+  // silenciosamente. Só em dev; nunca ativo em produção.
+  allowedDevOrigins:
+    process.env.NODE_ENV !== "production" ? ["*.trycloudflare.com"] : undefined,
   experimental: {
     serverActions: {
       bodySizeLimit: "8mb",
