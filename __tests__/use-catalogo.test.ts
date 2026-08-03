@@ -668,7 +668,10 @@ describe("useCatalogo — telemetria do catálogo (ANL-01..05, ANL-07)", () => {
     expect(trackEvent).not.toHaveBeenCalled();
   });
 
-  it("loja sem hasAnalytics ainda abre o WhatsApp e registra o pedido (APO-15)", async () => {
+  // Rótulo corrigido: prova ANL-07 (o guard não pode quebrar a venda), não
+  // APO-15 — a garantia do servidor está em registrar-evento.test.ts:229-249,
+  // onde a action é chamada direto, sem passar pelo cliente.
+  it("loja sem hasAnalytics ainda abre o WhatsApp e registra o pedido (ANL-07)", async () => {
     const semAnalytics = { ...baseStore, hasAnalytics: false };
     const { result } = renderHook(() =>
       useCatalogo({ store: semAnalytics, products: [productA] })
