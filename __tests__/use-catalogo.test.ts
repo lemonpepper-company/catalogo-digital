@@ -47,7 +47,7 @@ const baseStore: Store = {
   catalogUrl: "vtrinedigital.com.br/ateliemira",
   theme: resolveTheme("padrao", "padrao", "padrao", null, getPlanLimits("free", null)),
   gridDensity: "padrao",
-  hasAnalytics: false,
+  hasAnalytics: true,
 };
 
 const products: Product[] = [];
@@ -650,6 +650,38 @@ describe("useCatalogo — telemetria do catálogo (ANL-01..05, ANL-07)", () => {
     });
 
     expect(eventsOf("buy_click")).toEqual([["ateliemira", "buy_click"]]);
+  });
+
+  it("loja sem hasAnalytics não dispara evento nenhum no fluxo completo (APO-14)", async () => {
+    const semAnalytics = { ...baseStore, hasAnalytics: false };
+    const { result } = renderHook(() =>
+      useCatalogo({ store: semAnalytics, products: [productA] })
+    );
+
+    act(() => result.current.handleOpenProduct(productA));
+    act(() => result.current.handleAdd(productA, "M", "Areia", 2));
+    act(() => result.current.setCustomerName("Ana"));
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(trackEvent).not.toHaveBeenCalled();
+  });
+
+  it("loja sem hasAnalytics ainda abre o WhatsApp e registra o pedido (APO-15)", async () => {
+    const semAnalytics = { ...baseStore, hasAnalytics: false };
+    const { result } = renderHook(() =>
+      useCatalogo({ store: semAnalytics, products: [productA] })
+    );
+    act(() => result.current.handleAdd(productA, "M", "Areia", 2));
+    act(() => result.current.setCustomerName("Ana"));
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(tab.location.href).toContain("wa.me");
+    expect(registrarPedido).toHaveBeenCalledTimes(1);
   });
 
   it("não registra buy_click quando a loja não tem WhatsApp configurado", async () => {
