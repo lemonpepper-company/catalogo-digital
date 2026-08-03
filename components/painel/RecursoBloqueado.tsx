@@ -4,16 +4,28 @@ import { vtrineWhatsAppHref } from "@/lib/contact";
 
 const UPGRADE_MESSAGE = "Olá! Quero saber mais sobre os planos pagos da Vtrine.";
 
+// Pro é o topo da tabela, então "a partir de" não cabe lá.
+const SELO_POR_PLANO = {
+  starter: "Disponível a partir do plano Starter",
+  pro: "Disponível no plano Pro",
+} as const;
+
 interface RecursoBloqueadoProps {
   titulo: string;
   descricao: string;
+  /** Plano em que o recurso é liberado. Default Starter — a maioria dos bloqueios. */
+  planoMinimo?: keyof typeof SELO_POR_PLANO;
 }
 
 /**
  * Estado bloqueado de um recurso de plano pago. Recebe apenas texto: nenhum
  * dado real do recurso (pedido, contagem, total) chega até aqui (ORD-28).
  */
-export function RecursoBloqueado({ titulo, descricao }: RecursoBloqueadoProps) {
+export function RecursoBloqueado({
+  titulo,
+  descricao,
+  planoMinimo = "starter",
+}: RecursoBloqueadoProps) {
   const upgradeWhatsAppHref = vtrineWhatsAppHref(UPGRADE_MESSAGE);
 
   return (
@@ -24,7 +36,7 @@ export function RecursoBloqueado({ titulo, descricao }: RecursoBloqueadoProps) {
         </div>
         <div>
           <span className="font-body font-medium text-[11px] tracking-[0.08em] uppercase text-gold">
-            Disponível a partir do plano Starter
+            {SELO_POR_PLANO[planoMinimo]}
           </span>
           <div className="font-display font-semibold text-[20px] text-obsidian mt-2">
             {titulo}
