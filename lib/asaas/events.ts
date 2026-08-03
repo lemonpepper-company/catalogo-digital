@@ -7,19 +7,27 @@ export interface AsaasWebhookEvent {
     dueDate: string;
     subscription?: string | null;
     externalReference?: string | null;
-    /** Presente mesmo quando externalReference vem null — usado como fallback de identificação. */
+    /** Presente mesmo quando externalReference vem null — usado para gravar o vínculo depois de casar a loja. */
     customer?: string | null;
+    /**
+     * Igual a checkout.id do evento CHECKOUT_PAID que originou este
+     * pagamento — é o único campo que os dois eventos compartilham de forma
+     * confiável (checkout.customer vem null no CHECKOUT_PAID; payment não
+     * tem externalReference). Usado como fallback de identificação.
+     */
+    checkoutSession?: string | null;
   } | null;
   /**
    * Só presente em eventos CHECKOUT_*. O externalReference do checkout NÃO
    * propaga para subscription/payment (confirmado no sandbox e na doc do
-   * Asaas) — é o único lugar onde ele sobrevive, daí o bootstrapping em
-   * CHECKOUT_PAID: usamos para gravar asaas_customer_id, e eventos de
-   * pagamento seguintes (sem externalReference) casam pelo customer.
+   * Asaas) — é o único lugar onde ele sobrevive. checkout.customer também não
+   * é confiável aqui (vem null no sandbox), então o bootstrapping usa
+   * checkout.id, que reaparece como payment.checkoutSession no evento de
+   * pagamento seguinte.
    */
   checkout?: {
+    id?: string | null;
     externalReference?: string | null;
-    customer?: string | null;
   } | null;
 }
 
@@ -103,21 +111,22 @@ export function storeIdFromEvent(event: AsaasWebhookEvent): string | null {
 
 /**
  * CHECKOUT_PAID é o único evento onde o externalReference do checkout de
- * cartão sobrevive. Devolve o par (loja, customer do Asaas) para a rota
- * gravar asaas_customer_id — o vínculo que os eventos PAYMENT_* seguintes
- * (sem externalReference) vão usar para se identificar.
+ * cartão sobrevive. Devolve o par (loja, checkout.id) para a rota gravar um
+ * vínculo temporário — checkout.id reaparece como payment.checkoutSession no
+ * evento de pagamento seguinte, que é como os eventos PAYMENT_* (sem
+ * externalReference) vão se identificar.
  */
 export function checkoutLinkFromEvent(
   event: AsaasWebhookEvent
-): { storeId: string; asaasCustomerId: string } | null {
+): { storeId: string; checkoutId: string } | null {
   if (event.event !== "CHECKOUT_PAID") return null;
   const storeId = event.checkout?.externalReference;
-  const asaasCustomerId = event.checkout?.customer;
-  if (!storeId || !asaasCustomerId) return null;
-  return { storeId, asaasCustomerId };
+  const checkoutId = event.checkout?.id;
+  if (!storeId || !checkoutId) return null;
+  return { storeId, checkoutId };
 }
 
 /** Fallback quando o pagamento chega sem externalReference (caminho de checkout hospedado). */
-export function customerIdFromEvent(event: AsaasWebhookEvent): string | null {
-  return event.payment?.customer ?? null;
+export function checkoutSessionFromEvent(event: AsaasWebhookEvent): string | null {
+  return event.payment?.checkoutSession ?? null;
 }

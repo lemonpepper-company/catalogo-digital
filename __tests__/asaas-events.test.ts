@@ -3,7 +3,7 @@ import {
   translateEvent,
   storeIdFromEvent,
   checkoutLinkFromEvent,
-  customerIdFromEvent,
+  checkoutSessionFromEvent,
 } from "@/lib/asaas/events";
 import type { AsaasWebhookEvent } from "@/lib/asaas/events";
 
@@ -103,45 +103,46 @@ describe("storeIdFromEvent", () => {
 
 /**
  * O checkout hospedado de cartão não propaga o externalReference do checkout
- * para a subscription/payment gerada (confirmado no sandbox e na doc do
- * Asaas — só o objeto "checkout" retém o valor). CHECKOUT_PAID é o evento que
- * expõe esse vínculo, para gravarmos asaas_customer_id e os eventos
- * PAYMENT_* seguintes (sem externalReference) casarem pelo customer.
+ * para a subscription/payment gerada, e checkout.customer vem null no
+ * CHECKOUT_PAID (confirmado no sandbox — só checkout.externalReference e
+ * checkout.id sobrevivem). CHECKOUT_PAID expõe esse vínculo para gravarmos
+ * checkout.id como identificador temporário; PAYMENT_* seguintes (sem
+ * externalReference) casam por payment.checkoutSession, que é o mesmo valor.
  */
 describe("checkoutLinkFromEvent", () => {
-  it("lê storeId e customer de um evento CHECKOUT_PAID", () => {
+  it("lê storeId e checkoutId de um evento CHECKOUT_PAID", () => {
     const evento: AsaasWebhookEvent = {
       event: "CHECKOUT_PAID",
-      checkout: { externalReference: "loja-1", customer: "cus_123" },
+      checkout: { externalReference: "loja-1", id: "chk_123" },
     };
-    expect(checkoutLinkFromEvent(evento)).toEqual({ storeId: "loja-1", asaasCustomerId: "cus_123" });
+    expect(checkoutLinkFromEvent(evento)).toEqual({ storeId: "loja-1", checkoutId: "chk_123" });
   });
 
   it("devolve null para eventos que não são CHECKOUT_PAID", () => {
     expect(checkoutLinkFromEvent(evento("PAYMENT_CONFIRMED"))).toBeNull();
   });
 
-  it("devolve null se faltar externalReference ou customer", () => {
-    expect(
-      checkoutLinkFromEvent({ event: "CHECKOUT_PAID", checkout: { customer: "cus_123" } })
-    ).toBeNull();
+  it("devolve null se faltar externalReference ou id", () => {
+    expect(checkoutLinkFromEvent({ event: "CHECKOUT_PAID", checkout: { id: "chk_123" } })).toBeNull();
     expect(
       checkoutLinkFromEvent({ event: "CHECKOUT_PAID", checkout: { externalReference: "loja-1" } })
     ).toBeNull();
   });
 });
 
-describe("customerIdFromEvent", () => {
-  it("lê o customer do payment", () => {
+describe("checkoutSessionFromEvent", () => {
+  it("lê o checkoutSession do payment", () => {
     expect(
-      customerIdFromEvent({
+      checkoutSessionFromEvent({
         event: "PAYMENT_CONFIRMED",
-        payment: { dueDate: "2026-09-01", customer: "cus_123" },
+        payment: { dueDate: "2026-09-01", checkoutSession: "chk_123" },
       })
-    ).toBe("cus_123");
+    ).toBe("chk_123");
   });
 
-  it("devolve null quando não há customer", () => {
-    expect(customerIdFromEvent({ event: "PAYMENT_CONFIRMED", payment: { dueDate: "2026-09-01" } })).toBeNull();
+  it("devolve null quando não há checkoutSession", () => {
+    expect(
+      checkoutSessionFromEvent({ event: "PAYMENT_CONFIRMED", payment: { dueDate: "2026-09-01" } })
+    ).toBeNull();
   });
 });

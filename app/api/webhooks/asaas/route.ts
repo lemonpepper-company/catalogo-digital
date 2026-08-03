@@ -5,7 +5,7 @@ import {
   translateEvent,
   storeIdFromEvent,
   checkoutLinkFromEvent,
-  customerIdFromEvent,
+  checkoutSessionFromEvent,
   type AsaasWebhookEvent,
   type BillingCycle,
 } from "@/lib/asaas/events";
@@ -37,23 +37,26 @@ export async function POST(request: Request) {
   }
 
   const evento = (await request.json().catch(() => null)) as AsaasWebhookEvent | null;
+  console.log("[webhook asaas][DEBUG-TASK9]", JSON.stringify(evento));
   if (!evento?.event) return NextResponse.json({ ok: true });
 
   const supabase = createAdminClient();
 
   // Checkout hospedado (cartão): o externalReference do checkout NÃO propaga
-  // para a subscription/payment gerada (confirmado no sandbox e na doc do
-  // Asaas) — CHECKOUT_PAID é o único evento onde ele sobrevive. Usamos para
-  // gravar asaas_customer_id, e os eventos PAYMENT_* seguintes (que chegam
-  // com externalReference null) casam pelo customer em vez disso.
+  // para a subscription/payment gerada, e checkout.customer vem null no
+  // CHECKOUT_PAID (confirmado no sandbox) — então usamos checkout.id como
+  // vínculo temporário em asaas_subscription_id. Ele reaparece como
+  // payment.checkoutSession no evento de pagamento seguinte, que é como os
+  // eventos PAYMENT_* (sem externalReference) vão se identificar; uma vez
+  // casada a loja, o valor é substituído pelo id real da assinatura.
   const link = checkoutLinkFromEvent(evento);
   if (link) {
     const { error } = await supabase
       .from("stores")
-      .update({ asaas_customer_id: link.asaasCustomerId })
+      .update({ asaas_subscription_id: link.checkoutId })
       .eq("id", link.storeId);
     if (error) {
-      console.error(`[webhook asaas] falha ao vincular customer da loja ${link.storeId}:`, error);
+      console.error(`[webhook asaas] falha ao vincular checkout da loja ${link.storeId}:`, error);
       return NextResponse.json({ error: "Falha ao gravar." }, { status: 500 });
     }
     return NextResponse.json({ ok: true });
@@ -62,15 +65,21 @@ export async function POST(request: Request) {
   const storeId = storeIdFromEvent(evento);
 
   const supabaseLoja = supabase.from("stores").select("id, billing_cycle, pending_plan");
-  const { data: loja } = storeId
-    ? await supabaseLoja.eq("id", storeId).maybeSingle()
-    : await (async () => {
-        // Sem externalReference (caminho de checkout hospedado): casa pelo
-        // customer, gravado no bootstrapping do CHECKOUT_PAID acima.
-        const customerId = customerIdFromEvent(evento);
-        if (!customerId) return { data: null };
-        return supabaseLoja.eq("asaas_customer_id", customerId).maybeSingle();
-      })();
+  const checkoutSession = storeId ? null : checkoutSessionFromEvent(evento);
+  let loja: { id: string; billing_cycle: string | null; pending_plan: string | null } | null =
+    null;
+  if (storeId) {
+    ({ data: loja } = await supabaseLoja.eq("id", storeId).maybeSingle());
+  } else if (checkoutSession) {
+    ({ data: loja } = await supabaseLoja.eq("asaas_subscription_id", checkoutSession).maybeSingle());
+  } else if (evento.payment?.subscription) {
+    // Renovação de assinatura criada via checkout hospedado: sem
+    // externalReference nem checkoutSession, casa pela assinatura real já
+    // vinculada no primeiro PAYMENT_CONFIRMED (ver bloco acima).
+    ({ data: loja } = await supabaseLoja
+      .eq("asaas_subscription_id", evento.payment.subscription)
+      .maybeSingle());
+  }
 
   // Loja inexistente é 200 de propósito: reenviar não faria a loja aparecer, e
   // insistir queimaria as 15 tentativas que pausam a fila.
@@ -100,6 +109,15 @@ export async function POST(request: Request) {
   if (mudanca.applyPendingPlan && loja.pending_plan) {
     patch.plan = loja.pending_plan;
     patch.pending_plan = null;
+  }
+
+  // Casou pelo vínculo temporário de checkout (asaas_subscription_id ainda
+  // guardava checkout.id, não uma assinatura) — substitui pelos identificadores
+  // reais, para que a próxima renovação (sem checkoutSession) case por
+  // payment.subscription normalmente.
+  if (checkoutSession) {
+    if (evento.payment?.customer) patch.asaas_customer_id = evento.payment.customer;
+    if (evento.payment?.subscription) patch.asaas_subscription_id = evento.payment.subscription;
   }
 
   const { error } = await supabase.from("stores").update(patch).eq("id", loja.id);

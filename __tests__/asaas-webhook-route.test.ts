@@ -131,24 +131,26 @@ describe("POST /api/webhooks/asaas — aplicação", () => {
 
 /**
  * O checkout hospedado de cartão não propaga o externalReference do checkout
- * para a subscription/payment gerada (confirmado no sandbox e na doc do
- * Asaas). CHECKOUT_PAID é o evento que expõe esse vínculo, e PAYMENT_*
- * seguintes sem externalReference casam pelo customer gravado ali.
+ * para a subscription/payment gerada, e checkout.customer vem null no
+ * CHECKOUT_PAID (confirmado no sandbox). CHECKOUT_PAID grava checkout.id em
+ * asaas_subscription_id como vínculo temporário; PAYMENT_* seguintes sem
+ * externalReference casam por payment.checkoutSession (== checkout.id), e o
+ * match substitui o vínculo temporário pelos identificadores reais.
  */
 describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference)", () => {
-  it("CHECKOUT_PAID grava asaas_customer_id e não mexe em plan/status", async () => {
+  it("CHECKOUT_PAID grava checkout.id em asaas_subscription_id e não mexe em plan/status", async () => {
     const { POST } = await import("@/app/api/webhooks/asaas/route");
     const res = await POST(
       req({
         event: "CHECKOUT_PAID",
-        checkout: { externalReference: "loja-1", customer: "cus_123" },
+        checkout: { id: "chk_123", externalReference: "loja-1" },
       })
     );
     expect(res.status).toBe(200);
-    expect(update).toHaveBeenCalledWith({ asaas_customer_id: "cus_123" });
+    expect(update).toHaveBeenCalledWith({ asaas_subscription_id: "chk_123" });
   });
 
-  it("PAYMENT_CONFIRMED sem externalReference mas com customer casa a loja e aplica pending_plan", async () => {
+  it("PAYMENT_CONFIRMED sem externalReference casa pelo checkoutSession, aplica pending_plan e grava os identificadores reais", async () => {
     single.mockResolvedValue({
       data: { id: "loja-1", billing_cycle: "monthly", pending_plan: "pro" },
       error: null,
@@ -157,21 +159,54 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
     const res = await POST(
       req({
         event: "PAYMENT_CONFIRMED",
-        payment: { dueDate: "2026-09-01", subscription: "sub_1", externalReference: null, customer: "cus_123" },
+        payment: {
+          dueDate: "2026-09-01",
+          subscription: "sub_real_1",
+          externalReference: null,
+          customer: "cus_real_1",
+          checkoutSession: "chk_123",
+        },
       })
     );
     expect(res.status).toBe(200);
     expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({ subscription_status: "active", plan: "pro", pending_plan: null })
+      expect.objectContaining({
+        subscription_status: "active",
+        plan: "pro",
+        pending_plan: null,
+        asaas_customer_id: "cus_real_1",
+        asaas_subscription_id: "sub_real_1",
+      })
     );
   });
 
-  it("PAYMENT_CONFIRMED sem externalReference e sem customer devolve 200 sem escrever", async () => {
+  it("renovação seguinte (sem externalReference nem checkoutSession) casa por payment.subscription", async () => {
+    single.mockResolvedValue({
+      data: { id: "loja-1", billing_cycle: "monthly", pending_plan: null },
+      error: null,
+    });
     const { POST } = await import("@/app/api/webhooks/asaas/route");
     const res = await POST(
       req({
         event: "PAYMENT_CONFIRMED",
-        payment: { dueDate: "2026-09-01", subscription: "sub_1", externalReference: null },
+        payment: {
+          dueDate: "2026-10-01",
+          subscription: "sub_real_1",
+          externalReference: null,
+          customer: "cus_real_1",
+        },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ subscription_status: "active" }));
+  });
+
+  it("PAYMENT_CONFIRMED sem externalReference, checkoutSession nem subscription devolve 200 sem escrever", async () => {
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_CONFIRMED",
+        payment: { dueDate: "2026-09-01", externalReference: null },
       })
     );
     expect(res.status).toBe(200);
