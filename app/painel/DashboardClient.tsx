@@ -6,7 +6,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { RecursoBloqueado } from "@/components/painel/RecursoBloqueado";
 import { PeriodoFiltro } from "@/components/painel/PeriodoFiltro";
 import type { OrderMetrics } from "@/lib/order-metrics";
-import type { CatalogAnalytics } from "@/lib/server/analytics";
+import type { AnalyticsState } from "@/lib/server/analytics";
 import type { StoreProduct } from "@/lib/types";
 import { useDashboard } from "./use-dashboard";
 
@@ -14,8 +14,8 @@ interface DashboardClientProps {
   products: StoreProduct[];
   storeName: string;
   metrics: OrderMetrics | null;
-  /** `null` = leitura das métricas da vitrine indisponível agora (≠ zero real). */
-  analytics: CatalogAnalytics | null;
+  /** Métricas da vitrine: números, bloqueio de plano ou indisponibilidade. */
+  analytics: AnalyticsState;
   periodo?: string;
   de?: string;
   ate?: string;
@@ -30,8 +30,15 @@ export function DashboardClient({
   de,
   ate,
 }: DashboardClientProps) {
-  const { activeProducts, soldOutProducts, total, orderStats, catalogStats, topViewed } =
-    useDashboard(products, metrics, analytics);
+  const {
+    activeProducts,
+    soldOutProducts,
+    total,
+    orderStats,
+    catalogStats,
+    topViewed,
+    analyticsBloqueado,
+  } = useDashboard(products, metrics, analytics);
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -144,6 +151,12 @@ export function DashboardClient({
               )}
             </div>
           </div>
+        ) : analyticsBloqueado ? (
+          <RecursoBloqueado
+            planoMinimo="pro"
+            titulo="Visitas e produtos mais vistos"
+            descricao="Veja quantas pessoas visitam sua vitrine, o que elas mais olham e quanto disso vira pedido."
+          />
         ) : (
           <p className="font-body text-[14px] text-graphite">
             Não foi possível carregar agora.

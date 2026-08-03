@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { DashboardClient } from "@/app/painel/DashboardClient";
 import type { OrderMetrics } from "@/lib/order-metrics";
-import type { CatalogAnalytics } from "@/lib/server/analytics";
+import type { AnalyticsState, CatalogAnalytics } from "@/lib/server/analytics";
 import type { StoreProduct } from "@/lib/types";
 
 vi.mock("next/navigation", () => ({
@@ -36,10 +36,15 @@ function makeAnalytics(overrides: Partial<CatalogAnalytics> = {}): CatalogAnalyt
   };
 }
 
+/** Estado "leitura deu certo" com as métricas padrão, salvo o que for sobrescrito. */
+function ok(overrides: Partial<CatalogAnalytics> = {}): AnalyticsState {
+  return { status: "ok", data: makeAnalytics(overrides) };
+}
+
 function renderDashboard(
   metrics: OrderMetrics | null,
   products: StoreProduct[] = [],
-  analytics: CatalogAnalytics | null = null
+  analytics: AnalyticsState = { status: "unavailable" }
 ) {
   return render(
     <DashboardClient
@@ -90,7 +95,7 @@ describe("DashboardClient — cards de ROI (ORD-17, ORD-18, ORD-19)", () => {
   });
 
   it("mostra o filtro de período uma única vez, governando as duas seções", () => {
-    renderDashboard(metrics, [], makeAnalytics());
+    renderDashboard(metrics, [], ok());
 
     // getByRole falha se houver mais de um: prova que não nasceu um segundo
     // seletor junto da seção de analytics (ANL-14).
@@ -189,7 +194,7 @@ describe("DashboardClient — seção da vitrine em números (ANL-12, ANL-13, AN
   };
 
   it("mostra visitas, únicos, cliques em comprar e conversão do período", () => {
-    renderDashboard(metrics, [], makeAnalytics());
+    renderDashboard(metrics, [], ok());
 
     expect(statValue("Visitas")).toBe("120");
     expect(statValue("Visitantes únicos")).toBe("84");
@@ -202,7 +207,7 @@ describe("DashboardClient — seção da vitrine em números (ANL-12, ANL-13, AN
     renderDashboard(
       { ...metrics, ordersThisMonth: 3 },
       [],
-      makeAnalytics({ metrics: { visits: 10, uniqueVisitors: 8, buyClicks: 2, bagVisitors: 8 } })
+      ok({ metrics: { visits: 10, uniqueVisitors: 8, buyClicks: 2, bagVisitors: 8 } })
     );
 
     // 3 ÷ 8 = 37,5%
@@ -213,7 +218,7 @@ describe("DashboardClient — seção da vitrine em números (ANL-12, ANL-13, AN
     renderDashboard(
       { ordersThisMonth: 0, confirmedCentsThisMonth: 0, pendingCount: 0 },
       [],
-      makeAnalytics({
+      ok({
         metrics: { visits: 0, uniqueVisitors: 0, buyClicks: 0, bagVisitors: 0 },
       })
     );
@@ -228,19 +233,64 @@ describe("DashboardClient — seção da vitrine em números (ANL-12, ANL-13, AN
     renderDashboard(
       { ...metrics, ordersThisMonth: 6 },
       [],
-      makeAnalytics({ metrics: { visits: 9, uniqueVisitors: 4, buyClicks: 5, bagVisitors: 3 } })
+      ok({ metrics: { visits: 9, uniqueVisitors: 4, buyClicks: 5, bagVisitors: 3 } })
     );
 
     expect(statValue("Conversão sacola → pedido")).toBe("200%");
   });
 
   it("avisa que está indisponível quando a leitura falhou, sem esconder pedidos", () => {
-    renderDashboard(metrics, [], null);
+    renderDashboard(metrics, [], { status: "unavailable" });
 
     expect(screen.getByText("Não foi possível carregar agora.")).toBeTruthy();
     expect(screen.queryByText("Visitas")).toBeNull();
     // Zero real (acima) mostra 0; indisponível não inventa número nenhum.
     expect(statValue("Pedidos")).toBe("5");
+  });
+});
+
+describe("DashboardClient — vitrine em números fora do Pro (APO-09, APO-11, APO-12)", () => {
+  const metrics: OrderMetrics = {
+    ordersThisMonth: 5,
+    confirmedCentsThisMonth: 100000,
+    pendingCount: 1,
+  };
+
+  it("troca as métricas pelo upsell do Pro quando o plano bloqueia", () => {
+    renderDashboard(metrics, [], { status: "blocked" });
+
+    expect(screen.getByText("Disponível no plano Pro")).toBeTruthy();
+    expect(screen.getByText("Visitas e produtos mais vistos")).toBeTruthy();
+    expect(screen.queryByText("Visitas")).toBeNull();
+    expect(screen.queryByText("Visitantes únicos")).toBeNull();
+    expect(screen.queryByText("Cliques em comprar")).toBeNull();
+    expect(screen.queryByText("Conversão sacola → pedido")).toBeNull();
+    expect(screen.queryByText("Mais vistos no período")).toBeNull();
+  });
+
+  it("bloqueado não é confundido com indisponível", () => {
+    renderDashboard(metrics, [], { status: "blocked" });
+
+    expect(screen.queryByText("Não foi possível carregar agora.")).toBeNull();
+  });
+
+  it("indisponível não é confundido com bloqueado", () => {
+    renderDashboard(metrics, [], { status: "unavailable" });
+
+    expect(screen.getByText("Não foi possível carregar agora.")).toBeTruthy();
+    expect(screen.queryByText("Disponível no plano Pro")).toBeNull();
+  });
+
+  it("mantém pedidos, filtro de período e cards de produtos no plano bloqueado (APO-12)", () => {
+    renderDashboard(metrics, [makeProduct(), makeProduct({ id: "p2", stock: 0 })], {
+      status: "blocked",
+    });
+
+    expect(statValue("Pedidos")).toBe("5");
+    expect(statValue("Vendas confirmadas")).toBe("R$ 1000,00");
+    expect(screen.getByRole("group", { name: "Filtrar por período" })).toBeTruthy();
+    expect(statValue("Produtos ativos")).toBe("1");
+    expect(statValue("Produtos esgotados")).toBe("1");
   });
 });
 
@@ -257,42 +307,39 @@ describe("DashboardClient — produtos mais vistos (ANL-13)", () => {
   ];
 
   it("lista os mais vistos com nome e contagem, na ordem vinda do servidor", () => {
-    renderDashboard(metrics, catalogo, {
-      metrics: makeAnalytics().metrics,
+    renderDashboard(metrics, catalogo, ok({
       topProducts: [
         { productId: "p2", views: 31 },
         { productId: "p1", views: 12 },
       ],
-    });
+    }));
 
     const itens = screen.getAllByRole("listitem").map((li) => li.textContent);
     expect(itens).toEqual(["Blusa de tricô31 visualizações", "Vestido midi12 visualizações"]);
   });
 
   it("usa o singular quando o produto teve uma única visualização", () => {
-    renderDashboard(metrics, catalogo, {
-      metrics: makeAnalytics().metrics,
+    renderDashboard(metrics, catalogo, ok({
       topProducts: [{ productId: "p1", views: 1 }],
-    });
+    }));
 
     expect(screen.getByRole("listitem").textContent).toBe("Vestido midi1 visualização");
   });
 
   it("filtra produto deletado, mantendo os que ainda existem", () => {
-    renderDashboard(metrics, catalogo, {
-      metrics: makeAnalytics().metrics,
+    renderDashboard(metrics, catalogo, ok({
       topProducts: [
         { productId: "p1", views: 9 },
         { productId: "deletado", views: 40 },
       ],
-    });
+    }));
 
     const itens = screen.getAllByRole("listitem").map((li) => li.textContent);
     expect(itens).toEqual(["Vestido midi9 visualizações"]);
   });
 
   it("avisa quando nenhum produto foi visto no período", () => {
-    renderDashboard(metrics, catalogo, makeAnalytics({ topProducts: [] }));
+    renderDashboard(metrics, catalogo, ok({ topProducts: [] }));
 
     expect(screen.getByText("Nenhum produto foi visto neste período.")).toBeTruthy();
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
