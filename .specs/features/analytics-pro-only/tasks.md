@@ -316,6 +316,29 @@ Phase 4 (Fechamento):
 **Tests**: none (verificação manual guiada) · **Gate**: build
 **Commit**: `chore(analytics): registra verificacao integrada do gate Pro-only`
 
+#### ✅ Evidência da execução (2026-08-03, Supabase local + `npm run dev`)
+
+Loja `atelie-mira` (5 produtos ativos), mesmo fluxo nos três planos: montar a vitrine → abrir detalhe de produto → adicionar à sacola → finalizar checkout. `sessionStorage` limpo entre os cenários para o `catalog_visit` não ser dedupado.
+
+| Plano | `catalog_events` da loja | POSTs de `registrarEvento` no log do servidor |
+| --- | --- | --- |
+| `free` | **0** | **nenhum** |
+| `starter` | **0** | **nenhum** |
+| `pro` | **4** — `catalog_visit` 1, `product_view` 5, `add_to_bag` 1, `buy_click` 1 | 8 chamadas, todas `200` |
+
+A ausência total de POST nos dois primeiros cenários prova o curto-circuito do cliente (APO-14) em runtime: não é só "nada foi gravado", é "nenhuma requisição saiu". A gravação no `pro` prova que o gate não é um bloqueio cego.
+
+**Dashboard** (mesma loja, sessão obtida por magic link com service role — nenhuma senha digitada):
+
+- `pro`: "Sua vitrine em números" com 1 visita · 1 visitante único · 1 clique em comprar · 100% de conversão · top 3 de mais vistos — cada número conferido contra a mesma agregação em SQL.
+- `starter`: bloco `RecursoBloqueado` com selo **"DISPONÍVEL NO PLANO PRO"**, título "Visitas e produtos mais vistos" e CTA de WhatsApp. Ausentes do HTML: "Visitas", "Visitantes únicos", "Conversão sacola", "Mais vistos no período" — e **também** ausente "Não foi possível carregar agora", provando que bloqueio ≠ indisponível em runtime (APO-11). Cards de pedidos, faturamento e `PeriodoFiltro` intactos (APO-12).
+
+**Linhas antigas preservadas (APO / decisão do usuário):** a loja `maria-das-roupas` (plano `starter`) tinha 9 eventos gravados antes desta mudança e continua com os mesmos 9 — nenhuma migration de dados rodou.
+
+**Limpeza:** eventos e pedido de teste removidos; `atelie-mira` devolvida ao plano `pro`; 4 pedidos e 9 eventos preexistentes intactos.
+
+**Artefato de tooling:** o browser headless renderiza o painel com viewport 0×0 e `innerText` volta vazio (o layout usa `h-dvh` + `overflow-hidden`). As asserções acima foram feitas sobre `textContent`/`innerHTML`, mais o screenshot com viewport 1280×900.
+
 ---
 
 ## Task Granularity Check
