@@ -79,6 +79,20 @@ describe("AssinaturaClient", () => {
     expect(screen.getByText(/muda para Starter em 12 de setembro/i)).toBeTruthy();
   });
 
+  /**
+   * Primeira assinatura (Free → pago): iniciarAssinatura grava pending_plan
+   * na hora, mas plan_expires_at só existe depois do webhook confirmar o
+   * primeiro pagamento — sem isso a mensagem mostrava "Muda para Starter em ."
+   * com data vazia.
+   */
+  it("primeira assinatura sem confirmação ainda não mostra data vazia", () => {
+    render(<AssinaturaClient {...BASE} pendingPlan="starter" planExpiresAt={null} />);
+    expect(
+      screen.getByText(/assinatura em processamento.*muda para starter assim que o pagamento confirmar/i)
+    ).toBeTruthy();
+    expect(screen.queryByText(/muda para starter em \./i)).toBeNull();
+  });
+
   it("no cartão avisa que haverá redirecionamento", () => {
     render(<AssinaturaClient {...BASE} />);
     expect(screen.getByText(/voc(ê|e) ser(á|a) redirecionado/i)).toBeTruthy();
@@ -169,5 +183,36 @@ describe("AssinaturaClient — modal de documento", () => {
 
     await screen.findByRole("dialog");
     expect(screen.queryByText(/DOCUMENTO_NECESSARIO/)).toBeNull();
+  });
+});
+
+/**
+ * Diferente do cartão (que redireciona pro checkout hospedado), o Pix cria a
+ * cobrança sem sair do site — sem mostrar o link em algum lugar, o lojista
+ * não tem como pagar.
+ */
+describe("AssinaturaClient — link de pagamento do Pix", () => {
+  it("não aparece antes de assinar", () => {
+    render(<AssinaturaClient {...BASE} document="52998224725" />);
+    expect(screen.queryByRole("link", { name: /pagar agora/i })).toBeNull();
+  });
+
+  it("aparece com o link da cobrança quando a action devolve pixUrl", async () => {
+    const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+    vi.mocked(iniciarAssinatura).mockResolvedValue({
+      ok: true,
+      pixUrl: "https://sandbox.asaas.com/i/abc123",
+    });
+
+    render(<AssinaturaClient {...BASE} document="52998224725" />);
+    fireEvent.click(screen.getByRole("radio", { name: /pix/i }));
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole("button", { name: /assinar/i })[0]);
+    });
+
+    const link = await screen.findByRole("link", { name: /pagar agora/i });
+    expect(link.getAttribute("href")).toBe("https://sandbox.asaas.com/i/abc123");
+    // Abre em nova aba: o lojista não pode perder a sessão do painel pra pagar.
+    expect(link.getAttribute("target")).toBe("_blank");
   });
 });

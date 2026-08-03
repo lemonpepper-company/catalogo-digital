@@ -40,7 +40,7 @@ beforeEach(() => {
   getCurrentStore.mockResolvedValue(LOJA_FREE);
   criarCliente.mockResolvedValue({ id: "cus_1" });
   criarCheckoutCartao.mockResolvedValue({ id: "chk_1", link: "https://sandbox.asaas.com/c/1" });
-  criarAssinaturaPix.mockResolvedValue({ id: "sub_1" });
+  criarAssinaturaPix.mockResolvedValue({ id: "sub_1", invoiceUrl: "https://sandbox.asaas.com/i/1" });
 });
 
 describe("iniciarAssinatura", () => {
@@ -51,11 +51,16 @@ describe("iniciarAssinatura", () => {
     expect(criarAssinaturaPix).not.toHaveBeenCalled();
   });
 
-  it("Pix cria a assinatura direto, sem checkout", async () => {
+  /**
+   * Sem o link da cobrança, o lojista não tem como pagar o Pix — o Asaas não
+   * avisa nada sozinho na nossa tela (diferente do cartão, que redireciona
+   * pro checkout hospedado deles).
+   */
+  it("Pix cria a assinatura direto e devolve o link da cobrança pra pagar", async () => {
     getCurrentStore.mockResolvedValue({ ...LOJA_FREE, document: "52998224725" });
     const { iniciarAssinatura } = await import("@/app/actions/assinatura");
     const r = await iniciarAssinatura("starter", "annual", "PIX");
-    expect(r).toEqual({ ok: true });
+    expect(r).toEqual({ ok: true, pixUrl: "https://sandbox.asaas.com/i/1" });
     expect(criarCheckoutCartao).not.toHaveBeenCalled();
     expect(criarAssinaturaPix).toHaveBeenCalled();
   });

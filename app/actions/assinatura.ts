@@ -16,7 +16,13 @@ import { proporcional, type PaidPlan } from "@/lib/asaas/plans";
 import type { BillingCycle } from "@/lib/asaas/events";
 import { validarDocumento, normalizarDocumento } from "@/lib/validation/documento";
 
-export type AssinaturaState = { error: string } | { ok: true; redirectUrl?: string } | null;
+export type AssinaturaState =
+  | { error: string }
+  // redirectUrl: cartão — sai do site, checkout hospedado do Asaas.
+  // pixUrl: Pix — fica no site, é o link da cobrança pra pagar (não navega
+  // sozinho, quem decide mostrar é o client).
+  | { ok: true; redirectUrl?: string; pixUrl?: string }
+  | null;
 
 export type MeioPagamento = "CREDIT_CARD" | "PIX";
 
@@ -104,7 +110,7 @@ export async function iniciarAssinatura(
       .eq("id", store.id);
 
     revalidatePath("/painel/assinatura");
-    return { ok: true };
+    return { ok: true, pixUrl: assinatura.invoiceUrl ?? undefined };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Falha ao iniciar a assinatura." };
   }

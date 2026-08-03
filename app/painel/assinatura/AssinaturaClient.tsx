@@ -89,6 +89,7 @@ export function AssinaturaClient({
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [pixUrl, setPixUrl] = useState<string | null>(null);
 
   const [documentIntencao, setDocumentIntencao] = useState<Intencao | null>(null);
   const [documentValue, setDocumentValue] = useState("");
@@ -116,6 +117,14 @@ export function AssinaturaClient({
 
     if (result.redirectUrl) {
       window.location.href = result.redirectUrl;
+      return;
+    }
+
+    if (result.pixUrl) {
+      // Ao contrário do cartão, o Pix não sai do site — a cobrança já foi
+      // criada no Asaas, mas sem esse link o lojista não tem como pagar (o
+      // Asaas não avisa nada sozinho na nossa tela).
+      setPixUrl(result.pixUrl);
       return;
     }
 
@@ -199,10 +208,38 @@ export function AssinaturaClient({
         <p className="font-body text-[15px] text-obsidian">{mensagemDeStatus(status, planExpiresAt)}</p>
         {pending && (
           <p className="font-body text-[13px] text-graphite mt-2">
-            Muda para {PLAN_LABELS[pending]} em {planExpiresAt ? formatarDataSP(planExpiresAt) : ""}.
+            {planExpiresAt
+              ? // Downgrade de uma assinatura já ativa: pending_plan muda o
+                // plano na renovação, data conhecida.
+                `Muda para ${PLAN_LABELS[pending]} em ${formatarDataSP(planExpiresAt)}.`
+              : // Primeira assinatura (Free → pago): pending_plan já foi
+                // gravado, mas plan_expires_at só existe depois do webhook
+                // confirmar o primeiro pagamento — sem data ainda.
+                `Assinatura em processamento — muda para ${PLAN_LABELS[pending]} assim que o pagamento confirmar.`}
           </p>
         )}
       </Card>
+
+      {pixUrl && (
+        <Card className="border-gold/40 bg-linen">
+          <h2 className="font-display font-medium text-[16px] text-obsidian mb-2">
+            Falta pagar
+          </h2>
+          <p className="font-body text-[13px] text-graphite mb-4">
+            Criamos sua cobrança Pix. Abra o link abaixo para ver o QR code e o
+            código copia-e-cola — o acesso libera assim que o pagamento
+            confirmar.
+          </p>
+          <a
+            href={pixUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-btn border font-display font-medium h-11 px-6 text-[15px] bg-obsidian text-white border-obsidian hover:bg-[#1f1f1f] transition-all duration-200 ease"
+          >
+            Pagar agora →
+          </a>
+        </Card>
+      )}
 
       <Card>
         <h2 className="font-display font-medium text-[16px] text-obsidian mb-4">

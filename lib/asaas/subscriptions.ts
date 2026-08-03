@@ -62,14 +62,22 @@ export async function criarCheckoutCartao(params: {
 }
 
 /** Pix: assinatura direta. O Asaas gera uma cobrança por ciclo e o lojista paga cada uma. */
+/**
+ * Cria a assinatura e devolve junto o link da primeira cobrança gerada — sem
+ * isso o lojista não tem como pagar (o Asaas não manda nada pra tela nossa
+ * sozinho). O endpoint dedicado de QR code (`/payments/{id}/pixQrCode`) se
+ * mostrou instável no sandbox (erro mesmo com espera); `invoiceUrl` vem
+ * pronto em todo pagamento, sem chamada extra sujeita a falhar, e é a mesma
+ * página hospedada que mostra o QR code e o "copia e cola".
+ */
 export async function criarAssinaturaPix(params: {
   customerId: string;
   plan: PaidPlan;
   cycle: BillingCycle;
   storeId: string;
   primeiroVencimento: Date;
-}): Promise<{ id: string }> {
-  return asaasFetch<{ id: string }>("/subscriptions", {
+}): Promise<{ id: string; invoiceUrl: string | null }> {
+  const assinatura = await asaasFetch<{ id: string }>("/subscriptions", {
     method: "POST",
     body: {
       customer: params.customerId,
@@ -81,6 +89,12 @@ export async function criarAssinaturaPix(params: {
       description: `Vtrine ${params.plan}`,
     },
   });
+
+  const cobrancas = await asaasFetch<{ data: { invoiceUrl: string }[] }>(
+    `/payments?subscription=${assinatura.id}&limit=1`
+  );
+
+  return { id: assinatura.id, invoiceUrl: cobrancas.data[0]?.invoiceUrl ?? null };
 }
 
 export async function atualizarAssinatura(params: {
