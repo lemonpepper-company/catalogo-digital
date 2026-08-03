@@ -136,24 +136,24 @@ Input validation → P1-captura AC5 (ordem de validação preservada; zod inalte
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| APO-01 | P1 Captura — AC1 free/starter não gravam | Tasks | Pending |
-| APO-02 | P1 Captura — AC2 pro grava como hoje | Tasks | Pending |
-| APO-03 | P1 Captura — AC3 trial vencido = free, recusa | Tasks | Pending |
-| APO-04 | P1 Captura — AC4 recusa por plano não vira log de erro | Tasks | Pending |
-| APO-05 | P1 Captura — AC5 ordem de validação preservada | Tasks | Pending |
-| APO-06 | P1 Captura — AC6 sem round-trip extra (plano na mesma query da loja) | Tasks | Pending |
-| APO-07 | Capability — `hasAnalytics` em `PlanLimits` (free/starter false, pro true); ressuscita ANL-20 | Tasks | Pending |
-| APO-08 | P1 Dashboard — AC1 starter não executa query de analytics | Tasks | Pending |
-| APO-09 | P1 Dashboard — AC2 starter vê `RecursoBloqueado` com selo "Disponível no plano Pro" | Tasks | Pending |
-| APO-10 | P1 Dashboard — AC3 pro sem regressão (ANL-12..16, ANL-22) | Tasks | Pending |
-| APO-11 | P1 Dashboard — AC4 bloqueado ≠ indisponível | Tasks | Pending |
-| APO-12 | P1 Dashboard — AC5 pedidos/faturamento/filtro intactos no starter | Tasks | Pending |
-| APO-13 | P1 Dashboard — AC6 free segue bloqueado pela página (PR #71) | Tasks | Pending |
-| APO-14 | P2 Cliente — AC1/AC2 catálogo só dispara evento com `hasAnalytics` | Tasks | Pending |
-| APO-15 | P2 Cliente — AC3 servidor continua sendo a garantia | Tasks | Pending |
-| APO-16 | P3 Copy — item de métricas da vitrine em `proFeatures` | Tasks | Pending |
+| APO-01 | P1 Captura — AC1 free/starter não gravam | Verified | ✅ |
+| APO-02 | P1 Captura — AC2 pro grava como hoje | Verified | ✅ |
+| APO-03 | P1 Captura — AC3 trial vencido = free, recusa | Verified | ✅ |
+| APO-04 | P1 Captura — AC4 recusa por plano não vira log de erro | Verified | ✅ |
+| APO-05 | P1 Captura — AC5 ordem de validação preservada | Verified | ✅ |
+| APO-06 | P1 Captura — AC6 sem round-trip extra (plano na mesma query da loja) | Verified | ✅ |
+| APO-07 | Capability — `hasAnalytics` em `PlanLimits` (free/starter false, pro true); ressuscita ANL-20 | Verified | ✅ |
+| APO-08 | P1 Dashboard — AC1 starter não executa query de analytics | Verified | ✅ |
+| APO-09 | P1 Dashboard — AC2 starter vê `RecursoBloqueado` com selo "Disponível no plano Pro" | Verified | ✅ |
+| APO-10 | P1 Dashboard — AC3 pro sem regressão (ANL-12..16, ANL-22) | Verified | ✅ |
+| APO-11 | P1 Dashboard — AC4 bloqueado ≠ indisponível | Verified | ✅ |
+| APO-12 | P1 Dashboard — AC5 pedidos/faturamento/filtro intactos no starter | Verified | ✅ |
+| APO-13 | P1 Dashboard — AC6 free segue bloqueado pela página (PR #71) | Verified | ✅ |
+| APO-14 | P2 Cliente — AC1/AC2 catálogo só dispara evento com `hasAnalytics` | Verified | ✅ |
+| APO-15 | P2 Cliente — AC3 servidor continua sendo a garantia | Verified | ✅ |
+| APO-16 | P3 Copy — item de métricas da vitrine em `proFeatures` | Verified | ✅ |
 
-**Coverage:** 16 total — preenchido em `tasks.md`.
+**Coverage:** 16 total — 16 mapeados a tasks, 16 verificados com evidência `file:line` em `validation.md`, 0 unmapped ✅
 
 ---
 

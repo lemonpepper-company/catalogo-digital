@@ -20,10 +20,13 @@
 
 ## Handoff snapshot
 
-- **Feature atual: analytics-pro-only — Execute concluída (T1–T9), aguardando o Verifier.**
-- **Branch:** `feature/analytics-pro-only` (a partir de `main` em `fc6f61a`). Commits: `d70568f` (specs) → `df2a123` (T8).
-- **Gates:** 83 arquivos / **981 testes** verdes (baseline `main` = 956); `npm run build` ok; `npm run lint` = 19 erros (= baseline exato da `main`); `npx tsc --noEmit` = 3 erros pré-existentes (= baseline da `main`, medido em worktree limpo).
-- **Falta:** T10 (verificação integrada com Supabase local) + Verifier.
+- **Feature atual: analytics-pro-only — ✅ EXECUTADA E VALIDADA (2026-08-03). Próximo passo: revisar e abrir PR.**
+- **Branch:** `feature/analytics-pro-only` (a partir de `main` em `fc6f61a`). 11 commits atômicos: `d70568f` (specs) → validação.
+- **Fase:** Execute T1–T10 completa + validação standalone = **PASS**, 16/16 requisitos com evidência `file:line`, sensor **8/8 mutantes mortos**. Relatório: `.specs/features/analytics-pro-only/validation.md`.
+- **Gates:** 83 arquivos / **985 testes** verdes (baseline `main` = 956, +29); `npm run build` ok; `npm run lint` = 19 erros (= baseline exato da `main`); `npx tsc --noEmit` = 3 erros (= baseline da `main`, medido em worktree limpo de `fc6f61a`).
+- **⚠️ Lição de gate que vale para as próximas features:** `npx vitest run` **não faz typecheck**, e `next build` não cobre `__tests__/`. O commit `7616ffd` passou verde com uma fixture de `PlanLimits` type-broken; só `npx tsc --noEmit` acusou. **Incluir `npx tsc --noEmit` no gate build daqui em diante**, com o baseline da `main` medido em worktree limpo (hoje: 3 erros pré-existentes).
+- **Ressalva de método:** a validação foi executada pelo autor (usuário optou por execução inline, sem sub-agentes). Roteiro completo cumprido, mas sem a separação autor ≠ verificador.
+- **Verificado em runtime (Supabase local):** free e starter não geraram linha **nem requisição** (log do servidor sem nenhum POST de `registrarEvento`); pro gerou os 4 tipos; dashboard conferido nos dois planos pagos; 9 eventos antigos de loja `starter` preservados; dados de teste limpos e loja devolvida ao plano `pro`.
 - **Decisão nova:** AD-014 (acima), supersedendo parcialmente AD-011.
 
 ### Feature anterior (analytics-nativo — concluída)
