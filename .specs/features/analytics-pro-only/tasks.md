@@ -9,7 +9,13 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/analytics-pro-only/design.md`
-**Status**: Draft — aguardando aprovação
+**Status**: ✅ **Executada** (2026-08-03) — T1–T9 concluídas na branch `feature/analytics-pro-only`, um commit atômico por task.
+
+**Desvios de execução registrados:**
+
+1. **T4 e T5 foram fundidas num único commit (`081c7b0`).** As duas dividem o mesmo contrato de prop (`AnalyticsState` entre `page.tsx` e `DashboardClient`) e nenhuma é verificável sozinha: com a página emitindo a união e o cliente ainda esperando `CatalogAnalytics | null`, o gate full falharia por construção. Aplicado o "merge forward" de `implement.md` (resolving compilation dependencies).
+2. **`npx vitest run` não faz typecheck** — descoberto durante T6, quando `tsc --noEmit` acusou 4 fixtures de teste sem o campo novo (uma delas resíduo do commit de T1, que passou verde). O baseline real da `main` (`fc6f61a`) tem **3 erros de tsc pré-existentes** em `__tests__/analytics-client.test.ts` (2) e `__tests__/use-catalogo.test.ts` (1), medidos num worktree limpo. A branch terminou nesses mesmos 3. **`npx tsc --noEmit` passou a integrar o gate build de fato.**
+3. **Aridade de `trackEvent` preservada em T7.** A primeira versão do guard passava `productId` posicional, injetando um `undefined` explícito no 3º argumento dos eventos sem produto — 6 testes de ANL-05 quebraram. Corrigido na implementação (flag como parâmetro separado, rest-param mantido); nenhuma asserção foi afrouxada.
 
 **Pré-requisito de execução**: criar branch `feature/analytics-pro-only` a partir de `main`. Supabase local (`npx supabase start`) apenas para T10.
 **Baseline medida em 2026-08-03 na `main` (fc6f61a)**: suíte **83 arquivos / 956 testes verdes**; `npm run lint` **19 erros pré-existentes** — nenhum erro novo é aceitável, e o número não pode subir.
