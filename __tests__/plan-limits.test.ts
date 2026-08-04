@@ -36,6 +36,7 @@ describe("getPlanLimits", () => {
       gridDensity: false,
       csvImport: false,
       customDomain: false,
+      hasAnalytics: false,
     });
   });
 
@@ -50,6 +51,7 @@ describe("getPlanLimits", () => {
       gridDensity: true,
       csvImport: false,
       customDomain: false,
+      hasAnalytics: false,
     });
   });
 
@@ -64,6 +66,7 @@ describe("getPlanLimits", () => {
       gridDensity: true,
       csvImport: true,
       customDomain: true,
+      hasAnalytics: true,
     });
   });
 
@@ -79,6 +82,7 @@ describe("getPlanLimits", () => {
       gridDensity: false,
       csvImport: false,
       customDomain: false,
+      hasAnalytics: false,
     });
   });
 
@@ -94,6 +98,7 @@ describe("getPlanLimits", () => {
       gridDensity: false,
       csvImport: false,
       customDomain: false,
+      hasAnalytics: false,
     });
   });
 });
@@ -170,6 +175,30 @@ describe("getPlanLimits — importação CSV", () => {
   it("pro com trial_ends_at expirado perde a importação CSV (cai para Free)", () => {
     const past = new Date(Date.now() - 86400000).toISOString();
     expect(getPlanLimits("pro", past).csvImport).toBe(false);
+  });
+});
+
+describe("getPlanLimits — métricas da vitrine (APO-07)", () => {
+  it("free não tem métricas da vitrine", () => {
+    expect(getPlanLimits("free", null).hasAnalytics).toBe(false);
+  });
+
+  it("starter não tem métricas da vitrine", () => {
+    expect(getPlanLimits("starter", null).hasAnalytics).toBe(false);
+  });
+
+  it("pro tem métricas da vitrine", () => {
+    expect(getPlanLimits("pro", null).hasAnalytics).toBe(true);
+  });
+
+  it("pro com trial_ends_at expirado perde as métricas da vitrine (cai para Free)", () => {
+    const past = new Date(Date.now() - 86400000).toISOString();
+    expect(getPlanLimits("pro", past).hasAnalytics).toBe(false);
+  });
+
+  it("pro com trial_ends_at no futuro mantém as métricas da vitrine", () => {
+    const future = new Date(Date.now() + 86400000).toISOString();
+    expect(getPlanLimits("pro", future).hasAnalytics).toBe(true);
   });
 });
 

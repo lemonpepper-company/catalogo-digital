@@ -28,7 +28,12 @@ function cartSignature(cart: CartItem[]): string {
 // por exigência da própria AC) e a aba do WhatsApp nunca recebe a URL; no efeito
 // de montagem, derrubaria o render do catálogo. Duas linhas no ponto mais caro
 // do produto — a venda.
-function track(...args: Parameters<typeof trackEvent>): void {
+function track(enabled: boolean, ...args: Parameters<typeof trackEvent>): void {
+  // Loja sem o recurso não gasta round-trip com uma Server Action que vai
+  // recusar de qualquer jeito (APO-14). É só otimização: o gate autoritativo
+  // vive em `registrarEvento`, que não confia no cliente (APO-15).
+  if (!enabled) return;
+
   try {
     trackEvent(...args);
   } catch {
@@ -85,9 +90,9 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
   // sessionStorage, então recarregar a página não conta de novo.
   useEffect(() => {
     if (shouldTrackVisit(store.slug)) {
-      track(store.slug, "catalog_visit");
+      track(store.hasAnalytics, store.slug, "catalog_visit");
     }
-  }, [store.slug]);
+  }, [store.slug, store.hasAnalytics]);
 
   const filteredProducts = filterCatalog(products, activeCategory, searchQuery);
 
@@ -128,15 +133,15 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
   const handleOpenProduct = useCallback(
     (product: Product) => {
       setOpenProduct(product);
-      track(store.slug, "product_view", product.id);
+      track(store.hasAnalytics, store.slug, "product_view", product.id);
     },
-    [store.slug]
+    [store.slug, store.hasAnalytics]
   );
 
   const handleAdd = useCallback(
     (product: Product, size: string | null, color: string | null, qty: number) => {
       const key = `${product.id}|${size ?? ""}|${color ?? ""}`;
-      track(store.slug, "add_to_bag", product.id);
+      track(store.hasAnalytics, store.slug, "add_to_bag", product.id);
       setCart((prev) => {
         const found = prev.find((it) => it.key === key);
         if (found) {
@@ -149,7 +154,7 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
       setOpenProduct(null);
       setBagOpen(true);
     },
-    [store.slug]
+    [store.slug, store.hasAnalytics]
   );
 
   const handleQty = useCallback((key: string, qty: number) => {
@@ -173,7 +178,7 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     // WhatsApp, antes do window.open e fora do Promise.race abaixo (ANL-05/07).
     // Registrar aqui garante o evento mesmo se registrarPedido falhar ou estourar
     // o timeout — o pedido em si vem de `orders`.
-    track(store.slug, "buy_click");
+    track(store.hasAnalytics, store.slug, "buy_click");
     // Nome e código entram na mensagem antes de qualquer ida ao servidor: o
     // código é derivado do clientOrderId no próprio cliente, então a mensagem
     // continua completa mesmo se a gravação falhar ou estourar o timeout
@@ -227,6 +232,7 @@ export function useCatalogo({ store, products }: UseCatalogoArgs) {
     store.whatsapp,
     store.messageTemplate,
     store.slug,
+    store.hasAnalytics,
     selectedPayment,
     selectedDelivery,
     address,

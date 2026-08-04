@@ -8,29 +8,10 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 /**
- * ANL-09: a captura grava em qualquer plano e **nunca** consulta plano. A garantia
- * é `expect(getPlanLimits).not.toHaveBeenCalled()` combinada com o `mockClear()`
- * por teste. Stub benigno (não lança) porque `lib/data.ts` chama getPlanLimits no
- * escopo do módulo — mesmo motivo documentado em registrar-pedido.test.ts.
+ * `lib/plan-limits` roda de verdade aqui (APO-01/APO-03): o gate é dirigido pelo
+ * `plan`/`trial_ends_at` da linha falsa de `stores`, então o teste exercita a
+ * resolução real de plano e expiração de trial em vez de um stub.
  */
-const FREE_LIMITS_STUB = {
-  maxProducts: 8,
-  maxCategories: 1,
-  maxPhotos: 1,
-  hasOrderHistory: false,
-  maxFeaturedProducts: 0,
-  themeOptions: false,
-  advancedTheme: false,
-  gridDensity: false,
-};
-const getPlanLimits = vi.fn(() => FREE_LIMITS_STUB);
-const getEffectivePlan = vi.fn((): "free" => "free");
-
-vi.mock("@/lib/plan-limits", () => ({
-  getPlanLimits: () => getPlanLimits(),
-  getEffectivePlan: () => getEffectivePlan(),
-}));
-
 const STORE_ID = "11111111-1111-4111-8111-111111111111";
 const VISITOR_ID = "22222222-2222-4222-8222-222222222222";
 const PRODUCT_ID = "33333333-3333-4333-8333-333333333333";
@@ -109,10 +90,15 @@ function payload(over: Record<string, unknown> = {}) {
   };
 }
 
-/** Loja ativa encontrada, produto pertencente à loja, insert sem erro. */
+/** Linha de `stores` no plano pedido — o gate de APO-01 lê estes dois campos. */
+function storeRow(plan: string, trialEndsAt: string | null = null) {
+  return { data: { id: STORE_ID, plan, trial_ends_at: trialEndsAt } };
+}
+
+/** Loja Pro ativa encontrada, produto pertencente à loja, insert sem erro. */
 function happyPlan(overrides: Record<string, Result[]> = {}): Record<string, Result[]> {
   return {
-    stores: [{ data: { id: STORE_ID } }],
+    stores: [storeRow("pro")],
     products: [{ data: { id: PRODUCT_ID } }],
     catalog_events: [{ error: null }],
     ...overrides,
@@ -130,8 +116,6 @@ beforeEach(() => {
   from.mockReset();
   createAdminClient.mockReset();
   createAdminClient.mockImplementation(() => ({ from }));
-  getPlanLimits.mockClear();
-  getEffectivePlan.mockClear();
   errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -241,17 +225,95 @@ describe("registrarEvento — gravação (ANL-10)", () => {
   });
 });
 
-describe("registrarEvento — captura em qualquer plano (ANL-09)", () => {
-  it("grava sem nunca consultar plano ou limites", async () => {
-    const made = setupSupabase(happyPlan());
+describe("registrarEvento — captura exclusiva do Pro (APO-01 a APO-06)", () => {
+  it("não grava nada quando a loja é free", async () => {
+    const made = setupSupabase(happyPlan({ stores: [storeRow("free")] }));
+    const registrarEvento = await loadAction();
+
+    const result = await registrarEvento(payload());
+
+    expect(result).toEqual({ ok: false });
+    expect(callsOf(made, "catalog_events", "insert")).toHaveLength(0);
+    expect(writeCalls(made)).toHaveLength(0);
+  });
+
+  it("não grava nada quando a loja é starter", async () => {
+    const made = setupSupabase(happyPlan({ stores: [storeRow("starter")] }));
+    const registrarEvento = await loadAction();
+
+    const result = await registrarEvento(payload());
+
+    expect(result).toEqual({ ok: false });
+    expect(callsOf(made, "catalog_events", "insert")).toHaveLength(0);
+    expect(writeCalls(made)).toHaveLength(0);
+  });
+
+  it("grava normalmente quando a loja é pro", async () => {
+    const made = setupSupabase(happyPlan({ stores: [storeRow("pro")] }));
     const registrarEvento = await loadAction();
 
     const result = await registrarEvento(payload());
 
     expect(result).toEqual({ ok: true });
-    expect(getPlanLimits).not.toHaveBeenCalled();
-    expect(getEffectivePlan).not.toHaveBeenCalled();
+    expect(insertedRow(made)).toEqual({
+      store_id: STORE_ID,
+      event_type: "catalog_visit",
+      product_id: null,
+      visitor_id: VISITOR_ID,
+    });
+  });
+
+  it("não grava quando o pro tem trial_ends_at vencido (APO-03)", async () => {
+    const past = new Date(Date.now() - 86400000).toISOString();
+    const made = setupSupabase(happyPlan({ stores: [storeRow("pro", past)] }));
+    const registrarEvento = await loadAction();
+
+    const result = await registrarEvento(payload());
+
+    expect(result).toEqual({ ok: false });
+    expect(writeCalls(made)).toHaveLength(0);
+  });
+
+  it("grava quando o pro tem trial_ends_at no futuro (APO-03)", async () => {
+    const future = new Date(Date.now() + 86400000).toISOString();
+    const made = setupSupabase(happyPlan({ stores: [storeRow("pro", future)] }));
+    const registrarEvento = await loadAction();
+
+    const result = await registrarEvento(payload());
+
+    expect(result).toEqual({ ok: true });
     expect(callsOf(made, "catalog_events", "insert")).toHaveLength(1);
+  });
+
+  it("recusa por plano é silenciosa, ao contrário da loja inexistente (APO-04)", async () => {
+    setupSupabase(happyPlan({ stores: [storeRow("free")] }));
+    const registrarEvento = await loadAction();
+
+    await registrarEvento(payload());
+    expect(errorSpy).not.toHaveBeenCalled();
+
+    setupSupabase(happyPlan({ stores: [{ data: null }] }));
+    await registrarEvento(payload());
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("bloqueia antes de conferir a posse do produto", async () => {
+    const made = setupSupabase(happyPlan({ stores: [storeRow("free")] }));
+    const registrarEvento = await loadAction();
+
+    await registrarEvento(payload({ eventType: "product_view", productId: PRODUCT_ID }));
+
+    expect(made.filter((entry) => entry.table === "products")).toHaveLength(0);
+  });
+
+  it("lê plano e trial na mesma consulta de stores, sem round-trip novo (APO-06)", async () => {
+    const made = setupSupabase(happyPlan());
+    const registrarEvento = await loadAction();
+
+    await registrarEvento(payload());
+
+    expect(callsOf(made, "stores", "select")).toEqual([["id, plan, trial_ends_at"]]);
+    expect(made.filter((entry) => entry.table === "stores")).toHaveLength(1);
   });
 });
 

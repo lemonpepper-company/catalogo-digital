@@ -46,6 +46,9 @@ export interface Store {
   deliveryMethods?: string[];
   theme: ResolvedTheme;
   gridDensity: "padrao" | "compacto";
+  /** Plano da loja gera métricas da vitrine (APO-14). Obrigatório de propósito:
+   *  opcional daria "não rastreia" por esquecimento, em silêncio. */
+  hasAnalytics: boolean;
 }
 
 export interface CartItem {

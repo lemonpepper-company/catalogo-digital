@@ -14,6 +14,7 @@ export const STORE: Store = {
   catalogUrl: "vtrinedigital.com.br/ateliemira",
   theme: resolveTheme("padrao", "padrao", "padrao", null, getPlanLimits("free", null)),
   gridDensity: "padrao",
+  hasAnalytics: false,
 };
 
 export const PRODUCTS: Product[] = [

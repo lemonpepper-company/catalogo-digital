@@ -66,6 +66,7 @@ const baseLimits: PlanLimits = {
   csvImport: true,
   hasOrderHistory: true,
   customDomain: true,
+  hasAnalytics: true,
 };
 
 const noFilters = {

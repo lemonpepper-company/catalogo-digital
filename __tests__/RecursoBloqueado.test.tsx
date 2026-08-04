@@ -23,11 +23,37 @@ describe("RecursoBloqueado — estado bloqueado de recurso pago (ORD-28)", () =>
     );
   });
 
+  it("anuncia o plano Pro quando o recurso é exclusivo dele (APO-09)", () => {
+    render(
+      <RecursoBloqueado
+        titulo="Sua vitrine em números"
+        descricao="Faça upgrade."
+        planoMinimo="pro"
+      />
+    );
+
+    expect(screen.getByText("Disponível no plano Pro")).toBeTruthy();
+    expect(screen.queryByText("Disponível a partir do plano Starter")).toBeNull();
+  });
+
   it("não exibe nenhum número real do recurso bloqueado", () => {
     const { container } = render(
       <RecursoBloqueado
         titulo="Histórico de pedidos"
         descricao="Faça upgrade para ver o histórico completo."
+      />
+    );
+
+    expect(container.textContent).not.toMatch(/\d/);
+    expect(container.textContent).not.toContain("R$");
+  });
+
+  it("também não exibe número algum na variante do Pro", () => {
+    const { container } = render(
+      <RecursoBloqueado
+        titulo="Sua vitrine em números"
+        descricao="Veja quantas pessoas visitam sua vitrine."
+        planoMinimo="pro"
       />
     );
 

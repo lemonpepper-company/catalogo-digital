@@ -3,7 +3,7 @@
 import { formatCents } from "@/lib/utils";
 import { computeConversionPct } from "@/lib/catalog-metrics";
 import type { OrderMetrics } from "@/lib/order-metrics";
-import type { CatalogAnalytics } from "@/lib/server/analytics";
+import type { AnalyticsState } from "@/lib/server/analytics";
 import type { StoreProduct } from "@/lib/types";
 
 export interface TopViewedItem {
@@ -15,7 +15,10 @@ export interface TopViewedItem {
 export function useDashboard(
   products: StoreProduct[],
   metrics: OrderMetrics | null,
-  analytics: CatalogAnalytics | null = null
+  // Obrigatório de propósito: um default silencioso faria o chamador esquecido
+  // renderizar estado de erro em vez de falhar na compilação (herança do
+  // `= null` que existia antes da união discriminada).
+  analytics: AnalyticsState
 ) {
   const activeProducts = products.filter((p) => p.isActive && p.stock > 0);
   const soldOutProducts = products.filter((p) => p.stock === 0);
@@ -32,17 +35,19 @@ export function useDashboard(
       ]
     : null;
 
-  // `null` = leitura das métricas da vitrine falhou (≠ período sem eventos, que
-  // vem como zeros). A UI distingue os dois: indisponível avisa, zero mostra 0.
-  const conversionPct = analytics
-    ? computeConversionPct(metrics?.ordersThisMonth ?? 0, analytics.metrics.bagVisitors)
+  // Só `ok` tem número: `blocked` vira upsell e `unavailable` vira aviso, e nem
+  // um nem outro pode inventar valor (≠ período sem eventos, que vem como zeros).
+  const data = analytics.status === "ok" ? analytics.data : null;
+
+  const conversionPct = data
+    ? computeConversionPct(metrics?.ordersThisMonth ?? 0, data.metrics.bagVisitors)
     : null;
 
-  const catalogStats = analytics
+  const catalogStats = data
     ? [
-        { value: analytics.metrics.visits, label: "Visitas" },
-        { value: analytics.metrics.uniqueVisitors, label: "Visitantes únicos" },
-        { value: analytics.metrics.buyClicks, label: "Cliques em comprar" },
+        { value: data.metrics.visits, label: "Visitas" },
+        { value: data.metrics.uniqueVisitors, label: "Visitantes únicos" },
+        { value: data.metrics.buyClicks, label: "Cliques em comprar" },
         {
           // Sem ninguém com sacola no período não existe taxa — "—" em vez de 0%.
           value: conversionPct === null ? "—" : `${conversionPct}%`,
@@ -53,7 +58,7 @@ export function useDashboard(
 
   // Produto deletado sai da lista: o evento continua no banco, mas sem nome não
   // há o que exibir (assumption da spec).
-  const topViewed: TopViewedItem[] = (analytics?.topProducts ?? []).flatMap((item) => {
+  const topViewed: TopViewedItem[] = (data?.topProducts ?? []).flatMap((item) => {
     const product = products.find((p) => p.id === item.productId);
     return product ? [{ id: product.id, name: product.name, views: item.views }] : [];
   });
@@ -65,5 +70,6 @@ export function useDashboard(
     orderStats,
     catalogStats,
     topViewed,
+    analyticsBloqueado: analytics.status === "blocked",
   };
 }

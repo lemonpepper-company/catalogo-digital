@@ -179,7 +179,7 @@ describe("/painel — filtro de período (ORD-46)", () => {
 
 describe("/painel — métricas da vitrine (ANL-14, ANL-15, ANL-18, ANL-19)", () => {
   it("busca analytics com o MESMO objeto de range dos cards de pedidos (ANL-15)", async () => {
-    getCurrentStore.mockResolvedValue(makeStore("starter"));
+    getCurrentStore.mockResolvedValue(makeStore("pro"));
 
     await renderPage({ periodo: "7d" });
 
@@ -206,8 +206,8 @@ describe("/painel — métricas da vitrine (ANL-14, ANL-15, ANL-18, ANL-19)", ()
     expect(getCatalogAnalytics).not.toHaveBeenCalled();
   });
 
-  it("busca as métricas da vitrine uma única vez no plano pago (ANL-19)", async () => {
-    getCurrentStore.mockResolvedValue(makeStore("starter"));
+  it("busca as métricas da vitrine uma única vez no plano Pro (ANL-19)", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("pro"));
 
     await renderPage();
 
@@ -215,7 +215,7 @@ describe("/painel — métricas da vitrine (ANL-14, ANL-15, ANL-18, ANL-19)", ()
   });
 
   it("renderiza a página com os pedidos intactos quando a leitura de analytics lança", async () => {
-    getCurrentStore.mockResolvedValue(makeStore("starter"));
+    getCurrentStore.mockResolvedValue(makeStore("pro"));
     getCatalogAnalytics.mockRejectedValue(new Error("permission denied"));
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -226,6 +226,52 @@ describe("/painel — métricas da vitrine (ANL-14, ANL-15, ANL-18, ANL-19)", ()
     expect(screen.getByText("Pedidos")).toBeTruthy();
     expect(screen.getByText("7")).toBeTruthy();
     expect(errorSpy).toHaveBeenCalled();
+
+    // APO-11 na camada que DERIVA o estado, não só na que o consome: o `catch`
+    // tem de produzir "unavailable". Se produzisse "blocked", um lojista Pro com
+    // o banco fora do ar veria um convite para assinar o plano que já assina.
+    expect(screen.getByText("Não foi possível carregar agora.")).toBeTruthy();
+    expect(screen.queryByText("Disponível no plano Pro")).toBeNull();
     errorSpy.mockRestore();
+  });
+});
+
+describe("/painel — métricas da vitrine exclusivas do Pro (APO-08, APO-12)", () => {
+  it("no plano Starter não executa NENHUMA query de analytics", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("starter"));
+
+    await renderPage({ periodo: "mes" });
+
+    expect(getCatalogAnalytics).not.toHaveBeenCalled();
+  });
+
+  it("no plano Starter mostra o upsell do Pro no lugar dos números da vitrine", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("starter"));
+
+    await renderPage();
+
+    expect(screen.getByText("Disponível no plano Pro")).toBeTruthy();
+    expect(screen.queryByText("Visitas")).toBeNull();
+    expect(screen.queryByText("Conversão sacola → pedido")).toBeNull();
+  });
+
+  it("no plano Starter os pedidos e o filtro de período continuam intactos (APO-12)", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("starter"));
+
+    await renderPage({ periodo: "7d" });
+
+    expect(getOrderMetrics).toHaveBeenCalledWith(STORE_ID, RANGE);
+    expect(screen.getByText("Pedidos")).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Filtrar por período" })).toBeTruthy();
+  });
+
+  it("no plano Pro exibe os números reais da vitrine", async () => {
+    getCurrentStore.mockResolvedValue(makeStore("pro"));
+
+    await renderPage();
+
+    expect(getCatalogAnalytics).toHaveBeenCalledWith(STORE_ID, RANGE);
+    expect(screen.getByText("Visitas")).toBeTruthy();
+    expect(screen.queryByText("Disponível no plano Pro")).toBeNull();
   });
 });
