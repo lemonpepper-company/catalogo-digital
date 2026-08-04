@@ -15,7 +15,10 @@ export interface TopViewedItem {
 export function useDashboard(
   products: StoreProduct[],
   metrics: OrderMetrics | null,
-  analytics: AnalyticsState = { status: "unavailable" }
+  // Obrigatório de propósito: um default silencioso faria o chamador esquecido
+  // renderizar estado de erro em vez de falhar na compilação (herança do
+  // `= null` que existia antes da união discriminada).
+  analytics: AnalyticsState
 ) {
   const activeProducts = products.filter((p) => p.isActive && p.stock > 0);
   const soldOutProducts = products.filter((p) => p.stock === 0);
