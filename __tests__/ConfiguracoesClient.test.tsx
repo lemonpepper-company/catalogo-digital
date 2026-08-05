@@ -9,6 +9,9 @@ import type { StoreSettings } from "@/lib/types";
 vi.mock("@/app/actions/store", () => ({
   updateStoreSettings: vi.fn(async () => ({ ok: true })),
 }));
+vi.mock("@/app/actions/cep", () => ({
+  buscarEndereco: vi.fn(),
+}));
 vi.mock("@/lib/image-compress", () => ({
   compressImage: vi.fn(async (f: File) => f),
 }));
@@ -39,6 +42,11 @@ const baseSettings: StoreSettings = {
   secondaryColor: null,
   gridDensity: "padrao",
   document: null,
+  address: null,
+  addressNumber: null,
+  addressProvince: null,
+  addressCity: null,
+  addressPostalCode: null,
   asaasCustomerId: null,
   asaasSubscriptionId: null,
   billingCycle: null,
@@ -86,6 +94,65 @@ describe("ConfiguracoesClient — Instagram (novo)", () => {
       />
     );
     expect(screen.getByLabelText(/Instagram/i)).toHaveValue("atelieming");
+  });
+});
+
+/**
+ * O input de CPF/CNPJ é não-controlado (o FormData nativo já capta o valor
+ * no submit) — sem defaultValue, ele sempre renderizava vazio mesmo com um
+ * documento já salvo, dando a impressão de que "não carregava".
+ */
+describe("ConfiguracoesClient — documento (CPF/CNPJ)", () => {
+  it("carrega o documento já salvo", () => {
+    render(
+      <ConfiguracoesClient
+        settings={{ ...baseSettings, document: "52998224725" }}
+        limits={proLimits}
+      />
+    );
+    expect(screen.getByLabelText(/CPF ou CNPJ/i)).toHaveValue("52998224725");
+  });
+
+  it("sem documento salvo, o campo fica vazio", () => {
+    render(<ConfiguracoesClient settings={baseSettings} limits={proLimits} />);
+    expect(screen.getByLabelText(/CPF ou CNPJ/i)).toHaveValue("");
+  });
+});
+
+/**
+ * Rua/bairro/cidade são sugeridos pelo CEP no cliente, mas continuam
+ * campos editáveis salvos como qualquer outro — precisam carregar o valor
+ * já salvo, igual documento e CEP/número.
+ */
+describe("ConfiguracoesClient — endereço (CEP, número, rua, bairro, cidade)", () => {
+  it("carrega o endereço já salvo", () => {
+    render(
+      <ConfiguracoesClient
+        settings={{
+          ...baseSettings,
+          addressPostalCode: "01001000",
+          addressNumber: "123",
+          address: "Rua das Flores",
+          addressProvince: "Centro",
+          addressCity: "São Paulo",
+        }}
+        limits={proLimits}
+      />
+    );
+    expect(screen.getByLabelText(/CEP/i)).toHaveValue("01001000");
+    expect(screen.getByLabelText(/Número/i)).toHaveValue("123");
+    expect(screen.getByLabelText(/Rua/i)).toHaveValue("Rua das Flores");
+    expect(screen.getByLabelText(/Bairro/i)).toHaveValue("Centro");
+    expect(screen.getByLabelText(/Cidade/i)).toHaveValue("São Paulo");
+  });
+
+  it("sem endereço salvo, os campos ficam vazios", () => {
+    render(<ConfiguracoesClient settings={baseSettings} limits={proLimits} />);
+    expect(screen.getByLabelText(/CEP/i)).toHaveValue("");
+    expect(screen.getByLabelText(/Número/i)).toHaveValue("");
+    expect(screen.getByLabelText(/Rua/i)).toHaveValue("");
+    expect(screen.getByLabelText(/Bairro/i)).toHaveValue("");
+    expect(screen.getByLabelText(/Cidade/i)).toHaveValue("");
   });
 });
 

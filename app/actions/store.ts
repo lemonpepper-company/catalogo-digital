@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentStore } from "@/lib/server/store";
 import { storeSettingsSchema, personalizacaoSchema, domainSchema } from "@/lib/validation/painel";
+import { validarDocumento, normalizarDocumento } from "@/lib/validation/documento";
+import { validarCep, normalizarCep } from "@/lib/validation/cep";
+import { atualizarCliente } from "@/lib/asaas/subscriptions";
 import { uploadToBucket, deleteFromBucket } from "@/lib/server/upload";
 import { getPlanLimits } from "@/lib/plan-limits";
 import {
@@ -43,8 +46,56 @@ export async function updateStoreSettings(
     analyticsId: store.analyticsId,
     pixelId: store.pixelId,
     messageTemplate: (formData.get("messageTemplate") as string) || null,
+    document: (formData.get("document") as string) || null,
+    postalCode: (formData.get("postalCode") as string) || null,
+    addressNumber: (formData.get("addressNumber") as string) || null,
+    address: (formData.get("address") as string) || null,
+    addressProvince: (formData.get("addressProvince") as string) || null,
+    addressCity: (formData.get("addressCity") as string) || null,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  // Opcional aqui (só é exigido na hora de assinar via Pix ou cartão) — mas
+  // se preenchido, tem que ser um CPF/CNPJ válido, mesma regra da assinatura.
+  let document: string | null = null;
+  if (parsed.data.document) {
+    if (!validarDocumento(parsed.data.document)) return { error: "CPF ou CNPJ inválido." };
+    document = normalizarDocumento(parsed.data.document);
+  }
+
+  // CEP, número, rua, bairro e cidade andam juntos — ou os cinco, ou
+  // nenhum. Rua/bairro/cidade eram resolvidos só pelo ViaCEP, mas nem todo
+  // CEP devolve os três (CEPs de agrupamento, área rural, construção nova)
+  // — o cliente ainda sugere os valores ao sair do campo CEP (ver
+  // app/actions/cep.ts), mas quem decide o que é salvo é o formulário.
+  let address: {
+    address: string;
+    addressNumber: string;
+    addressProvince: string;
+    addressCity: string;
+    addressPostalCode: string;
+  } | null = null;
+  const camposEndereco = [
+    parsed.data.postalCode,
+    parsed.data.addressNumber,
+    parsed.data.address,
+    parsed.data.addressProvince,
+    parsed.data.addressCity,
+  ];
+  const preenchidos = camposEndereco.filter((v) => !!v).length;
+  if (preenchidos > 0 && preenchidos < camposEndereco.length) {
+    return { error: "Preencha CEP, número, rua, bairro e cidade juntos, ou deixe todos em branco." };
+  }
+  if (preenchidos === camposEndereco.length) {
+    if (!validarCep(parsed.data.postalCode!)) return { error: "CEP inválido." };
+    address = {
+      address: parsed.data.address!.trim(),
+      addressNumber: parsed.data.addressNumber!.trim(),
+      addressProvince: parsed.data.addressProvince!.trim(),
+      addressCity: parsed.data.addressCity!.trim(),
+      addressPostalCode: normalizarCep(parsed.data.postalCode!),
+    };
+  }
 
   let logoUrl = store.logoUrl;
   const logo = formData.get("logo") as File | null;
@@ -72,6 +123,12 @@ export async function updateStoreSettings(
       pixel_id: parsed.data.pixelId,
       message_template: parsed.data.messageTemplate,
       logo_url: logoUrl,
+      document,
+      address: address?.address ?? null,
+      address_number: address?.addressNumber ?? null,
+      address_province: address?.addressProvince ?? null,
+      address_city: address?.addressCity ?? null,
+      address_postal_code: address?.addressPostalCode ?? null,
     })
     .eq("id", store.id);
 
@@ -80,6 +137,40 @@ export async function updateStoreSettings(
   // Remove o logo anterior do bucket quando foi substituído (evita órfãos).
   if (store.logoUrl && store.logoUrl !== logoUrl) {
     await deleteFromBucket(supabase, store.logoUrl);
+  }
+
+  // O customer no Asaas guarda uma cópia desses dados — sem sincronizar, uma
+  // atualização feita aqui (ex: trocar o CEP) não se reflete lá, e a próxima
+  // cobrança usa o endereço antigo. Só roda se já existe customer (a
+  // sincronização na hora de assinar cobre quem ainda não tem um) e só com
+  // documento presente, que o Asaas exige em qualquer PUT /customers.
+  // Best-effort: falha aqui não deve derrubar o salvamento das configurações,
+  // que já aconteceu com sucesso.
+  if (store.asaasCustomerId && document) {
+    try {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      if (authUser?.email) {
+        await atualizarCliente(store.asaasCustomerId, {
+          name: parsed.data.name,
+          cpfCnpj: document,
+          email: authUser.email,
+          phone: parsed.data.whatsapp.replace(/\D/g, ""),
+          ...(address
+            ? {
+                address: address.address,
+                addressNumber: address.addressNumber,
+                province: address.addressProvince,
+                city: address.addressCity,
+                postalCode: address.addressPostalCode,
+              }
+            : {}),
+        });
+      }
+    } catch (e) {
+      console.error("[updateStoreSettings] falha ao sincronizar customer no Asaas:", e);
+    }
   }
 
   revalidatePath("/painel/configuracoes");
