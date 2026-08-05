@@ -113,6 +113,14 @@ A solução coleta o dado em dois momentos, nenhum deles bloqueando quem só que
 
 Validação de CPF/CNPJ acontece antes de qualquer chamada ao Asaas: erro de dígito verificador é do nosso lado, e devolver a mensagem crua de um terceiro para um erro que sabemos diagnosticar é ruim.
 
+### O endereço do lojista
+
+Achado testando o checkout de cartão ao vivo no sandbox, na mesma linha do documento acima: quando o `customer` do checkout hospedado é passado **por id** (em vez de todos os dados soltos em `customerData`), `POST /v3/checkouts` exige endereço completo — `address`, `addressNumber`, `postalCode`, `province` e `city`, todos de uma vez, ou recusa com *"campo X deve existir para o customer informado"*. Pix não passa por esse endpoint (só `name`+`cpfCnpj` no `POST /v3/subscriptions`) e nunca pediu nada disso.
+
+Cinco colunas novas em `stores` — `address`, `address_number`, `address_province`, `address_city`, `address_postal_code` — seguem a mesma justificativa e o mesmo grant do `document`: dado de identidade da própria loja, não estado de acesso, então entram no grant de `authenticated` em vez de ficarem restritas à service role.
+
+A coleta acontece em dois lugares, com o mesmo comportamento nos dois: em Configurações (opcional, a qualquer momento) e numa modal na hora de assinar via cartão sem endereço salvo (igual à modal de documento). O lojista digita CEP e número; rua, bairro e cidade são **sugeridos** por uma busca ao ViaCEP ao sair do campo CEP, mas continuam editáveis — nem todo CEP devolve os três dados (CEPs de agrupamento, área rural, construção nova), e um formulário que trava porque o ViaCEP não sabe o nome da rua seria pior do que pedir pra digitar. Salvar exige os cinco campos preenchidos juntos, ou nenhum — nunca um endereço parcial.
+
 **Upgrade** — atualizar a assinatura no Asaas, criar a cobrança avulsa da diferença proporcional, e trocar o plano **só quando o webhook confirmar**. Um caminho para cartão e Pix. Nunca existe plano liberado sem pagamento correspondente.
 
 **Cancelamento** não gera cobrança: cancela a assinatura no Asaas e deixa `plan_expires_at` intacto. O acesso cai sozinho quando a data chega — a regra da Spec 2A já faz isso, sem código novo.
