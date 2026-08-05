@@ -13,14 +13,19 @@ interface ViaCepResponse {
  * os três dados no ViaCEP (CEPs de agrupamento, área rural, construção
  * nova), então campos ausentes voltam como string vazia em vez de
  * invalidar a busca inteira. Serviço público, sem autenticação, sem SLA
- * formal; só devolve null se o CEP não existe ou a busca falhar.
+ * formal; só devolve null se o CEP não existe ou a busca falhar — inclusive
+ * por timeout: sem um limite, um request pendurado seguraria a Server
+ * Action (updateStoreSettings/salvarEndereco) até o limite da função.
  */
 export async function buscarEnderecoPorCep(
   cep: string
 ): Promise<{ logradouro: string; bairro: string; cidade: string } | null> {
   let resposta: Response;
   try {
-    resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { cache: "no-store" });
+    resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    });
   } catch {
     return null;
   }
