@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   criarCliente,
+  atualizarCliente,
   criarCheckoutCartao,
   criarAssinaturaPix,
   atualizarAssinatura,
@@ -15,6 +16,7 @@ import {
 import { proporcional, type PaidPlan } from "@/lib/asaas/plans";
 import type { BillingCycle } from "@/lib/asaas/events";
 import { validarDocumento, normalizarDocumento } from "@/lib/validation/documento";
+import { validarCep, normalizarCep } from "@/lib/validation/cep";
 
 export type AssinaturaState =
   | { error: string }
@@ -52,8 +54,66 @@ export async function iniciarAssinatura(
   const supabase = createAdminClient();
 
   try {
+    // Os dois meios criam/reaproveitam o customer no Asaas antes de gerar a
+    // cobrança — sem isso o checkout hospedado de cartão não tem quem
+    // preencher e pede nome/CPF/endereço do zero pro lojista, mesmo já
+    // tendo esses dados salvos (achado testando ao vivo: o Pix já fazia
+    // isso, só o cartão não). POST /v3/customers exige cpfCnpj — sem
+    // documento, devolve o código de controle que a Task 7 usa pra abrir a
+    // modal de coleta.
+    if (!store.document) return { error: "DOCUMENTO_NECESSARIO" };
+
+    // O Asaas exige email e telefone no customer pra usá-lo num checkout
+    // ("O campo email/phone deve existir para o customer informado") —
+    // achados testando ao vivo o cartão, um de cada vez. `stores` não tem
+    // coluna de email (é só auth.users), tem que buscar do usuário
+    // autenticado; o telefone já existe como whatsapp da loja.
+    const authClient = await createClient();
+    const {
+      data: { user },
+    } = await authClient.auth.getUser();
+    if (!user?.email) return { error: "E-mail da conta não encontrado." };
+    if (!store.whatsapp) return { error: "WhatsApp da loja não cadastrado." };
+
+    // Só o checkout hospedado de cartão exige endereço completo no customer
+    // — o Pix nunca pediu (não passa pelo POST /v3/checkouts). Código de
+    // controle igual ao DOCUMENTO_NECESSARIO, mesma modal genérica.
+    if (
+      meio === "CREDIT_CARD" &&
+      (!store.address || !store.addressNumber || !store.addressPostalCode)
+    ) {
+      return { error: "ENDERECO_NECESSARIO" };
+    }
+
+    const dadosCliente = {
+      name: store.name,
+      cpfCnpj: store.document,
+      email: user.email,
+      phone: store.whatsapp.replace(/\D/g, ""),
+      ...(store.address
+        ? {
+            address: store.address,
+            addressNumber: store.addressNumber ?? undefined,
+            province: store.addressProvince ?? undefined,
+            city: store.addressCity ?? undefined,
+            postalCode: store.addressPostalCode ?? undefined,
+          }
+        : {}),
+    };
+
+    let customerId = store.asaasCustomerId;
+    if (customerId) {
+      // Reaproveitar sem sincronizar repete o mesmo erro pra sempre: um
+      // customer criado antes desses campos existirem (ou antes do lojista
+      // cadastrar o endereço) fica com o cadastro incompleto no Asaas.
+      await atualizarCliente(customerId, dadosCliente);
+    } else {
+      customerId = (await criarCliente({ ...dadosCliente, externalReference: store.id })).id;
+    }
+
     if (meio === "CREDIT_CARD") {
       const checkout = await criarCheckoutCartao({
+        customerId,
         plan,
         cycle,
         storeId: store.id,
@@ -69,28 +129,17 @@ export async function iniciarAssinatura(
       // downgrade: "plano a aplicar na próxima confirmação").
       await supabase
         .from("stores")
-        .update({ billing_cycle: cycle, pending_plan: plan })
+        .update({
+          asaas_customer_id: customerId,
+          billing_cycle: cycle,
+          pending_plan: plan,
+        })
         .eq("id", store.id);
       return { ok: true, redirectUrl: checkout.link };
     }
 
     // Pix não é aceito em chargeTypes RECURRENT (400 no sandbox), então a
     // assinatura é criada direto e o Asaas gera uma cobrança por ciclo.
-    // POST /v3/customers exige cpfCnpj — sem documento, devolve o código de
-    // controle que a Task 7 usa para abrir a modal de coleta.
-    if (!store.document) return { error: "DOCUMENTO_NECESSARIO" };
-
-    const customerId =
-      store.asaasCustomerId ??
-      (
-        await criarCliente({
-          name: store.name,
-          cpfCnpj: store.document,
-          email: "",
-          externalReference: store.id,
-        })
-      ).id;
-
     const assinatura = await criarAssinaturaPix({
       customerId,
       plan,
@@ -125,7 +174,10 @@ export async function iniciarAssinatura(
  * e nunca sairia do plano antigo (mesmo bug que a Task 9 achou em
  * iniciarAssinatura, aqui no caminho de troca de plano).
  */
-export async function trocarPlano(destino: PaidPlan): Promise<AssinaturaState> {
+export async function trocarPlano(
+  destino: PaidPlan,
+  meio: MeioPagamento
+): Promise<AssinaturaState> {
   const store = await getCurrentStore();
   if (!store) return { error: "Loja não encontrada." };
   if (!store.asaasSubscriptionId) return { error: "Nenhuma assinatura ativa." };
@@ -143,18 +195,26 @@ export async function trocarPlano(destino: PaidPlan): Promise<AssinaturaState> {
 
     await supabase.from("stores").update({ pending_plan: destino }).eq("id", store.id);
 
+    // Sem devolver e redirecionar pro invoiceUrl, a cobrança fica criada no
+    // Asaas e o lojista nunca vê como pagar (mesma classe de bug que o Pix
+    // teve em iniciarAssinatura). billingType usa o meio escolhido no
+    // clique — não muda a assinatura recorrente em si (isso segue cobrando
+    // no meio já configurado lá), só a cobrança avulsa da diferença.
+    let redirectUrl: string | undefined;
     if (valor > 0) {
-      await criarCobrancaAvulsa({
+      const cobranca = await criarCobrancaAvulsa({
         customerId: store.asaasCustomerId!,
         valor,
         storeId: store.id,
         vencimento: amanha(),
         descricao: `Upgrade para ${destino} — diferença proporcional`,
+        billingType: meio,
       });
+      redirectUrl = cobranca.invoiceUrl;
     }
 
     revalidatePath("/painel/assinatura");
-    return { ok: true };
+    return { ok: true, redirectUrl };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Falha ao trocar de plano." };
   }
@@ -163,6 +223,13 @@ export async function trocarPlano(destino: PaidPlan): Promise<AssinaturaState> {
 /**
  * Única escrita síncrona de estado — e ela só RESTRINGE. `plan_expires_at` fica
  * intacto: o lojista usa até o fim do período que pagou.
+ *
+ * Também limpa pending_plan: sem isso, cancelar com uma troca de plano
+ * aguardando confirmação (iniciarAssinatura ou trocarPlano gravaram
+ * pending_plan no clique, antes do pagamento) travava a UI pra sempre em
+ * "Troca já em andamento" — a assinatura cancelada nunca mais gera o
+ * PAYMENT_CONFIRMED/RECEIVED que normalmente limparia isso, e o lojista
+ * ficava sem conseguir assinar de novo (achado ao vivo).
  */
 export async function cancelarAssinatura(): Promise<AssinaturaState> {
   const store = await getCurrentStore();
@@ -174,7 +241,7 @@ export async function cancelarAssinatura(): Promise<AssinaturaState> {
     const supabase = createAdminClient();
     await supabase
       .from("stores")
-      .update({ subscription_status: "canceled" })
+      .update({ subscription_status: "canceled", pending_plan: null })
       .eq("id", store.id);
     revalidatePath("/painel/assinatura");
     return { ok: true };
@@ -204,6 +271,48 @@ export async function salvarDocumento(valor: string): Promise<AssinaturaState> {
     .eq("id", store.id);
 
   if (error) return { error: "Não foi possível salvar o documento." };
+
+  revalidatePath("/painel/assinatura");
+  return { ok: true };
+}
+
+/**
+ * Coletado pela modal quando o lojista tenta assinar via cartão sem
+ * endereço — o checkout hospedado exige address/addressNumber/postalCode/
+ * province/city no customer, tudo de uma vez (achado testando ao vivo). O
+ * cliente sugere rua/bairro/cidade ao sair do campo CEP (app/actions/cep.ts),
+ * mas nem todo CEP tem esses três dados no ViaCEP — por isso os campos são
+ * editáveis e chegam aqui já prontos, sem nova consulta ao ViaCEP.
+ */
+export async function salvarEndereco(
+  cep: string,
+  numero: string,
+  rua: string,
+  bairro: string,
+  cidade: string
+): Promise<AssinaturaState> {
+  if (!validarCep(cep)) return { error: "CEP inválido." };
+  if (!numero.trim()) return { error: "Número é obrigatório." };
+  if (!rua.trim()) return { error: "Rua é obrigatória." };
+  if (!bairro.trim()) return { error: "Bairro é obrigatório." };
+  if (!cidade.trim()) return { error: "Cidade é obrigatória." };
+
+  const store = await getCurrentStore();
+  if (!store) return { error: "Loja não encontrada." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("stores")
+    .update({
+      address: rua.trim(),
+      address_number: numero.trim(),
+      address_province: bairro.trim(),
+      address_city: cidade.trim(),
+      address_postal_code: normalizarCep(cep),
+    })
+    .eq("id", store.id);
+
+  if (error) return { error: "Não foi possível salvar o endereço." };
 
   revalidatePath("/painel/assinatura");
   return { ok: true };

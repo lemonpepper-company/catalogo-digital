@@ -11,9 +11,12 @@ import {
   trocarPlano,
   cancelarAssinatura,
   salvarDocumento,
+  salvarEndereco,
   type AssinaturaState,
   type MeioPagamento,
 } from "@/app/actions/assinatura";
+import { buscarEndereco } from "@/app/actions/cep";
+import { validarCep } from "@/lib/validation/cep";
 import { PRECOS, type PaidPlan } from "@/lib/asaas/plans";
 import type { BillingCycle, SubscriptionStatus } from "@/lib/asaas/events";
 import type { Plan } from "@/lib/plan-limits";
@@ -70,6 +73,8 @@ interface AssinaturaClientProps {
   billingCycle: BillingCycle | null;
   pendingPlan: PaidPlan | null;
   document?: string | null;
+  /** Cobrança Pix em aberto buscada no servidor — sobrevive a navegação/refresh, ao contrário de pixUrl. */
+  pixPendente?: { invoiceUrl: string; dueDate: string } | null;
 }
 
 export function AssinaturaClient({
@@ -79,12 +84,15 @@ export function AssinaturaClient({
   billingCycle,
   pendingPlan,
   document,
+  pixPendente,
 }: AssinaturaClientProps) {
   const [status, setStatus] = useState<Status>(subscriptionStatus);
   const [pending, setPending] = useState<PaidPlan | null>(pendingPlan);
   // Sem valor padrão de propósito: o lojista precisa escolher explicitamente
   // antes de ver os planos habilitados, ou corre o risco de assinar pelo
-  // meio errado sem perceber que havia uma escolha ali.
+  // meio errado sem perceber que havia uma escolha ali. Vale tanto pra
+  // primeira assinatura quanto pra upgrade — trocarPlano usa o meio
+  // escolhido aqui pra cobrar a diferença proporcional.
   const [meio, setMeio] = useState<MeioPagamento | null>(null);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -96,19 +104,57 @@ export function AssinaturaClient({
   const [documentError, setDocumentError] = useState<string | null>(null);
   const [savingDocument, setSavingDocument] = useState(false);
 
+  const [enderecoIntencao, setEnderecoIntencao] = useState<Intencao | null>(null);
+  const [cepValue, setCepValue] = useState("");
+  const [numeroValue, setNumeroValue] = useState("");
+  const [ruaValue, setRuaValue] = useState("");
+  const [bairroValue, setBairroValue] = useState("");
+  const [cidadeValue, setCidadeValue] = useState("");
+  const [enderecoError, setEnderecoError] = useState<string | null>(null);
+  const [savingEndereco, setSavingEndereco] = useState(false);
+
+  // Sugere rua/bairro/cidade a partir do CEP ao sair do campo — nem todo
+  // CEP tem os três dados no ViaCEP, então só preenche o que veio e nunca
+  // sobrescreve o que o lojista já tiver digitado manualmente.
+  async function autopreencherPorCep() {
+    if (!validarCep(cepValue)) return;
+    const encontrado = await buscarEndereco(cepValue);
+    if (!encontrado) return;
+    setRuaValue((atual) => atual || encontrado.logradouro);
+    setBairroValue((atual) => atual || encontrado.bairro);
+    setCidadeValue((atual) => atual || encontrado.cidade);
+  }
+
   const podeCancelar = status === "active" || status === "past_due";
+  // Cancelar deleta a assinatura no Asaas mas mantém o acesso até
+  // plan_expires_at (é assim que já funciona: cancelamento só RESTRINGE,
+  // nunca corta o que já foi pago). Isso significa que "plan" continua não
+  // sendo "free" por um tempo mesmo sem nenhuma assinatura viva pra
+  // trocarPlano atualizar — sem esse caso, o clique caía em trocarPlano
+  // tentando mexer numa assinatura que não existe mais no Asaas e quebrava.
+  const semAssinaturaViva = plan === "free" || status === "canceled";
 
   function tratarResultado(result: AssinaturaState, intencao: Intencao) {
     if (!result) return;
 
     if ("error" in result) {
-      // DOCUMENTO_NECESSARIO é um código de controle — nunca vira texto na tela.
+      // DOCUMENTO_NECESSARIO e ENDERECO_NECESSARIO são códigos de controle —
+      // nunca viram texto na tela.
       if (result.error === "DOCUMENTO_NECESSARIO") {
         setDocumentIntencao(intencao);
         // A loja já pode ter um documento salvo (ex: dado ficou defasado
         // entre o carregamento da página e o clique) — pré-popula em vez de
         // pedir para redigitar do zero.
         setDocumentValue(document ?? "");
+        return;
+      }
+      if (result.error === "ENDERECO_NECESSARIO") {
+        setEnderecoIntencao(intencao);
+        setCepValue("");
+        setNumeroValue("");
+        setRuaValue("");
+        setBairroValue("");
+        setCidadeValue("");
         return;
       }
       setErrorMsg(result.error);
@@ -140,10 +186,11 @@ export function AssinaturaClient({
     setLoadingKey(key);
     try {
       const intencao: Intencao = { plan: destino, cycle, meio };
-      const result =
-        plan === "free" ? await iniciarAssinatura(destino, cycle, meio) : await trocarPlano(destino);
+      const result = semAssinaturaViva
+        ? await iniciarAssinatura(destino, cycle, meio)
+        : await trocarPlano(destino, meio);
 
-      if (result && "ok" in result && plan !== "free") {
+      if (result && "ok" in result && !semAssinaturaViva) {
         // trocarPlano grava pending_plan tanto no upgrade quanto no downgrade
         // (a promoção em si só acontece no webhook, quando a cobrança
         // confirmar) — refletir aqui é verdade nos dois casos.
@@ -184,6 +231,38 @@ export function AssinaturaClient({
     }
   }
 
+  async function confirmarEndereco() {
+    if (!enderecoIntencao) return;
+    setEnderecoError(null);
+    setSavingEndereco(true);
+    try {
+      const result = await salvarEndereco(cepValue, numeroValue, ruaValue, bairroValue, cidadeValue);
+      if (result && "error" in result) {
+        setEnderecoError(result.error);
+        return;
+      }
+
+      const intencao = enderecoIntencao;
+      setEnderecoIntencao(null);
+      setCepValue("");
+      setNumeroValue("");
+      setRuaValue("");
+      setBairroValue("");
+      setCidadeValue("");
+
+      const key = `${intencao.plan}-${intencao.cycle}`;
+      setLoadingKey(key);
+      try {
+        const retry = await iniciarAssinatura(intencao.plan, intencao.cycle, intencao.meio);
+        tratarResultado(retry, intencao);
+      } finally {
+        setLoadingKey(null);
+      }
+    } finally {
+      setSavingEndereco(false);
+    }
+  }
+
   async function cancelar() {
     setErrorMsg(null);
     setLoadingKey("cancelar");
@@ -194,6 +273,7 @@ export function AssinaturaClient({
         return;
       }
       setStatus("canceled");
+      setPending(null);
       setToastMsg("Assinatura cancelada. O acesso continua até o fim do período pago.");
     } finally {
       setLoadingKey(null);
@@ -220,18 +300,25 @@ export function AssinaturaClient({
         )}
       </Card>
 
-      {pixUrl && (
+      {/*
+        pixUrl vem do clique de assinar (só existe nesta sessão do navegador,
+        some ao recarregar); pixPendente vem do servidor, buscado no Asaas a
+        cada carregamento da página — sem ele, a cobrança do segundo ciclo em
+        diante (renovação, não o clique inicial) nunca reaparecia na tela,
+        mesmo com uma cobrança de verdade esperando pagamento no Asaas.
+      */}
+      {(pixUrl ?? pixPendente) && (
         <Card className="border-gold/40 bg-linen">
           <h2 className="font-display font-medium text-[16px] text-obsidian mb-2">
             Falta pagar
           </h2>
           <p className="font-body text-[13px] text-graphite mb-4">
-            Criamos sua cobrança Pix. Abra o link abaixo para ver o QR code e o
-            código copia-e-cola — o acesso libera assim que o pagamento
-            confirmar.
+            {pixUrl
+              ? "Criamos sua cobrança Pix. Abra o link abaixo para ver o QR code e o código copia-e-cola — o acesso libera assim que o pagamento confirmar."
+              : `Você tem uma cobrança Pix em aberto, vencimento em ${formatarDataSP(pixPendente!.dueDate)}. Abra o link abaixo para ver o QR code e o código copia-e-cola.`}
           </p>
           <a
-            href={pixUrl}
+            href={pixUrl ?? pixPendente!.invoiceUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 rounded-btn border font-display font-medium h-11 px-6 text-[15px] bg-obsidian text-white border-obsidian hover:bg-[#1f1f1f] transition-all duration-200 ease"
@@ -305,35 +392,49 @@ export function AssinaturaClient({
                 // Mesmo plano, só o ciclo muda: trocarPlano(destino) reusa
                 // store.billingCycle e não tem como agir aqui — daria um
                 // "muda para X" sem nenhuma troca real. Bloqueia no client.
+                // Só se aplica com assinatura viva: já cancelada, o caminho
+                // vira assinar de novo (semAssinaturaViva), sem esse bloqueio.
                 const somenteCicloDiferente =
-                  !ehAtual && plan !== "free" && plan === p && billingCycle !== cycle;
+                  !ehAtual && !semAssinaturaViva && plan === p && billingCycle !== cycle;
+                // Já existe uma troca aguardando confirmação do webhook
+                // (pending_plan) — clicar de novo criaria uma segunda
+                // cobrança avulsa em cima da que já está pendente. Bloqueia
+                // tudo que não seja o plano atual até essa troca resolver.
+                const trocaPendente = !ehAtual && !!pending;
                 const carregando = loadingKey === key;
-                const semMeioEscolhido = !meio && !ehAtual && !somenteCicloDiferente;
+                const semMeioEscolhido =
+                  !meio && !ehAtual && !somenteCicloDiferente && !trocaPendente;
                 return (
                   <Button
                     key={key}
                     type="button"
-                    variant={ehAtual || somenteCicloDiferente ? "ghost" : "primary"}
+                    variant={ehAtual || somenteCicloDiferente || trocaPendente ? "ghost" : "primary"}
                     size="sm"
                     className="min-h-9 py-2 text-center leading-snug"
                     style={{ height: "auto", whiteSpace: "normal" }}
-                    disabled={ehAtual || somenteCicloDiferente || carregando || semMeioEscolhido}
+                    disabled={
+                      ehAtual || somenteCicloDiferente || trocaPendente || carregando || semMeioEscolhido
+                    }
                     title={
                       somenteCicloDiferente
-                        ? "Fale com o suporte para mudar o ciclo de cobrança de uma assinatura ativa."
-                        : semMeioEscolhido
-                          ? "Escolha um meio de pagamento primeiro."
-                          : undefined
+                        ? "Cancele a assinatura atual para trocar o ciclo de cobrança."
+                        : trocaPendente
+                          ? "Já existe uma troca de plano aguardando confirmação do pagamento."
+                          : semMeioEscolhido
+                            ? "Escolha um meio de pagamento primeiro."
+                            : undefined
                     }
                     onClick={() => assinar(p, cycle)}
                   >
                     {ehAtual
                       ? "Plano atual"
                       : somenteCicloDiferente
-                        ? "Fale com o suporte para mudar o ciclo"
-                        : carregando
-                          ? "Assinando…"
-                          : `Assinar ${PLAN_LABELS[p]} ${CYCLE_LABELS[cycle]} — ${precoLabel(p, cycle)}`}
+                        ? "Cancele para trocar o ciclo"
+                        : trocaPendente
+                          ? "Troca já em andamento"
+                          : carregando
+                            ? "Assinando…"
+                            : `Assinar ${PLAN_LABELS[p]} ${CYCLE_LABELS[cycle]} — ${precoLabel(p, cycle)}`}
                   </Button>
                 );
               })}
@@ -366,7 +467,7 @@ export function AssinaturaClient({
       {documentIntencao && (
         <Modal title="Confirme seu documento" onClose={() => setDocumentIntencao(null)}>
           <p className="font-body text-[13px] text-graphite">
-            O Asaas exige CPF ou CNPJ para emitir cobranças Pix.
+            O Asaas exige CPF ou CNPJ para processar a assinatura.
           </p>
           <Input
             label="CPF ou CNPJ"
@@ -385,6 +486,56 @@ export function AssinaturaClient({
               onClick={confirmarDocumento}
             >
               {savingDocument ? "Salvando…" : "Confirmar"}
+            </Button>
+          </div>
+        </Modal>
+      )}
+
+      {enderecoIntencao && (
+        <Modal title="Confirme seu endereço" onClose={() => setEnderecoIntencao(null)}>
+          <p className="font-body text-[13px] text-graphite">
+            O Asaas exige um endereço para o checkout de cartão. Rua, bairro e
+            cidade são sugeridos pelo CEP quando possível — confira ou
+            complete manualmente.
+          </p>
+          <Input
+            label="CEP"
+            value={cepValue}
+            onChange={(e) => setCepValue(e.target.value)}
+            onBlur={autopreencherPorCep}
+            error={enderecoError ?? undefined}
+          />
+          <Input
+            label="Número"
+            value={numeroValue}
+            onChange={(e) => setNumeroValue(e.target.value)}
+          />
+          <Input
+            label="Rua"
+            value={ruaValue}
+            onChange={(e) => setRuaValue(e.target.value)}
+          />
+          <Input
+            label="Bairro"
+            value={bairroValue}
+            onChange={(e) => setBairroValue(e.target.value)}
+          />
+          <Input
+            label="Cidade"
+            value={cidadeValue}
+            onChange={(e) => setCidadeValue(e.target.value)}
+          />
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="ghost" onClick={() => setEnderecoIntencao(null)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={savingEndereco}
+              onClick={confirmarEndereco}
+            >
+              {savingEndereco ? "Salvando…" : "Confirmar"}
             </Button>
           </div>
         </Modal>
