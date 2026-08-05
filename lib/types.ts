@@ -142,6 +142,11 @@ export interface StoreSettings {
   secondaryColor: string | null;
   gridDensity: "padrao" | "compacto";
   document: string | null;
+  address: string | null;
+  addressNumber: string | null;
+  addressProvince: string | null;
+  addressCity: string | null;
+  addressPostalCode: string | null;
   asaasCustomerId: string | null;
   asaasSubscriptionId: string | null;
   billingCycle: string | null;

@@ -36,6 +36,11 @@ type StoreRow = {
   secondary_color: string | null;
   grid_density: string;
   document: string | null;
+  address: string | null;
+  address_number: string | null;
+  address_province: string | null;
+  address_city: string | null;
+  address_postal_code: string | null;
   asaas_customer_id: string | null;
   asaas_subscription_id: string | null;
   billing_cycle: string | null;
@@ -86,6 +91,11 @@ export function mapStore(row: StoreRow): StoreSettings {
     secondaryColor: row.secondary_color,
     gridDensity: row.grid_density === "compacto" ? "compacto" : "padrao",
     document: row.document,
+    address: row.address,
+    addressNumber: row.address_number,
+    addressProvince: row.address_province,
+    addressCity: row.address_city,
+    addressPostalCode: row.address_postal_code,
     asaasCustomerId: row.asaas_customer_id,
     asaasSubscriptionId: row.asaas_subscription_id,
     billingCycle: row.billing_cycle,
@@ -123,7 +133,7 @@ export const getCurrentStore = cache(async (): Promise<StoreSettings | null> => 
   const { data } = await supabase
     .from("stores")
     .select(
-      "id, name, slug, plan, plan_expires_at, whatsapp, accent_color, cover_url, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods, custom_domain, custom_domain_verified, font_pairing, background_palette, corner_style, secondary_color, grid_density, document, asaas_customer_id, asaas_subscription_id, billing_cycle, subscription_status, pending_plan"
+      "id, name, slug, plan, plan_expires_at, whatsapp, accent_color, cover_url, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods, custom_domain, custom_domain_verified, font_pairing, background_palette, corner_style, secondary_color, grid_density, document, address, address_number, address_province, address_city, address_postal_code, asaas_customer_id, asaas_subscription_id, billing_cycle, subscription_status, pending_plan"
     )
     .eq("owner_id", user.id)
     .maybeSingle();
