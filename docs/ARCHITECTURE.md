@@ -50,10 +50,16 @@ Implementada com **Supabase Auth** + **`@supabase/ssr`** (cookies httpOnly). Sem
 
 ```sql
 profiles   (id → auth.users, full_name, created_at)
-stores     (id, owner_id → profiles, name, slug unique, plan, trial_ends_at (nullable), is_active,
+stores     (id, owner_id → profiles, name, slug unique, is_active,
+            plan, plan_expires_at, subscription_status, billing_cycle, pending_plan,
+            asaas_customer_id, asaas_subscription_id,
+            document, address, address_number, address_province, address_city,
+            address_postal_code,
             whatsapp, accent_color, logo_url, description, monogram, instagram,
             payment_methods[], delivery_methods[],
             analytics_id, pixel_id, message_template, created_at)
+            -- trial_ends_at ainda existe no schema, mas não é lida por ninguém:
+            -- substituída por plan_expires_at. Drop pendente (ver Próximo passo).
 categories (id, store_id → stores, name, position, created_at)
 products   (id, store_id → stores, name, price_cents, description, category_id → categories,
             sizes[], sold_sizes[], colors jsonb, images[], stock, is_active, is_new, created_at)
@@ -126,6 +132,10 @@ Emails de confirmação ficam em **Mailpit**: `http://localhost:54324`
 | `app/actions/produtos.ts` | Server Actions: `createProduct`, `updateProduct`, `deleteProduct`, `toggleProductActive` |
 | `app/actions/categorias.ts` | Server Actions: `createCategory`, `updateCategory`, `deleteCategory` |
 | `app/actions/store.ts` | Server Actions: `updateStoreSettings` |
+| `app/actions/assinatura.ts` | Server Actions: `iniciarAssinatura` (cartão via checkout hospedado, Pix via assinatura direta), `trocarPlano`, `cancelarAssinatura`, `salvarDocumento`. **Nunca gravam `plan` nem `plan_expires_at`** — só identificadores do Asaas e `pending_plan` |
+| `app/actions/cep.ts` | Server Action de autofill de endereço pelo CEP (ViaCEP, best-effort com timeout de 5 s) |
+| `lib/asaas/` | `client.ts` (HTTP, `server-only`), `subscriptions.ts` (operações), `plans.ts` (tabela de preços e cálculo proporcional) e `events.ts` (**puro**: traduz evento do Asaas em mudança de estado, sem I/O) |
+| `app/api/webhooks/asaas/route.ts` | Webhook do gateway. Autentica com `timingSafeEqual` no header `asaas-access-token`. **Única superfície que concede ou estende acesso** |
 | `app/actions/pedidos.ts` | Server Actions: `registrarPedido` (pública, grava o pedido antes do redirect ao WhatsApp — nunca lança, nunca consulta plano) e `updateOrderStatus` (painel, exige `hasOrderHistory`) |
 | `app/painel/pedidos/` | Histórico de pedidos: `page.tsx` (gate de plano antes da query, lê `page` e `q` de `searchParams`), `PedidosClient.tsx` (lista com código + busca + `Modal` de detalhe + troca de status), `use-pedidos.ts`, `use-pedidos-busca.ts` (debounce do termo para a URL), `loading.tsx` |
 | `app/auth/callback/route.ts` | Route Handler OAuth/PKCE: cria `profiles` após confirmação; sem loja, redireciona para `/cadastro?step=loja` |
@@ -134,7 +144,7 @@ Emails de confirmação ficam em **Mailpit**: `http://localhost:54324`
 | `tailwind.config.ts` | Mapeamento dos tokens para classes Tailwind |
 | `components/ui/` | Primitivos reutilizáveis (Button, Badge, Pill, Input, Switch, PasswordInput, SlugInput, StatCard…) |
 | `components/catalogo/` | Componentes do catálogo público (BagDrawer, ProductCard, ProductDetail, StoreHeader, CatalogExpired) |
-| `components/painel/` | `Sidebar`, `MobileTabBar` (6 abas) e `RecursoBloqueado` — o card de bloqueio de recurso pago (título, descrição e CTA de WhatsApp), usado no histórico e nos cards de ROI quando o plano efetivo é Free |
+| `components/painel/` | `Sidebar`, `MobileTabBar`, `RecursoBloqueado` — card de bloqueio de recurso pago (título, descrição, selo do plano mínimo e CTA para `/painel/assinatura`) — e `AvisoPixPendente`, banner de cobrança Pix a vencer, carregado sob `Suspense` para não bloquear o render do painel |
 | `components/loja/` | `IdentidadeFields`, `CorDestaqueFields`, `PagamentoEntregaFields` e o hook `useLojaFields` — compartilhados entre Configurações e a etapa 2 do cadastro, para não duplicar a mesma UI/lógica nas duas telas |
 | `supabase/config.toml` | Configuração do Supabase local (auth, email, rate limits) |
 | `supabase/migrations/` | Migrations SQL versionadas |
@@ -177,12 +187,20 @@ A função `getPublicCatalog(slug)` em `lib/server/catalog.ts` encapsula toda a 
 - **Checkout**: pagamento e forma de entrega configuráveis por loja (`stores.payment_methods`/`delivery_methods`); o cliente escolhe entre as opções habilitadas antes de enviar o pedido — grupos sem nenhuma opção configurada não aparecem na sacola
 - **Captura de pedidos**: o checkout pré-abre a aba do WhatsApp no clique, chama `registrarPedido` com timeout de 2500 ms e só então aponta a aba para o `wa.me` — falha ou lentidão na gravação nunca bloqueia a venda (erro só no log do servidor). A sacola tem o campo **obrigatório** "Seu nome" (mín. 2 e máx. 60 caracteres após `trim()`): sem ele o botão de envio fica desabilitado e o servidor rejeita o payload, então `orders.customer_name` nunca é nulo em pedido novo. Nome e código do pedido viajam na mensagem do WhatsApp (variáveis `{nome}` e `{pedido}`) — o código tem 6 caracteres e é **derivado do `client_order_id` no cliente**, para que a mensagem nunca dependa da resposta do servidor. Preço e total são recalculados no servidor a partir de `products.price_cents` (nenhum valor monetário do cliente é aceito), com idempotência por `client_order_id` e teto anti-abuso de 20 pedidos/60 s por loja. **A gravação acontece em qualquer plano, inclusive Free** — só a visualização é paga
 - **Histórico e ROI no painel**: `/painel/pedidos` lista os pedidos da loja (20/página) exibindo o código de cada um, com busca server-side por código ou nome do cliente (`?q=`, case-insensitive, dentro da loja, paginação recalculada sobre o filtro e estado vazio próprio), detalhe em `Modal` (itens em snapshot, pagamento, entrega, total) e troca de status (`pendente`/`confirmado`/`cancelado`, qualquer transição); o dashboard mostra "Pedidos no mês", "Vendas confirmadas no mês" e "Aguardando confirmação". Ambas as telas são gated por `getPlanLimits(...).hasOrderHistory`: no plano efetivo Free o gate roda **antes da query** e a tela mostra `RecursoBloqueado` sem nenhum dado real. O item "Pedidos" aparece na navegação em todos os planos (é o que gera o upgrade)
-- **Limites de plano**: `getPlanLimits()` aplicado em Server Actions de produtos e categorias — Free (8 produtos/1 categoria/1 foto), Starter (30/5/3) e Pro (ilimitado/ilimitado/5). Um Starter/Pro liberado manualmente cai para os limites do Free automaticamente quando `trial_ends_at` vence (`getEffectivePlan()`, calculado a cada checagem, sem job)
+- **Limites de plano**: `getPlanLimits()` aplicado em Server Actions de produtos e categorias — Free (8 produtos/1 categoria/1 foto), Starter (50/7/3) e Pro (ilimitado/ilimitado/5). O plano cai para Free automaticamente quando `plan_expires_at` vence (`getEffectivePlan()`, calculado a cada checagem, sem job). **Os limites valem também na leitura**: `lib/plan-visibility.ts` recorta produtos, fotos, destaques e categorias da vitrine pública, e o domínio próprio deixa de resolver no rebaixamento — nada é apagado, tudo volta no re-upgrade
+- **Assinatura**: cobrança recorrente pelo Asaas — cartão via checkout hospedado (nenhum dado de cartão passa pelo Vtrine) e Pix via assinatura direta, que gera uma cobrança por ciclo. Upgrade cobra a diferença proporcional e só promove quando o webhook confirma; downgrade agenda em `pending_plan` e vale na virada; cancelamento mantém o acesso até `plan_expires_at`; falha de pagamento dá 3 dias de graça. `subscription_status` (`active`/`past_due`/`canceled`) é informativo e **nunca entra na regra de acesso** — quem decide é `plan` + `plan_expires_at`
 - **Storage**: bucket `product-images` com upload, compressão no cliente e remoção de imagens antigas ao editar
 
 ## Próximo passo
 
-Validação com lojistas no plano Free, com Starter/Pro liberados manualmente enquanto não há gateway de pagamento. Depois: integrar pagamento (Stripe ou Pagar.me) com cobrança recorrente automática e webhooks para ativação/cancelamento de plano. Ver `docs/roadmap/Escopo.md` §6.
+Cobrança self-service implementada com o Asaas (Starter R$ 29,90/mês ou R$ 299/ano; Pro R$ 59,90/mês ou R$ 599/ano). Falta a validação em produção: variáveis do Asaas na Vercel, webhook cadastrado no painel deles e o primeiro ciclo real de cobrança.
+
+Depois disso, dois itens conscientemente adiados:
+
+- **Pix Automático.** É produto distinto de Assinaturas: a aplicação precisa criar cada cobrança, de 2 a 10 dias úteis antes do vencimento, o que exigiria cron, idempotência de cobrança e tratamento de autorização revogada. A R$ 29,90, a economia de ~3 pontos de taxa não paga esse pipeline enquanto o volume for baixo.
+- **Anual parcelado.** Assinatura no Asaas não aceita `installmentCount` — parcelar significaria abrir mão da renovação automática. Revisar se a adoção do anual à vista for baixa.
+
+Pendência de limpeza: a coluna `trial_ends_at` foi substituída por `plan_expires_at` e não é mais lida por ninguém, mas segue no schema. O `drop` foi separado de propósito — `supabase-migrations.yml` aplica migrations no push para a `main` independente do deploy da Vercel, e remover a coluna junto derrubaria o painel durante o build (a vitrine pública não é afetada: ela resolve plano pela RPC).
 
 ---
 
