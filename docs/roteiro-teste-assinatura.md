@@ -18,13 +18,26 @@ mocks — nenhum deles fala com o Asaas.
 
 | Variável | Valor |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | projeto Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | chave pública |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API |
+| `NEXT_PUBLIC_SUPABASE_URL` | `http://127.0.0.1:54321` — **Supabase local** |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `ANON_KEY` de `npx supabase status` |
+| `SUPABASE_SERVICE_ROLE_KEY` | `SERVICE_ROLE_KEY` de `npx supabase status` |
 | `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` |
 | `ASAAS_BASE_URL` | `https://api-sandbox.asaas.com/v3` |
 | `ASAAS_API_KEY` | chave de **sandbox** |
 | `ASAAS_WEBHOOK_TOKEN` | string aleatória que você escolhe |
+
+> **O banco precisa ser o local.** Este roteiro força vencimento de cobrança e
+> rebaixamento de plano — operações destrutivas do ponto de vista do lojista.
+> Apontar para o Supabase remoto significa fazer isso em cima de dados reais.
+> Confira antes de começar:
+>
+> ```bash
+> grep NEXT_PUBLIC_SUPABASE_URL .env.local   # tem que ser 127.0.0.1
+> npx supabase status                        # tem que estar rodando
+> ```
+>
+> As migrations desta branch **não estão no banco remoto** — só rodam no push
+> para a `main`. Localmente, `npx supabase db reset` aplica todas.
 
 > **Armadilha conhecida:** a chave do Asaas começa com `$`. O Next.js expande
 > `.env*` com `dotenv-expand`, que interpreta `$algo` como referência a outra
@@ -60,7 +73,7 @@ No painel do Asaas (**Integrações → Webhooks**), cadastre
 Use a cada verificação de banco:
 
 ```bash
-npx supabase db execute --sql "select plan, plan_expires_at, subscription_status, billing_cycle, pending_plan, asaas_customer_id, asaas_subscription_id from public.stores where slug = '<seu-slug>';"
+npx supabase db query "select plan, plan_expires_at, subscription_status, billing_cycle, pending_plan, asaas_customer_id, asaas_subscription_id from public.stores where slug = '<seu-slug>';" -o csv
 ```
 
 ---
@@ -115,7 +128,7 @@ truncamento da vitrine formam um ciclo fechado.
 | 3.7 | Conferir o banco | Nada foi apagado — produtos, fotos e categorias continuam lá | ☐ |
 
 ```bash
-npx supabase db execute --sql "update public.stores set plan_expires_at = now() - interval '1 minute' where slug = '<seu-slug>';"
+npx supabase db query "update public.stores set plan_expires_at = now() - interval '1 minute' where slug = '<seu-slug>';"
 ```
 
 > Nenhum job roda para isso acontecer. O rebaixamento é derivado na leitura, a
