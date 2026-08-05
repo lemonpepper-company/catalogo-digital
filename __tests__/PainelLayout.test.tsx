@@ -8,6 +8,13 @@ const getPixPendente = vi.fn();
 vi.mock("@/lib/server/store", () => ({
   getCurrentStore: () => getCurrentStore(),
 }));
+// AvisoPixPendente (dentro do <Suspense> do layout) chama getPixPendente —
+// mockado aqui só pra não bater na rede real; o conteúdo do aviso em si é
+// testado em __tests__/AvisoPixPendente.test.tsx, chamando o Server
+// Component async diretamente. @testing-library/react (react-dom) não
+// resolve componentes async aninhados dentro de Suspense — o fallback null
+// é o que fica no DOM nestes testes, então não dá pra asserir o conteúdo
+// do aviso aqui.
 vi.mock("@/lib/server/assinatura", () => ({
   getPixPendente: (...args: unknown[]) => getPixPendente(...args),
 }));
@@ -71,13 +78,10 @@ beforeEach(() => {
   getPixPendente.mockReset();
   getPixPendente.mockResolvedValue(null);
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://vtrine.test");
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-08-05T12:00:00.000Z"));
 });
 
 afterEach(() => {
   vi.unstubAllEnvs();
-  vi.useRealTimers();
 });
 
 describe("PainelLayout — item Dashboard sempre visível na navegação", () => {
@@ -123,84 +127,23 @@ describe("PainelLayout — link do catálogo com domínio próprio", () => {
 });
 
 /**
- * Pix não é débito automático: o Asaas gera a cobrança sozinho a cada
- * ciclo, mas quem paga é o lojista. Sem um aviso visível em toda página
- * (não só na tela de Assinatura), o lojista só descobre a cobrança pendente
- * se lembrar de abrir aquela tela por conta própria.
- *
- * Só entra no ar perto do vencimento (3 dias antes, mesma janela da graça
- * que já existe depois) — o Asaas gera a cobrança com bem mais antecedência
- * (até 40 dias, por padrão deles), e avisar tão cedo seria ruído sem nenhum
- * bloqueio em jogo. "hoje" fixado em 2026-08-05T12:00 (fake timer) pra não
- * depender da data real do sistema rodando o teste.
+ * O aviso de Pix pendente faz uma chamada de rede ao Asaas — por isso vive
+ * num Server Component próprio (AvisoPixPendente) dentro de <Suspense>, em
+ * vez de inline no layout: sem isso, a chamada segurava o render do painel
+ * inteiro em toda navegação, pra qualquer lojista com assinatura Pix ativa.
+ * Este teste garante só que o layout renderiza normalmente (não trava, não
+ * quebra) com uma loja que tem assinatura — o conteúdo do aviso em si é
+ * responsabilidade do Server Component, testado à parte.
  */
-describe("PainelLayout — aviso de Pix pendente", () => {
-  it("vencimento amanhã (dentro da janela de 3 dias) mostra o banner", async () => {
+describe("PainelLayout — não bloqueia o render por causa do aviso de Pix", () => {
+  it("renderiza o painel mesmo com getPixPendente ainda pendente", async () => {
     getCurrentStore.mockResolvedValue(
       makeStore({ plan: "pro", asaasSubscriptionId: "sub_1", subscriptionStatus: "active" })
     );
-    getPixPendente.mockResolvedValue({
-      invoiceUrl: "https://sandbox.asaas.com/i/abc123",
-      dueDate: "2026-08-06",
-    });
+    getPixPendente.mockImplementation(() => new Promise(() => {})); // nunca resolve
 
     await renderLayout();
 
-    expect(getPixPendente).toHaveBeenCalledWith("sub_1", "active");
-    expect(screen.getByText(/pagamento pix pendente/i)).toBeTruthy();
-    expect(screen.getByText(/vencimento em 6 de agosto de 2026/i)).toBeTruthy();
-    const link = screen.getByRole("link", { name: /pagar agora/i });
-    expect(link.getAttribute("href")).toBe("https://sandbox.asaas.com/i/abc123");
-  });
-
-  it("vencimento já passado (vencida) mostra o banner", async () => {
-    getCurrentStore.mockResolvedValue(
-      makeStore({ plan: "pro", asaasSubscriptionId: "sub_1", subscriptionStatus: "past_due" })
-    );
-    getPixPendente.mockResolvedValue({
-      invoiceUrl: "https://sandbox.asaas.com/i/vencida1",
-      dueDate: "2026-08-01",
-    });
-
-    await renderLayout();
-
-    expect(screen.getByText(/pagamento pix pendente/i)).toBeTruthy();
-  });
-
-  it("vencimento em exatamente 3 dias (borda da janela) mostra o banner", async () => {
-    getCurrentStore.mockResolvedValue(
-      makeStore({ plan: "pro", asaasSubscriptionId: "sub_1", subscriptionStatus: "active" })
-    );
-    getPixPendente.mockResolvedValue({
-      invoiceUrl: "https://sandbox.asaas.com/i/borda1",
-      dueDate: "2026-08-08",
-    });
-
-    await renderLayout();
-
-    expect(screen.getByText(/pagamento pix pendente/i)).toBeTruthy();
-  });
-
-  it("vencimento daqui a 4 dias (fora da janela) não mostra o banner ainda", async () => {
-    getCurrentStore.mockResolvedValue(
-      makeStore({ plan: "pro", asaasSubscriptionId: "sub_1", subscriptionStatus: "active" })
-    );
-    getPixPendente.mockResolvedValue({
-      invoiceUrl: "https://sandbox.asaas.com/i/longe1",
-      dueDate: "2026-08-09",
-    });
-
-    await renderLayout();
-
-    expect(screen.queryByText(/pagamento pix pendente/i)).toBeNull();
-  });
-
-  it("sem cobrança pendente, o banner não aparece", async () => {
-    getCurrentStore.mockResolvedValue(makeStore({ plan: "pro" }));
-    getPixPendente.mockResolvedValue(null);
-
-    await renderLayout();
-
-    expect(screen.queryByText(/pagamento pix pendente/i)).toBeNull();
+    expect(screen.getAllByRole("link", { name: "Dashboard" }).length).toBeGreaterThan(0);
   });
 });
