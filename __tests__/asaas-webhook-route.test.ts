@@ -267,7 +267,52 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
    * sempre (o Asaas só reenvia depois de resposta não-2xx); 409 força o
    * reenvio, dando tempo do CHECKOUT_PAID chegar.
    */
-  it("PAYMENT_CONFIRMED por checkoutSession sem loja casada (corrida com CHECKOUT_PAID) devolve 409, não 200", async () => {
+  it("PAYMENT_CONFIRMED por checkoutSession sem loja casada, pagamento recente (corrida com CHECKOUT_PAID) devolve 409, não 200", async () => {
+    single.mockResolvedValue({ data: null, error: null });
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_CONFIRMED",
+        payment: {
+          dueDate: "2026-09-01",
+          subscription: "sub_real_1",
+          externalReference: null,
+          checkoutSession: "chk_123",
+          dateCreated: new Date().toISOString(),
+        },
+      })
+    );
+    expect(res.status).toBe(409);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Sem limite, um CHECKOUT_PAID que nunca chega (o cenário mais provável é
+   * o evento não estar marcado no cadastro do webhook no painel do Asaas)
+   * faria este pagamento devolver 409 pra sempre — 15 respostas não-2xx
+   * consecutivas pausam a fila do Asaas pra base inteira, não só esta loja.
+   */
+  it("checkoutSession órfão além de 30min devolve 200 sem escrever — evita pausar a fila indefinidamente", async () => {
+    single.mockResolvedValue({ data: null, error: null });
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const antigo = new Date(Date.now() - 31 * 60 * 1000).toISOString();
+    const res = await POST(
+      req({
+        event: "PAYMENT_CONFIRMED",
+        payment: {
+          dueDate: "2026-09-01",
+          subscription: "sub_real_1",
+          externalReference: null,
+          checkoutSession: "chk_123",
+          dateCreated: antigo,
+        },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("checkoutSession órfão sem dateCreated no payload é tratado como antigo — devolve 200 sem escrever", async () => {
     single.mockResolvedValue({ data: null, error: null });
     const { POST } = await import("@/app/api/webhooks/asaas/route");
     const res = await POST(
@@ -281,7 +326,7 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
         },
       })
     );
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(200);
     expect(update).not.toHaveBeenCalled();
   });
 });

@@ -11,6 +11,27 @@ import {
   type BillingCycle,
 } from "@/lib/asaas/events";
 
+// CHECKOUT_PAID chega em segundos ou nunca chega — se o evento não estiver
+// marcado no cadastro do webhook (risco documentado em .env.example), o
+// pagamento por checkoutSession fica órfão para sempre, e devolver 409
+// indefinidamente pausaria a fila do Asaas depois de 15 tentativas — não só
+// para esta loja, para a base inteira. 30min é folga generosa sobre o "chega
+// em segundos" sem deixar a corrida se arrastar por muito tempo.
+const LIMITE_ORFAO_MINUTOS = 30;
+
+/**
+ * Sem `dateCreated` no payload, trata como antigo (não insiste) — é mais
+ * seguro devolver 200 e perder um evento raro sem essa data do que arriscar
+ * pausar a fila por um cálculo de idade que não dá para fazer.
+ */
+function pagamentoRecente(dateCreated: string | null | undefined, agora: Date): boolean {
+  if (!dateCreated) return false;
+  const criado = new Date(dateCreated).getTime();
+  if (Number.isNaN(criado)) return false;
+  const idadeMinutos = (agora.getTime() - criado) / 60000;
+  return idadeMinutos < LIMITE_ORFAO_MINUTOS;
+}
+
 function autorizado(request: Request): boolean {
   const esperado = process.env.ASAAS_WEBHOOK_TOKEN;
   if (!esperado) return false;
@@ -115,8 +136,22 @@ export async function POST(request: Request) {
     // depois de uma resposta não-2xx); 409 força o reenvio, dando tempo do
     // CHECKOUT_PAID chegar — sem isso a assinatura fica órfã: paga, mas
     // nunca promovida.
+    //
+    // Mas só até LIMITE_ORFAO_MINUTOS: se CHECKOUT_PAID nunca chegar (o
+    // cenário mais provável é o evento não estar marcado no cadastro do
+    // webhook no painel do Asaas — risco que .env.example documenta), este
+    // pagamento voltaria a devolver 409 pra sempre, e 15 respostas não-2xx
+    // consecutivas pausam a fila inteira — não só desta loja, da base
+    // toda. Passado o limite, o dado já está perdido; preservar a fila vale
+    // mais que insistir num evento que nunca vai casar.
     if (checkoutSessionOrfao) {
-      return NextResponse.json({ error: "Aguardando CHECKOUT_PAID." }, { status: 409 });
+      if (pagamentoRecente(evento.payment?.dateCreated, new Date())) {
+        return NextResponse.json({ error: "Aguardando CHECKOUT_PAID." }, { status: 409 });
+      }
+      console.error(
+        `[webhook asaas] checkoutSession=${checkoutSession} órfão além de ${LIMITE_ORFAO_MINUTOS}min — CHECKOUT_PAID não chegou a tempo (confira se o evento está marcado no cadastro do webhook no painel do Asaas). Pagamento perdido, respondendo 200 para não pausar a fila.`
+      );
+      return NextResponse.json({ ok: true });
     }
     // Loja inexistente (de fato) é 200 de propósito: reenviar não faria a
     // loja aparecer, e insistir queimaria as 15 tentativas que pausam a

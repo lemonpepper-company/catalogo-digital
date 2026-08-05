@@ -16,6 +16,14 @@ export interface AsaasWebhookEvent {
      * tem externalReference). Usado como fallback de identificação.
      */
     checkoutSession?: string | null;
+    /**
+     * Quando o Asaas criou o registro do pagamento (não o vencimento). Usado
+     * só para limitar por quanto tempo a rota do webhook insiste com 409 num
+     * checkoutSession órfão (ver app/api/webhooks/asaas/route.ts) — sem essa
+     * data, não dá para distinguir "CHECKOUT_PAID está a caminho" de
+     * "CHECKOUT_PAID nunca vai chegar".
+     */
+    dateCreated?: string | null;
   } | null;
   /**
    * Só presente em eventos CHECKOUT_*. O externalReference do checkout NÃO
