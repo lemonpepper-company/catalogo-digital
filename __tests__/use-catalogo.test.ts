@@ -47,6 +47,7 @@ const baseStore: Store = {
   catalogUrl: "vtrinedigital.com.br/ateliemira",
   theme: resolveTheme("padrao", "padrao", "padrao", null, getPlanLimits("free", null)),
   gridDensity: "padrao",
+  hasAnalytics: true,
 };
 
 const products: Product[] = [];
@@ -649,6 +650,41 @@ describe("useCatalogo — telemetria do catálogo (ANL-01..05, ANL-07)", () => {
     });
 
     expect(eventsOf("buy_click")).toEqual([["ateliemira", "buy_click"]]);
+  });
+
+  it("loja sem hasAnalytics não dispara evento nenhum no fluxo completo (APO-14)", async () => {
+    const semAnalytics = { ...baseStore, hasAnalytics: false };
+    const { result } = renderHook(() =>
+      useCatalogo({ store: semAnalytics, products: [productA] })
+    );
+
+    act(() => result.current.handleOpenProduct(productA));
+    act(() => result.current.handleAdd(productA, "M", "Areia", 2));
+    act(() => result.current.setCustomerName("Ana"));
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(trackEvent).not.toHaveBeenCalled();
+  });
+
+  // Rótulo corrigido: prova ANL-07 (o guard não pode quebrar a venda), não
+  // APO-15 — a garantia do servidor está em registrar-evento.test.ts:229-249,
+  // onde a action é chamada direto, sem passar pelo cliente.
+  it("loja sem hasAnalytics ainda abre o WhatsApp e registra o pedido (ANL-07)", async () => {
+    const semAnalytics = { ...baseStore, hasAnalytics: false };
+    const { result } = renderHook(() =>
+      useCatalogo({ store: semAnalytics, products: [productA] })
+    );
+    act(() => result.current.handleAdd(productA, "M", "Areia", 2));
+    act(() => result.current.setCustomerName("Ana"));
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(tab.location.href).toContain("wa.me");
+    expect(registrarPedido).toHaveBeenCalledTimes(1);
   });
 
   it("não registra buy_click quando a loja não tem WhatsApp configurado", async () => {

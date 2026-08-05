@@ -78,6 +78,29 @@ describe("bullets de plano — Dashboard exclusiva de planos pagos (ORD-48)", ()
   });
 });
 
+const VITRINE_FEATURE = "Métricas de visitas da vitrine";
+
+describe("bullets de plano — métricas da vitrine exclusivas do Pro (APO-16)", () => {
+  it("Pro lista as métricas de visitas da vitrine", () => {
+    expect(proFeatures).toContain(VITRINE_FEATURE);
+  });
+
+  it("Starter não lista métricas de visitas em nenhuma variação", () => {
+    expect(starterFeatures).not.toContain(VITRINE_FEATURE);
+    expect(starterFeatures.some((f) => /visita/i.test(f))).toBe(false);
+  });
+
+  it("Free não lista métricas de visitas em nenhuma variação", () => {
+    expect(freeFeatures).not.toContain(VITRINE_FEATURE);
+    expect(freeFeatures.some((f) => /visita/i.test(f))).toBe(false);
+  });
+
+  it("o dashboard de vendas continua sendo bullet dos dois planos pagos", () => {
+    expect(starterFeatures).toContain(DASHBOARD_FEATURE);
+    expect(proFeatures).toContain(DASHBOARD_FEATURE);
+  });
+});
+
 describe("bullets de plano — cor secundária deixou de ser diferencial", () => {
   it("nenhum plano anuncia cor secundária", () => {
     for (const features of [freeFeatures, starterFeatures, proFeatures]) {

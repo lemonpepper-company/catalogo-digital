@@ -10,6 +10,17 @@ export interface CatalogAnalytics {
   topProducts: TopViewedProduct[];
 }
 
+/**
+ * Situação da seção de métricas no dashboard. União e não `CatalogAnalytics |
+ * null` de propósito: "bloqueado por plano" e "leitura falhou" precisam ser
+ * distinguíveis, senão o lojista Starter veria um erro no lugar do upsell
+ * (APO-11). `blocked` significa que NENHUMA query foi executada.
+ */
+export type AnalyticsState =
+  | { status: "ok"; data: CatalogAnalytics }
+  | { status: "blocked" }
+  | { status: "unavailable" };
+
 interface CatalogMetricsRow {
   visits: number | string;
   unique_visitors: number | string;

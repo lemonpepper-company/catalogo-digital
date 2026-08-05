@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentStore, mapProduct } from "@/lib/server/store";
 import { getPlanLimits, getEffectivePlan } from "@/lib/plan-limits";
 import { getOrderMetrics } from "@/lib/server/pedidos";
-import { getCatalogAnalytics, type CatalogAnalytics } from "@/lib/server/analytics";
+import { getCatalogAnalytics, type AnalyticsState } from "@/lib/server/analytics";
 import { resolvePeriodRange } from "@/lib/period-filter";
 import { RecursoBloqueado } from "@/components/painel/RecursoBloqueado";
 import { DashboardClient } from "./DashboardClient";
@@ -37,18 +37,22 @@ export default async function DashboardPage({
   // vitrine recebem exatamente o mesmo objeto (ANL-14/ANL-15).
   const range = resolvePeriodRange(params);
 
-  const metrics = getPlanLimits(store.plan, store.planExpiresAt).hasOrderHistory
-    ? await getOrderMetrics(store.id, range)
-    : null;
+  const limits = getPlanLimits(store.plan, store.planExpiresAt);
 
-  // Métricas da vitrine são acessórias: se a leitura falhar, o dashboard segue
-  // com os pedidos normais e a seção exibe "—" (edge case da spec). O `null` só
-  // significa "indisponível agora" — zero real vem como zero.
-  let analytics: CatalogAnalytics | null = null;
-  try {
-    analytics = await getCatalogAnalytics(store.id, range);
-  } catch (error) {
-    console.error("DashboardPage: erro ao ler métricas da vitrine —", error);
+  const metrics = limits.hasOrderHistory ? await getOrderMetrics(store.id, range) : null;
+
+  // Métricas da vitrine são exclusivas do Pro: fora dele nenhuma query roda e a
+  // seção vira upsell (APO-08). Dentro dele a leitura é acessória — se falhar, o
+  // dashboard segue com os pedidos normais e a seção avisa que está indisponível,
+  // estado distinto do bloqueio (APO-11). Zero real vem como zero.
+  let analytics: AnalyticsState = { status: "blocked" };
+  if (limits.hasAnalytics) {
+    try {
+      analytics = { status: "ok", data: await getCatalogAnalytics(store.id, range) };
+    } catch (error) {
+      console.error("DashboardPage: erro ao ler métricas da vitrine —", error);
+      analytics = { status: "unavailable" };
+    }
   }
 
   const supabase = await createClient();

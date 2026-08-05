@@ -80,6 +80,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: app/[slug]/use-catalogo.ts:23-38 SPEC_DEVIATION (app/[slug])
 - last seen: 2026-07-30T21:47:21Z
 
+### L-012 — Ao introduzir uma união discriminada, teste também a camada que DERIVA cada variante, não só a que a consome — asserte qual variante o produtor emitiu em cada caminho, inclusive no catch.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `server-components` · harmful: 0
+- features: analytics-pro-only
+- evidence: M6 — app/painel/page.tsx:52 (catch mapeia falha para blocked); validation.md Fix 1 (server-components)
+- last seen: 2026-08-03T23:37:05Z
+
+### L-013 — Um teste de caminho de erro que só prova 'a página renderizou e logou' não cobre o AC: asserte o texto/estado exato exibido e a ausência do estado concorrente.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `tests` · harmful: 0
+- features: analytics-pro-only
+- evidence: APO-11 — __tests__/DashboardPage.test.tsx:217-230 (teste de falha de leitura não assere o estado renderizado) (tests)
+- last seen: 2026-08-03T23:37:13Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

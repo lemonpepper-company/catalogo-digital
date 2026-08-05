@@ -1,5 +1,7 @@
 # Analytics Nativo no Dashboard — Specification
 
+> **Revisão 2026-08-03 — recurso movido para o plano Pro.** Ver `.specs/features/analytics-pro-only/spec.md` (AD-014). Mudou o gate, não a mecânica: ANL-09 foi **supersedido** (a captura passou a gravar só no `pro`); ANL-18 foi **ampliado** (nenhuma query de analytics também no `starter`); ANL-19 foi **reinterpretado** (o upgrade só revela histórico se ele existir — com captura Pro-only isso vale para rebaixamento/re-upgrade e para linhas anteriores a esta mudança); ANL-20 foi **ressuscitado** (a capability `hasAnalytics` voltou, porque o gate deixou de coincidir com o da página). Todo o resto desta spec segue valendo.
+
 > **Revisão 2026-07-30** (após merge dos PRs #70 e #71 na main): o dashboard passou a ser exclusivo de planos pagos (gate de página inteira) e ganhou filtro de período próprio (`PeriodoFiltro`: hoje/7d/mês/tudo + range customizado, default "mês"). ANL-14/15 foram reescritos para obedecer ao filtro existente, e ANL-20 (capability `hasAnalytics`) foi supersedido pelo gate da página. Aprovado pelo usuário.
 
 ## Problem Statement
@@ -131,7 +133,7 @@ Input validation → P1-captura AC8. Failure/partial-failure → AC7 + edge case
 | ANL-06 | P1 Captura — AC6 visitor_id anônimo, zero PII | Tasks | In Tasks |
 | ANL-07 | P1 Captura — AC7 fire-and-forget, nunca bloqueia | Tasks | In Tasks |
 | ANL-08 | P1 Captura — AC8 validação estrita na Server Action | Tasks | In Tasks |
-| ANL-09 | P1 Captura — AC9 grava em qualquer plano | Tasks | In Tasks |
+| ANL-09 | ~~P1 Captura — AC9 grava em qualquer plano~~ | — | **Superseded (2026-08-03) por APO-01/APO-02: grava só no `pro`** |
 | ANL-10 | Segurança — escrita só via service role (`lib/supabase/admin.ts`); `anon` sem nenhum privilégio em `catalog_events` | Tasks | In Tasks |
 | ANL-11 | Segurança — grant DML explícito ao `service_role` + guarda no CI (`supabase-migrations-check.yml`), lição de `orders` | Tasks | In Tasks |
 | ANL-12 | P1 Dashboard — AC1 métricas do período | Tasks | In Tasks |
@@ -140,9 +142,9 @@ Input validation → P1-captura AC8. Failure/partial-failure → AC7 + edge case
 | ANL-15 | P1 Dashboard — AC4 analytics e cards de pedidos refletem o mesmo período | Tasks | In Tasks |
 | ANL-16 | P1 Dashboard — AC6 período vazio → zeros/"—" | Tasks | In Tasks |
 | ANL-17 | P1 Dashboard — AC7 RLS own-store na leitura | Tasks | In Tasks |
-| ANL-18 | P2 Gate — AC1 free: nenhuma query de analytics (gate de página do PR #71) | Tasks | In Tasks |
-| ANL-19 | P2 Gate — AC2 upgrade revela histórico | Tasks | In Tasks |
-| ANL-20 | ~~P2 Gate — capability `hasAnalytics`~~ | — | **Superseded (PR #71)** |
+| ANL-18 | P2 Gate — AC1 free: nenhuma query de analytics | Tasks | **Ampliado (2026-08-03) por APO-08: vale também para `starter`** |
+| ANL-19 | P2 Gate — AC2 upgrade revela histórico | Tasks | **Reinterpretado (2026-08-03): só há histórico a revelar em rebaixamento/re-upgrade ou de linhas anteriores a AD-014** |
+| ANL-20 | P2 Gate — capability `hasAnalytics` | — | **Ressuscitado (2026-08-03) por APO-07** |
 | ANL-21 | P1 Captura — AC10 consentimento rejeitado → visitor_id efêmero, eventos seguem | Tasks | In Tasks |
 | ANL-22 | P1 Dashboard — AC5 período "tudo" → histórico completo sem filtro de data | Tasks | In Tasks |
 
