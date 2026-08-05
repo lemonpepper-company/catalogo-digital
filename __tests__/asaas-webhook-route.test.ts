@@ -4,6 +4,7 @@ const update = vi.fn();
 const eq = vi.fn();
 const or = vi.fn();
 const single = vi.fn();
+const cancelarNoAsaas = vi.fn();
 
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
@@ -26,6 +27,10 @@ vi.mock("@/lib/supabase/admin", () => ({
   }),
 }));
 
+vi.mock("@/lib/asaas/subscriptions", () => ({
+  cancelarAssinatura: (...args: unknown[]) => cancelarNoAsaas(...args),
+}));
+
 function req(body: unknown, token = "segredo") {
   return new Request("http://localhost:3000/api/webhooks/asaas", {
     method: "POST",
@@ -44,8 +49,15 @@ beforeEach(() => {
   update.mockReset();
   eq.mockReset().mockResolvedValue({ error: null });
   or.mockReset().mockResolvedValue({ error: null });
+  cancelarNoAsaas.mockReset().mockResolvedValue(undefined);
   single.mockReset().mockResolvedValue({
-    data: { id: "loja-1", billing_cycle: "monthly", pending_plan: null },
+    data: {
+      id: "loja-1",
+      billing_cycle: "monthly",
+      pending_plan: null,
+      subscription_status: "active",
+      asaas_subscription_id: "sub_1",
+    },
     error: null,
   });
   vi.resetModules();
@@ -245,5 +257,192 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
     );
     expect(res.status).toBe(200);
     expect(update).not.toHaveBeenCalled();
+  });
+
+  /**
+   * A entrega não garante ordem entre CHECKOUT_PAID e o PAYMENT_CONFIRMED/
+   * RECEIVED seguinte. Se o pagamento chega primeiro (por checkoutSession) e
+   * não acha loja, é corrida — CHECKOUT_PAID ainda não gravou o vínculo
+   * temporário — não loja inexistente. 200 aqui descartaria o evento para
+   * sempre (o Asaas só reenvia depois de resposta não-2xx); 409 força o
+   * reenvio, dando tempo do CHECKOUT_PAID chegar.
+   */
+  it("PAYMENT_CONFIRMED por checkoutSession sem loja casada (corrida com CHECKOUT_PAID) devolve 409, não 200", async () => {
+    single.mockResolvedValue({ data: null, error: null });
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_CONFIRMED",
+        payment: {
+          dueDate: "2026-09-01",
+          subscription: "sub_real_1",
+          externalReference: null,
+          checkoutSession: "chk_123",
+        },
+      })
+    );
+    expect(res.status).toBe(409);
+    expect(update).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * A cobrança avulsa do upgrade (diferença proporcional) não pertence a uma
+ * assinatura — não tem payment.subscription. Ela só pode promover um
+ * pending_plan já agendado; nunca deve mexer em subscription_status/
+ * plan_expires_at, que são geridos pelos eventos da assinatura recorrente de
+ * verdade.
+ */
+describe("POST /api/webhooks/asaas — cobrança avulsa de upgrade (sem payment.subscription)", () => {
+  const AVULSA_CONFIRMADA = {
+    event: "PAYMENT_CONFIRMED",
+    payment: { dueDate: "2026-08-06", externalReference: "loja-1" },
+  };
+
+  it("confirmada: promove o pending_plan, mas não mexe em subscription_status nem plan_expires_at", async () => {
+    single.mockResolvedValue({
+      data: {
+        id: "loja-1",
+        billing_cycle: "monthly",
+        pending_plan: "pro",
+        subscription_status: "active",
+        asaas_subscription_id: "sub_1",
+      },
+      error: null,
+    });
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(req(AVULSA_CONFIRMADA));
+
+    expect(res.status).toBe(200);
+    expect(update).toHaveBeenCalledWith({ plan: "pro", pending_plan: null });
+  });
+
+  it("vencida: não muda subscription_status nem cancela nada — a assinatura em si não foi afetada", async () => {
+    single.mockResolvedValue({
+      data: {
+        id: "loja-1",
+        billing_cycle: "monthly",
+        pending_plan: "pro",
+        subscription_status: "active",
+        asaas_subscription_id: "sub_1",
+      },
+      error: null,
+    });
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_OVERDUE",
+        payment: { dueDate: "2026-08-06", externalReference: "loja-1" },
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(update).not.toHaveBeenCalled();
+    expect(cancelarNoAsaas).not.toHaveBeenCalled();
+  });
+
+  it("estornada/chargeback: não cancela a assinatura por engano", async () => {
+    single.mockResolvedValue({
+      data: {
+        id: "loja-1",
+        billing_cycle: "monthly",
+        pending_plan: null,
+        subscription_status: "active",
+        asaas_subscription_id: "sub_1",
+      },
+      error: null,
+    });
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_REFUNDED",
+        payment: { dueDate: "2026-08-06", externalReference: "loja-1" },
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(update).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Sem cartão pra tentar de novo sozinho, uma assinatura Pix nunca paga faz o
+ * Asaas gerar uma cobrança nova a cada ciclo pra sempre. O acesso já está
+ * cortado (plan_expires_at no passado), mas cancelar no Asaas evita lixo
+ * indefinido no painel de cobranças.
+ */
+describe("POST /api/webhooks/asaas — Pix nunca pago (PAYMENT_OVERDUE repetido)", () => {
+  it("primeiro PAYMENT_OVERDUE (loja ainda active) só dá o período de graça — não cancela", async () => {
+    single.mockResolvedValue({
+      data: {
+        id: "loja-1",
+        billing_cycle: "monthly",
+        pending_plan: null,
+        subscription_status: "active",
+        asaas_subscription_id: "sub_1",
+      },
+      error: null,
+    });
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_OVERDUE",
+        payment: { dueDate: "2026-09-01", subscription: "sub_1", externalReference: "loja-1" },
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(cancelarNoAsaas).not.toHaveBeenCalled();
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ subscription_status: "past_due" })
+    );
+  });
+
+  it("segundo PAYMENT_OVERDUE consecutivo (loja já past_due) cancela no Asaas e marca canceled", async () => {
+    single.mockResolvedValue({
+      data: {
+        id: "loja-1",
+        billing_cycle: "monthly",
+        pending_plan: null,
+        subscription_status: "past_due",
+        asaas_subscription_id: "sub_1",
+      },
+      error: null,
+    });
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_OVERDUE",
+        payment: { dueDate: "2026-10-01", subscription: "sub_1", externalReference: "loja-1" },
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(cancelarNoAsaas).toHaveBeenCalledWith("sub_1");
+    expect(update).toHaveBeenCalledWith({ subscription_status: "canceled" });
+  });
+
+  it("falha ao cancelar no Asaas não impede a gravação local", async () => {
+    cancelarNoAsaas.mockRejectedValue(new Error("Asaas fora do ar"));
+    single.mockResolvedValue({
+      data: {
+        id: "loja-1",
+        billing_cycle: "monthly",
+        pending_plan: null,
+        subscription_status: "past_due",
+        asaas_subscription_id: "sub_1",
+      },
+      error: null,
+    });
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_OVERDUE",
+        payment: { dueDate: "2026-10-01", subscription: "sub_1", externalReference: "loja-1" },
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(update).toHaveBeenCalledWith({ subscription_status: "canceled" });
   });
 });

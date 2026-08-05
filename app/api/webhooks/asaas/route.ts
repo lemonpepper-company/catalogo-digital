@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { cancelarAssinatura as cancelarNoAsaas } from "@/lib/asaas/subscriptions";
 import {
   translateEvent,
   storeIdFromEvent,
@@ -25,9 +26,10 @@ function autorizado(request: Request): boolean {
  * Única superfície que concede ou estende acesso. Server Actions gravam
  * identificadores e pending_plan; a promoção de plano e a validade vêm daqui.
  *
- * Política de status: 200 para tudo que não seja falha nossa. A entrega do
- * Asaas é at-least-once, mas 15 respostas não-2xx consecutivas PAUSAM a fila
- * — os eventos seguem sendo gerados e param de ser entregues até reativação
+ * Política de status: 200 para tudo que não seja falha nossa OU uma corrida
+ * conhecida (checkoutSession órfão, ver abaixo). A entrega do Asaas é
+ * at-least-once, mas 15 respostas não-2xx consecutivas PAUSAM a fila — os
+ * eventos seguem sendo gerados e param de ser entregues até reativação
  * manual. Devolver erro para evento irrelevante congelaria o estado de
  * assinatura de toda a base, em silêncio.
  */
@@ -71,14 +73,27 @@ export async function POST(request: Request) {
 
   const storeId = storeIdFromEvent(evento);
 
-  const supabaseLoja = supabase.from("stores").select("id, billing_cycle, pending_plan");
+  const supabaseLoja = supabase
+    .from("stores")
+    .select("id, billing_cycle, pending_plan, subscription_status, asaas_subscription_id");
   const checkoutSession = storeId ? null : checkoutSessionFromEvent(evento);
-  let loja: { id: string; billing_cycle: string | null; pending_plan: string | null } | null =
-    null;
+  type LojaRow = {
+    id: string;
+    billing_cycle: string | null;
+    pending_plan: string | null;
+    subscription_status: string | null;
+    asaas_subscription_id: string | null;
+  };
+  let loja: LojaRow | null = null;
+  // Só true quando a busca por checkoutSession não achou ninguém — sinal de
+  // corrida (CHECKOUT_PAID ainda não gravou o vínculo temporário), não de
+  // loja inexistente (ver uso abaixo).
+  let checkoutSessionOrfao = false;
   if (storeId) {
     ({ data: loja } = await supabaseLoja.eq("id", storeId).maybeSingle());
   } else if (checkoutSession) {
     ({ data: loja } = await supabaseLoja.eq("asaas_subscription_id", checkoutSession).maybeSingle());
+    if (!loja) checkoutSessionOrfao = true;
   } else if (evento.payment?.subscription) {
     // Renovação de assinatura criada via checkout hospedado: sem
     // externalReference nem checkoutSession, casa pela assinatura real já
@@ -88,15 +103,26 @@ export async function POST(request: Request) {
       .maybeSingle());
   }
 
-  // Loja inexistente é 200 de propósito: reenviar não faria a loja aparecer, e
-  // insistir queimaria as 15 tentativas que pausam a fila. Mas um
-  // PAYMENT_CONFIRMED sem loja casada é o sintoma de maior gravidade deste
-  // sistema — um cliente pagou e ninguém sabe para qual loja — por isso o log,
-  // mesmo respondendo 200.
   if (!loja) {
     console.warn(
       `[webhook asaas] evento ${evento.event} sem loja casada (storeId=${storeId}, checkoutSession=${checkoutSession}, subscription=${evento.payment?.subscription})`
     );
+    // A entrega do Asaas não garante ordem entre CHECKOUT_PAID e o
+    // PAYMENT_CONFIRMED/RECEIVED seguinte — se este pagamento chegou por
+    // checkoutSession e não achou loja, é porque CHECKOUT_PAID (que grava o
+    // vínculo temporário) ainda não foi processado, não porque a loja não
+    // existe. 200 aqui descartaria o evento para sempre (o Asaas só reenvia
+    // depois de uma resposta não-2xx); 409 força o reenvio, dando tempo do
+    // CHECKOUT_PAID chegar — sem isso a assinatura fica órfã: paga, mas
+    // nunca promovida.
+    if (checkoutSessionOrfao) {
+      return NextResponse.json({ error: "Aguardando CHECKOUT_PAID." }, { status: 409 });
+    }
+    // Loja inexistente (de fato) é 200 de propósito: reenviar não faria a
+    // loja aparecer, e insistir queimaria as 15 tentativas que pausam a
+    // fila. Mas um PAYMENT_CONFIRMED sem loja casada é o sintoma de maior
+    // gravidade deste sistema — um cliente pagou e ninguém sabe para qual
+    // loja — por isso o log acima, mesmo respondendo 200.
     return NextResponse.json({ ok: true });
   }
 
@@ -115,12 +141,53 @@ export async function POST(request: Request) {
   }
   if (!mudanca) return NextResponse.json({ ok: true });
 
-  const patch: Record<string, unknown> = {
-    subscription_status: mudanca.subscriptionStatus,
-    plan_expires_at: mudanca.planExpiresAt,
-  };
+  // A cobrança avulsa do upgrade (diferença proporcional, ver trocarPlano em
+  // app/actions/assinatura.ts) não pertence a uma assinatura — não tem
+  // payment.subscription, só externalReference com o storeId. ela só pode
+  // PROMOVER um pending_plan já agendado; nunca deve mexer em
+  // subscription_status/plan_expires_at, que são o estado da assinatura
+  // recorrente de verdade, gerido pelos próprios eventos dela. Sem essa
+  // guarda: confirmar essa cobrança estendia plan_expires_at um ciclo inteiro
+  // a partir de amanhã (o vencimento da cobrança avulsa, não da assinatura),
+  // e um estorno/chargeback dela cancelava a assinatura inteira por engano.
+  const ehCobrancaAvulsa = !evento.payment?.subscription;
 
-  // Downgrade agendado vira o plano em vigor quando o ciclo novo é pago.
+  // Pix nunca pago: sem cartão pra tentar de novo sozinho, o Asaas segue
+  // gerando uma cobrança nova a cada ciclo indefinidamente mesmo com a
+  // assinatura vencida. O acesso já foi cortado (plan_expires_at no passado
+  // via getEffectivePlan), mas a assinatura fica "viva" no Asaas cobrando
+  // alguém que nunca paga. Um segundo PAYMENT_OVERDUE consecutivo — a loja já
+  // estava past_due quando este novo ciclo venceu de novo — é o sinal de que
+  // o cliente não vai pagar: cancela no Asaas pra parar de gerar cobrança.
+  const overdueRepetido =
+    !ehCobrancaAvulsa &&
+    evento.event === "PAYMENT_OVERDUE" &&
+    loja.subscription_status === "past_due";
+
+  if (overdueRepetido && loja.asaas_subscription_id) {
+    try {
+      await cancelarNoAsaas(loja.asaas_subscription_id);
+    } catch (e) {
+      console.error(
+        `[webhook asaas] falha ao cancelar assinatura Pix nunca paga da loja ${loja.id}:`,
+        e
+      );
+    }
+  }
+
+  const patch: Record<string, unknown> = {};
+
+  if (!ehCobrancaAvulsa) {
+    if (overdueRepetido) {
+      patch.subscription_status = "canceled";
+    } else {
+      patch.subscription_status = mudanca.subscriptionStatus;
+      patch.plan_expires_at = mudanca.planExpiresAt;
+    }
+  }
+
+  // Downgrade agendado (ou upgrade pago via cobrança avulsa) vira o plano em
+  // vigor quando o pagamento confirma.
   if (mudanca.applyPendingPlan && loja.pending_plan) {
     patch.plan = loja.pending_plan;
     patch.pending_plan = null;
@@ -134,6 +201,8 @@ export async function POST(request: Request) {
     if (evento.payment?.customer) patch.asaas_customer_id = evento.payment.customer;
     if (evento.payment?.subscription) patch.asaas_subscription_id = evento.payment.subscription;
   }
+
+  if (Object.keys(patch).length === 0) return NextResponse.json({ ok: true });
 
   const { error } = await supabase.from("stores").update(patch).eq("id", loja.id);
 
