@@ -200,11 +200,19 @@ que os bugs mais caros desta integração apareceram.
 | 5B.6 | Durante um processamento, tentar trocar o meio de pagamento | Rádios desabilitados; aviso de processamento visível e destacado | ☐ |
 | 5B.7 | Na modal de endereço, confirmar com campos vazios | Erro **em cada campo** faltando, não só uma mensagem no topo | ☐ |
 | 5B.8 | Corrigir um campo com erro | O erro daquele campo some | ☐ |
+| 5B.9 | Assinar Starter **mensal** por Pix, não pagar, e assinar Starter **anual** por Pix | No painel do Asaas, só a assinatura anual fica `ACTIVE` — a mensal aparece `INACTIVE`/cancelada | ☐ |
 
 > **O 5B.5 é o cenário que quebrou a validação de 5 de agosto.** A loja tinha um
 > `asaas_subscription_id` de uma tentativa Pix abandonada, e a guarda do vínculo
 > impedia o `CHECKOUT_PAID` do cartão de gravar o id novo — o pagamento era
 > confirmado e o plano nunca promovia.
+>
+> **O 5B.9 cobre o caso simétrico, Pix→Pix.** Diferente do cartão (checkout
+> hospedado expira sozinho em 60min se abandonado), o Pix cria a assinatura no
+> Asaas antes de qualquer pagamento — sem cancelar a anterior, cada tentativa
+> abandonada ficava `ACTIVE` para sempre, gerando cobrança por ciclo. Confirmado
+> em produção de teste em 5 de agosto: duas assinaturas simultâneas `ACTIVE`
+> para o mesmo cliente (`sub_3ahobfdsejuo8yrn` e `sub_3s4z2vt9qhjo9fts`).
 
 ---
 

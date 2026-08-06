@@ -176,6 +176,29 @@ export async function iniciarAssinatura(
       return { ok: true, redirectUrl: checkout.link };
     }
 
+    // Diferente do cartão (checkout hospedado só vira assinatura quando o
+    // lojista termina de pagar, e expira sozinho em 60min se abandonado), o
+    // Pix cria a assinatura ANTES de qualquer pagamento. Sem cancelar a
+    // anterior, cada tentativa abandonada (escolheu o ciclo errado, desistiu,
+    // fechou a aba) deixa uma assinatura ACTIVE órfã cobrando pra sempre —
+    // achado ao vivo com duas assinaturas simultâneas pro mesmo cliente
+    // (sub_3ahobfdsejuo8yrn e sub_3s4z2vt9qhjo9fts). subscription_status nulo
+    // é o mesmo critério que o webhook usa pra saber que o vínculo nunca
+    // chegou a funcionar (PAYMENT_CONFIRMED/RECEIVED preenche o status) — só
+    // essa é seguro cancelar. Falha no cancelamento não pode travar a
+    // contratação nova: o resto órfão fica, mas logado, porque é rastro de
+    // assinatura que pode ter continuado cobrando.
+    if (store.asaasSubscriptionId && !store.subscriptionStatus) {
+      try {
+        await cancelarNoAsaas(store.asaasSubscriptionId);
+      } catch (e) {
+        console.error(
+          `[assinatura] falha ao cancelar assinatura Pix abandonada da loja ${store.id} (${store.asaasSubscriptionId}):`,
+          e
+        );
+      }
+    }
+
     // Pix não é aceito em chargeTypes RECURRENT (400 no sandbox), então a
     // assinatura é criada direto e o Asaas gera uma cobrança por ciclo.
     const assinatura = await criarAssinaturaPix({

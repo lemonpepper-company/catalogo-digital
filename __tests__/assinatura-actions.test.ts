@@ -56,6 +56,7 @@ beforeEach(() => {
   atualizarCliente.mockResolvedValue(undefined);
   criarCheckoutCartao.mockResolvedValue({ id: "chk_1", link: "https://sandbox.asaas.com/c/1" });
   criarAssinaturaPix.mockResolvedValue({ id: "sub_1", invoiceUrl: "https://sandbox.asaas.com/i/1" });
+  cancelarNoAsaas.mockResolvedValue(undefined);
 });
 
 describe("iniciarAssinatura", () => {
@@ -266,6 +267,93 @@ describe("iniciarAssinatura", () => {
 
       expect(r).not.toEqual(expect.objectContaining({ error: expect.any(String) }));
       expect(criarAssinaturaPix).toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * Diferente do cartão (checkout hospedado expira sozinho em 60min se
+   * abandonado), o Pix cria a assinatura no Asaas ANTES de qualquer
+   * pagamento — assinar de novo sem cancelar a anterior duplica a cobrança
+   * pra sempre. Achado ao vivo: duas assinaturas ACTIVE simultâneas pro
+   * mesmo cliente.
+   */
+  describe("Pix com assinatura anterior pendente de pagamento", () => {
+    it("com asaas_subscription_id e subscription_status nulo, cancela a anterior antes de criar a nova", async () => {
+      getCurrentStore.mockResolvedValue({
+        ...LOJA_FREE,
+        asaasSubscriptionId: "sub_abandonada",
+        subscriptionStatus: null,
+      });
+      const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+
+      await iniciarAssinatura("starter", "annual", "PIX");
+
+      expect(cancelarNoAsaas).toHaveBeenCalledWith("sub_abandonada");
+      expect(cancelarNoAsaas.mock.invocationCallOrder[0]).toBeLessThan(
+        criarAssinaturaPix.mock.invocationCallOrder[0]
+      );
+      expect(criarAssinaturaPix).toHaveBeenCalled();
+    });
+
+    it("com subscription_status preenchido, não cancela — é assinatura que já funcionou", async () => {
+      getCurrentStore.mockResolvedValue({
+        ...LOJA_FREE,
+        asaasSubscriptionId: "sub_ativa",
+        subscriptionStatus: "active",
+      });
+      const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+
+      await iniciarAssinatura("pro", "monthly", "PIX");
+
+      expect(cancelarNoAsaas).not.toHaveBeenCalled();
+      expect(criarAssinaturaPix).toHaveBeenCalled();
+    });
+
+    it("sem asaas_subscription_id, não tenta cancelar nada", async () => {
+      getCurrentStore.mockResolvedValue({
+        ...LOJA_FREE,
+        asaasSubscriptionId: null,
+        subscriptionStatus: null,
+      });
+      const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+
+      await iniciarAssinatura("pro", "monthly", "PIX");
+
+      expect(cancelarNoAsaas).not.toHaveBeenCalled();
+    });
+
+    it("cancelamento que falha não bloqueia a contratação nova, e registra o erro com o id", async () => {
+      const erroConsole = vi.spyOn(console, "error").mockImplementation(() => {});
+      cancelarNoAsaas.mockRejectedValue(new Error("subscription not found"));
+      getCurrentStore.mockResolvedValue({
+        ...LOJA_FREE,
+        asaasSubscriptionId: "sub_abandonada",
+        subscriptionStatus: null,
+      });
+      const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+
+      const r = await iniciarAssinatura("starter", "annual", "PIX");
+
+      expect(r).toEqual({ ok: true, pixUrl: "https://sandbox.asaas.com/i/1" });
+      expect(criarAssinaturaPix).toHaveBeenCalled();
+      expect(erroConsole).toHaveBeenCalledWith(
+        expect.stringContaining("sub_abandonada"),
+        expect.any(Error)
+      );
+      erroConsole.mockRestore();
+    });
+
+    it("cartão não cancela nada, mesmo com assinatura Pix abandonada", async () => {
+      getCurrentStore.mockResolvedValue({
+        ...LOJA_FREE,
+        asaasSubscriptionId: "sub_abandonada",
+        subscriptionStatus: null,
+      });
+      const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+
+      await iniciarAssinatura("pro", "monthly", "CREDIT_CARD");
+
+      expect(cancelarNoAsaas).not.toHaveBeenCalled();
     });
   });
 });
