@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const update = vi.fn();
 const eq = vi.fn();
 const or = vi.fn();
+const selectAfterOr = vi.fn();
 const single = vi.fn();
 const cancelarNoAsaas = vi.fn();
 
@@ -13,13 +14,19 @@ vi.mock("@/lib/supabase/admin", () => ({
       update: (v: unknown) => {
         update(v);
         // .eq(...) é awaited direto na maioria dos updates, mas o vínculo de
-        // checkout hospedado encadeia .eq(...).or(...) — o resultado de eq()
-        // precisa ser thenable E ter .or() (espiado separadamente), então
-        // anexamos .or na própria Promise devolvida.
+        // checkout hospedado encadeia .eq(...).or(...).select(...) — o
+        // resultado de eq() precisa ser thenable E ter .or() (espiado
+        // separadamente), então anexamos .or na própria Promise devolvida.
+        // .or() por sua vez devolve algo com .select(), espiado à parte.
         return {
           eq: (...args: unknown[]) => {
             const result = eq(...args) as Promise<{ error: unknown }>;
-            return Object.assign(result, { or: (...orArgs: unknown[]) => or(...orArgs) });
+            return Object.assign(result, {
+              or: (...orArgs: unknown[]) => {
+                or(...orArgs);
+                return { select: (...selArgs: unknown[]) => selectAfterOr(...selArgs) };
+              },
+            });
           },
         };
       },
@@ -48,7 +55,8 @@ beforeEach(() => {
   process.env.ASAAS_WEBHOOK_TOKEN = "segredo";
   update.mockReset();
   eq.mockReset().mockResolvedValue({ error: null });
-  or.mockReset().mockResolvedValue({ error: null });
+  or.mockReset();
+  selectAfterOr.mockReset().mockResolvedValue({ data: [{ id: "loja-1" }], error: null });
   cancelarNoAsaas.mockReset().mockResolvedValue(undefined);
   single.mockReset().mockResolvedValue({
     data: {
@@ -182,7 +190,7 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
    * quando a coluna ainda está vazia ou já é este mesmo checkout.id — nunca
    * sobrescrever um valor diferente (um id de assinatura real já resolvido).
    */
-  it("CHECKOUT_PAID só escreve se a coluna estiver vazia ou já for este checkout.id", async () => {
+  it("CHECKOUT_PAID só escreve se a coluna estiver vazia, já for este checkout.id, ou subscription_status for null", async () => {
     const { POST } = await import("@/app/api/webhooks/asaas/route");
     await POST(
       req({
@@ -192,7 +200,84 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
     );
     expect(eq).toHaveBeenCalledWith("id", "loja-1");
     expect(or).toHaveBeenCalledWith(
-      "asaas_subscription_id.is.null,asaas_subscription_id.eq.chk_123"
+      "asaas_subscription_id.is.null,asaas_subscription_id.eq.chk_123,subscription_status.is.null"
+    );
+  });
+
+  /**
+   * Bug real: loja tinha asaas_subscription_id de uma tentativa Pix
+   * abandonada (subscription_status nulo — nunca chegou a promover). Um
+   * checkout novo por cartão não conseguia vincular porque a guarda antiga
+   * só liberava coluna vazia ou o mesmo checkout.id, tratando o id órfão
+   * como se fosse uma assinatura ativa e intocável.
+   */
+  it("CHECKOUT_PAID com asaas_subscription_id de tentativa anterior e subscription_status nulo grava o vínculo novo", async () => {
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "CHECKOUT_PAID",
+        checkout: { id: "chk_novo", externalReference: "loja-1" },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(update).toHaveBeenCalledWith({ asaas_subscription_id: "chk_novo" });
+    expect(selectAfterOr).toHaveBeenCalledWith("id");
+  });
+
+  it("CHECKOUT_PAID reentregue com o mesmo checkout.id é idempotente", async () => {
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "CHECKOUT_PAID",
+        checkout: { id: "chk_123", externalReference: "loja-1" },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(update).toHaveBeenCalledWith({ asaas_subscription_id: "chk_123" });
+  });
+
+  /**
+   * update() que casa zero linhas (ex.: assinatura ativa bloqueou a
+   * escrita) não é erro do Supabase — a rota precisa continuar respondendo
+   * 200 (não queimar as 15 tentativas que pausam a fila), mas logar, ou o
+   * bug fica invisível como aconteceu na primeira vez.
+   */
+  it("update de vínculo que casa zero linhas responde 200 e loga erro", async () => {
+    selectAfterOr.mockResolvedValue({ data: [], error: null });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "CHECKOUT_PAID",
+        checkout: { id: "chk_123", externalReference: "loja-1" },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  /**
+   * O filtro .or(...) é aplicado pelo Postgres, não pelo mock — uma
+   * assinatura ativa (subscription_status = 'active', asaas_subscription_id
+   * já é o id real) não casa nenhuma das três condições do filtro, e o
+   * Supabase devolve zero linhas em vez de sobrescrever. A rota precisa
+   * responder 200 sem tratar isso como falha, exatamente como no caso de
+   * zero linhas acima — é o mesmo mecanismo protegendo o caso oposto do bug
+   * original (não vincular o novo NÃO pode significar sobrescrever o real).
+   */
+  it("CHECKOUT_PAID com assinatura ativa não sobrescreve — filtro do Postgres casa zero linhas, rota responde 200", async () => {
+    selectAfterOr.mockResolvedValue({ data: [], error: null });
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "CHECKOUT_PAID",
+        checkout: { id: "chk_reentrega_tardia", externalReference: "loja-1" },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(or).toHaveBeenCalledWith(
+      "asaas_subscription_id.is.null,asaas_subscription_id.eq.chk_reentrega_tardia,subscription_status.is.null"
     );
   });
 
@@ -220,6 +305,45 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
         subscription_status: "active",
         plan: "pro",
         pending_plan: null,
+        asaas_customer_id: "cus_real_1",
+        asaas_subscription_id: "sub_real_1",
+      })
+    );
+  });
+
+  /**
+   * O checkoutSession (== checkout.id gravado pelo CHECKOUT_PAID) só existe
+   * se o CHECKOUT_PAID já tiver sido processado. Se ele ainda não chegou —
+   * ou, como no bug real, nunca gravou por causa da guarda antiga — o
+   * pagamento chega sem loja casada por checkoutSession. O asaas_customer_id
+   * é gravado por nós ANTES do checkout (ver app/actions/assinatura.ts), não
+   * depende dessa ordem, e serve de fallback.
+   */
+  it("PAYMENT_CONFIRMED sem externalReference e sem checkoutSession casado, mas com customer que bate, acha a loja", async () => {
+    single
+      .mockResolvedValueOnce({ data: null, error: null }) // busca por checkoutSession: não acha
+      .mockResolvedValueOnce({
+        data: { id: "loja-1", billing_cycle: "monthly", pending_plan: "pro" },
+        error: null,
+      }); // fallback por asaas_customer_id: acha
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_CONFIRMED",
+        payment: {
+          dueDate: "2026-09-01",
+          subscription: "sub_real_1",
+          externalReference: null,
+          customer: "cus_real_1",
+          checkoutSession: "chk_orfao",
+        },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subscription_status: "active",
+        plan: "pro",
         asaas_customer_id: "cus_real_1",
         asaas_subscription_id: "sub_real_1",
       })
@@ -273,16 +397,43 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
     const res = await POST(
       req({
         event: "PAYMENT_CONFIRMED",
+        dateCreated: new Date().toISOString(),
         payment: {
           dueDate: "2026-09-01",
           subscription: "sub_real_1",
           externalReference: null,
           checkoutSession: "chk_123",
-          dateCreated: new Date().toISOString(),
         },
       })
     );
     expect(res.status).toBe(409);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  /**
+   * dateCreated de TOPO do evento (com hora) e payment.dateCreated (só data)
+   * são homônimos com granularidades diferentes — essa é a armadilha do bug
+   * real. Um pagamento de segundos atrás em que só payment.dateCreated (data
+   * de hoje, sem hora) está presente não pode ser calculado como se tivesse
+   * ~1 dia de idade e escapar do 409 por acidente.
+   */
+  it("órfão em que só payment.dateCreated existe (formato só-data) não é tratado como recente por acidente", async () => {
+    single.mockResolvedValue({ data: null, error: null });
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_CONFIRMED",
+        // sem dateCreated de topo — só o de payment, granularidade errada
+        payment: {
+          dueDate: "2026-09-01",
+          subscription: "sub_real_1",
+          externalReference: null,
+          checkoutSession: "chk_123",
+          dateCreated: new Date().toISOString().slice(0, 10),
+        },
+      })
+    );
+    expect(res.status).toBe(200);
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -299,12 +450,12 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
     const res = await POST(
       req({
         event: "PAYMENT_CONFIRMED",
+        dateCreated: antigo,
         payment: {
           dueDate: "2026-09-01",
           subscription: "sub_real_1",
           externalReference: null,
           checkoutSession: "chk_123",
-          dateCreated: antigo,
         },
       })
     );

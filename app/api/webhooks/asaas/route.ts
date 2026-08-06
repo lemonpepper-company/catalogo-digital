@@ -76,18 +76,36 @@ export async function POST(request: Request) {
   // do PAYMENT_CONFIRMED já ter trocado o vínculo pelo id real, a escrita
   // sem guarda voltaria a apontar para checkout.id, quebrando o match das
   // próximas renovações. O filtro abaixo só escreve se a coluna ainda
-  // estiver vazia ou já for este mesmo checkout.id — nunca sobrescreve um id
-  // de assinatura real já resolvido.
+  // estiver vazia, já for este mesmo checkout.id, ou subscription_status
+  // ainda for null — o terceiro caso é o de uma tentativa anterior
+  // abandonada (ex.: Pix nunca pago, depois reassinada por cartão): o id que
+  // sobrou lá é órfão, não uma assinatura ativa, e não pode bloquear o
+  // checkout novo. Uma assinatura que já funcionou sempre passou por
+  // PAYMENT_CONFIRMED/RECEIVED e por isso tem subscription_status
+  // preenchido — essa sim nunca pode ser sobrescrita.
   const link = checkoutLinkFromEvent(evento);
   if (link) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("stores")
       .update({ asaas_subscription_id: link.checkoutId })
       .eq("id", link.storeId)
-      .or(`asaas_subscription_id.is.null,asaas_subscription_id.eq.${link.checkoutId}`);
+      .or(
+        `asaas_subscription_id.is.null,asaas_subscription_id.eq.${link.checkoutId},subscription_status.is.null`
+      )
+      .select("id");
     if (error) {
       console.error(`[webhook asaas] falha ao vincular checkout da loja ${link.storeId}:`, error);
       return NextResponse.json({ error: "Falha ao gravar." }, { status: 500 });
+    }
+    // Supabase não devolve erro quando o filtro .or(...) não casa nenhuma
+    // linha — a escrita silenciosamente vira um no-op e a rota responderia
+    // 200 como se tivesse vinculado. .select("id") é o único jeito de
+    // enxergar isso; sem log aqui, o pagamento confirmado seguinte chega e
+    // não acha loja, sem nenhum rastro do porquê.
+    if (!data || data.length === 0) {
+      console.error(
+        `[webhook asaas] vínculo do checkout ${link.checkoutId} não casou nenhuma linha para loja ${link.storeId} — assinatura ativa já vinculada?`
+      );
     }
     return NextResponse.json({ ok: true });
   }
@@ -124,6 +142,18 @@ export async function POST(request: Request) {
       .maybeSingle());
   }
 
+  // Fallback por asaas_customer_id: o customer é criado e gravado por nós
+  // ANTES do checkout (ver app/actions/assinatura.ts), então casar por ele
+  // não depende da ordem de entrega entre CHECKOUT_PAID e PAYMENT_* — ao
+  // contrário do checkoutSession, que só existe se o CHECKOUT_PAID já tiver
+  // gravado o vínculo temporário. Cobre tanto o checkoutSession órfão quanto
+  // um payment.subscription que não bateu com nada.
+  if (!loja && evento.payment?.customer) {
+    ({ data: loja } = await supabaseLoja
+      .eq("asaas_customer_id", evento.payment.customer)
+      .maybeSingle());
+  }
+
   if (!loja) {
     console.warn(
       `[webhook asaas] evento ${evento.event} sem loja casada (storeId=${storeId}, checkoutSession=${checkoutSession}, subscription=${evento.payment?.subscription})`
@@ -145,7 +175,11 @@ export async function POST(request: Request) {
     // toda. Passado o limite, o dado já está perdido; preservar a fila vale
     // mais que insistir num evento que nunca vai casar.
     if (checkoutSessionOrfao) {
-      if (pagamentoRecente(evento.payment?.dateCreated, new Date())) {
+      // Usa o dateCreated de TOPO do evento (com hora), não
+      // payment.dateCreated (só data) — os dois têm o mesmo nome e
+      // granularidades diferentes; usar o de payment estoura a conta em
+      // ~1 dia inteiro e o 409 nunca dispara (ver lib/asaas/events.ts).
+      if (pagamentoRecente(evento.dateCreated, new Date())) {
         return NextResponse.json({ error: "Aguardando CHECKOUT_PAID." }, { status: 409 });
       }
       console.error(

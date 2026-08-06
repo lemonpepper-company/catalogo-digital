@@ -3,6 +3,16 @@ export type BillingCycle = "monthly" | "annual";
 
 export interface AsaasWebhookEvent {
   event: string;
+  /**
+   * Quando o Asaas gerou este EVENTO (com hora, ex.: "2026-08-05
+   * 22:40:19") — não confundir com `payment.dateCreated`, que é quando o
+   * PAGAMENTO foi criado e vem só com data ("2026-08-05"). Os dois têm o
+   * mesmo nome e granularidades diferentes: usar o de `payment` para medir
+   * idade em minutos estoura a conta em ~1 dia inteiro. Usado só para
+   * limitar por quanto tempo a rota do webhook insiste com 409 num
+   * checkoutSession órfão (ver app/api/webhooks/asaas/route.ts).
+   */
+  dateCreated?: string | null;
   payment?: {
     dueDate: string;
     subscription?: string | null;
@@ -17,11 +27,10 @@ export interface AsaasWebhookEvent {
      */
     checkoutSession?: string | null;
     /**
-     * Quando o Asaas criou o registro do pagamento (não o vencimento). Usado
-     * só para limitar por quanto tempo a rota do webhook insiste com 409 num
-     * checkoutSession órfão (ver app/api/webhooks/asaas/route.ts) — sem essa
-     * data, não dá para distinguir "CHECKOUT_PAID está a caminho" de
-     * "CHECKOUT_PAID nunca vai chegar".
+     * Quando o Asaas criou o registro do PAGAMENTO (não o vencimento) — vem
+     * só com data, sem hora (ex.: "2026-08-05"). Homônimo do `dateCreated`
+     * de topo do evento (que tem hora); a rota usa o de topo para medir
+     * idade em minutos, não este.
      */
     dateCreated?: string | null;
   } | null;
