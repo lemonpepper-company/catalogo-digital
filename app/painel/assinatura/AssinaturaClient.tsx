@@ -168,8 +168,14 @@ function analisarBotaoPlano({
 
   // Já existe uma troca aguardando confirmação do webhook (pending_plan) —
   // clicar de novo criaria uma segunda cobrança avulsa em cima da que já
-  // está pendente.
-  if (!!pending && p !== plan) {
+  // está pendente. O próprio plano pendente é a exceção: se o lojista fechou
+  // a página do Asaas sem pagar (checkout de cartão abandonado), não existe
+  // cobrança nenhuma em aberto pra duplicar — o clique só gera um novo
+  // checkout e retoma. Não há como saber aqui se o pendente era Pix (que já
+  // tem uma cobrança real, mostrada em pixPendente) ou cartão abandonado; o
+  // botão libera nos dois casos.
+  const retomandoPendente = pending === p;
+  if (!!pending && p !== plan && !retomandoPendente) {
     return {
       disabled: true,
       variant: "ghost",
@@ -178,7 +184,9 @@ function analisarBotaoPlano({
     };
   }
 
-  const precoTxt = `Assinar ${PLAN_LABELS[p]} ${CYCLE_LABELS[cycle]} — ${precoLabel(p, cycle)}`;
+  const precoTxt = retomandoPendente
+    ? `Retomar pagamento — ${PLAN_LABELS[p]} ${CYCLE_LABELS[cycle]}`
+    : `Assinar ${PLAN_LABELS[p]} ${CYCLE_LABELS[cycle]} — ${precoLabel(p, cycle)}`;
 
   // Botões de plano ficam desabilitados até um meio ser escolhido — o
   // lojista precisa decidir explicitamente, sem cair num padrão que ele
@@ -192,7 +200,11 @@ function analisarBotaoPlano({
     };
   }
 
-  return { disabled: carregando, variant: "primary", label: carregando ? "Assinando…" : precoTxt };
+  return {
+    disabled: carregando,
+    variant: "primary",
+    label: carregando ? (retomandoPendente ? "Retomando…" : "Assinando…") : precoTxt,
+  };
 }
 
 interface Intencao {

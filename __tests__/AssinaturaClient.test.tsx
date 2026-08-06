@@ -391,17 +391,15 @@ describe("AssinaturaClient — cada bloqueio tem tooltip explicativo", () => {
     expect(botao.getAttribute("title")).not.toBe("");
   });
 
+  /**
+   * O plano pendente em si não bloqueia mais (vira retomada — ver "retomar
+   * checkout de cartão abandonado" abaixo). Para exercitar um bloqueio de
+   * verdade por troca pendente, uso um terceiro plano fora do par
+   * plan/pending — aqui, a primeira assinatura (Free → Starter pendente)
+   * deixa Pro bloqueado, que não é nem o atual nem o pendente.
+   */
   it("botão bloqueado por troca pendente tem título explicando o motivo", () => {
-    render(
-      <AssinaturaClient
-        {...BASE}
-        plan="starter"
-        pendingPlan="pro"
-        subscriptionStatus="active"
-        planExpiresAt="2026-09-06T00:00:00.000Z"
-        billingCycle="monthly"
-      />
-    );
+    render(<AssinaturaClient {...BASE} pendingPlan="starter" planExpiresAt={null} />);
     fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
     const botao = screen.getAllByRole("button", { name: /troca já em andamento/i })[0];
     expect(botao.getAttribute("title")).toBeTruthy();
@@ -447,44 +445,15 @@ describe("AssinaturaClient — meio de pagamento no upgrade", () => {
 
   /**
    * pending_plan fica preenchido entre o clique em "Assinar" e o webhook
-   * confirmar o pagamento — clicar de nano nesse meio tempo criaria uma
+   * confirmar o pagamento — clicar de novo nesse meio tempo criaria uma
    * segunda cobrança avulsa em cima da que já está pendente. Achado pelo
    * usuário testando ao vivo: a tela dizia "Muda para Pro em 6 de setembro"
-   * mas ainda deixava clicar em "Assinar Pro" de novo.
+   * mas ainda deixava clicar em "Assinar Pro" de novo. O plano pendente em
+   * si, porém, agora libera como retomada (ver describe abaixo) — aqui só
+   * um terceiro plano (Pro, fora do par Starter atual/Starter pendente)
+   * segue bloqueado de verdade.
    */
-  it("com troca de plano pendente, os botões de plano ficam bloqueados", async () => {
-    const { trocarPlano } = await import("@/app/actions/assinatura");
-    vi.mocked(trocarPlano).mockClear();
-
-    render(
-      <AssinaturaClient
-        {...BASE}
-        plan="starter"
-        pendingPlan="pro"
-        subscriptionStatus="active"
-        planExpiresAt="2026-09-06T00:00:00.000Z"
-        billingCycle="monthly"
-      />
-    );
-
-    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
-
-    // Pro mensal (mesmo ciclo da assinatura ativa): bloqueado pela troca
-    // pendente. Pro anual: o ciclo diferente já bloqueia por conta própria —
-    // motivo mais específico, tem prioridade sobre a troca pendente.
-    const botaoProMensal = screen.getByRole("button", { name: /troca já em andamento/i });
-    // Starter mensal e Pro anual compartilham o mesmo texto — o segundo é o
-    // do card Pro (renderizado depois do card Starter).
-    const botoesCicloDiferente = screen.getAllByRole("button", { name: /cancele para trocar o ciclo/i });
-    const botaoProAnual = botoesCicloDiferente[botoesCicloDiferente.length - 1];
-    for (const botao of [botaoProMensal, botaoProAnual]) {
-      expect(botao).toBeDisabled();
-      fireEvent.click(botao);
-    }
-    expect(trocarPlano).not.toHaveBeenCalled();
-  });
-
-  it("primeira assinatura pendente (Free → pago): também bloqueia clicar de novo", async () => {
+  it("com troca de plano pendente, o plano fora do par atual/pendente fica bloqueado", async () => {
     const { iniciarAssinatura } = await import("@/app/actions/assinatura");
     vi.mocked(iniciarAssinatura).mockClear();
 
@@ -493,7 +462,7 @@ describe("AssinaturaClient — meio de pagamento no upgrade", () => {
     fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
 
     const botoes = screen.getAllByRole("button", { name: /troca já em andamento/i });
-    expect(botoes).toHaveLength(4); // Starter e Pro, mensal e anual
+    expect(botoes).toHaveLength(2); // Pro mensal e anual — Starter (o pendente) virou retomada
     for (const botao of botoes) {
       expect(botao).toBeDisabled();
       fireEvent.click(botao);
@@ -521,6 +490,45 @@ describe("AssinaturaClient — meio de pagamento no upgrade", () => {
       fireEvent.click(screen.getByRole("button", { name: /assinar pro mensal/i }));
     });
     expect(trocarPlano).toHaveBeenCalledWith("pro", "PIX");
+  });
+});
+
+/**
+ * Se o lojista fecha a página do Asaas sem pagar, pending_plan fica gravado
+ * e o botão daquele mesmo plano ficava travado pra sempre em "Troca já em
+ * andamento", sem meio de retomar. Diferente do Pix (que já tem uma cobrança
+ * real em aberto, mostrada em pixPendente), no cartão nunca existe cobrança
+ * nenhuma enquanto o checkout não é concluído — retomar é seguro.
+ */
+describe("AssinaturaClient — retomar checkout de cartão abandonado", () => {
+  it("pending_plan setado → botão daquele plano habilitado, com rótulo de retomada", async () => {
+    const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+    vi.mocked(iniciarAssinatura).mockClear();
+    vi.mocked(iniciarAssinatura).mockResolvedValue({ ok: true, redirectUrl: "https://x.com" });
+
+    render(<AssinaturaClient {...BASE} pendingPlan="starter" planExpiresAt={null} />);
+
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+
+    const botao = screen.getByRole("button", { name: /retomar pagamento.*starter mensal/i });
+    expect(botao).not.toBeDisabled();
+
+    await act(async () => {
+      fireEvent.click(botao);
+    });
+    expect(iniciarAssinatura).toHaveBeenCalledWith("starter", "monthly", "CREDIT_CARD");
+  });
+
+  it("pending_plan setado → botões dos outros planos seguem bloqueados", () => {
+    render(<AssinaturaClient {...BASE} pendingPlan="starter" planExpiresAt={null} />);
+
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+
+    const botoesPro = screen.getAllByRole("button", { name: /troca já em andamento/i });
+    expect(botoesPro).toHaveLength(2);
+    for (const botao of botoesPro) {
+      expect(botao).toBeDisabled();
+    }
   });
 });
 
@@ -583,14 +591,14 @@ describe("AssinaturaClient — assinar de novo depois de cancelar (ainda com ace
     const { cancelarAssinatura } = await import("@/app/actions/assinatura");
     vi.mocked(cancelarAssinatura).mockResolvedValue({ ok: true });
 
+    // plan=free/pending=starter: Pro fica bloqueado de verdade por troca
+    // pendente (Starter, o próprio pendente, já libera como retomada).
     render(
       <AssinaturaClient
         {...BASE}
-        plan="starter"
-        pendingPlan="pro"
+        pendingPlan="starter"
         subscriptionStatus="active"
         planExpiresAt="2026-09-12T00:00:00.000Z"
-        billingCycle="monthly"
       />
     );
 
