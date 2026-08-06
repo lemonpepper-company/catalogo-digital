@@ -136,28 +136,75 @@ npx supabase db query "update public.stores set plan_expires_at = now() - interv
 
 ---
 
-## Bloco 4 — Troca de plano
+## Bloco 4 — Upgrade de plano
+
+Downgrade direto e troca de ciclo **não são suportados** — quem quer reduzir ou
+mudar de ciclo cancela e assina de novo depois. Os cenários 4.5 a 4.8 verificam
+justamente que esses caminhos estão bloqueados, com explicação na tela.
 
 | # | Ação | Esperado | ✓ |
 |---|---|---|---|
-| 4.1 | Com Starter ativo, fazer upgrade para Pro | Cobrança avulsa criada, com o link de pagamento exibido na tela | ☐ |
-| 4.2 | **Antes de pagar** | `pending_plan = 'pro'`, `plan` **ainda** `starter` | ☐ |
-| 4.3 | Conferir o valor da cobrança | Proporcional ao que resta do ciclo — não os R$ 30,00 cheios da diferença | ☐ |
-| 4.4 | Pagar | `plan = 'pro'`, `pending_plan = null` | ☐ |
-| 4.5 | Com Pro ativo, fazer downgrade para Starter | `pending_plan = 'starter'`, **nenhuma cobrança**, `plan` segue `pro` | ☐ |
-| 4.6 | Abrir a vitrine após o downgrade | Ainda com limites do Pro — downgrade só vale na virada do ciclo | ☐ |
-| 4.7 | Tela de assinatura | Anuncia "muda para Starter em {data}" | ☐ |
+| 4.1 | Com Starter ativo, fazer upgrade para Pro (mesmo ciclo) | Cobrança avulsa criada, com o link de pagamento na tela | ☐ |
+| 4.2 | **Antes de pagar**, conferir o banco | `pending_plan = 'pro'`, `plan` **ainda** `starter` | ☐ |
+| 4.3 | Conferir o valor da cobrança | Proporcional ao que resta do ciclo — não a diferença cheia | ☐ |
+| 4.4 | Conferir a tela de pagamento do Asaas | Nome, telefone, CPF/CNPJ e endereço **preenchidos** | ☐ |
+| 4.5 | Pagar | `plan = 'pro'`, `pending_plan = null` | ☐ |
+| 4.6 | **Conferir `plan_expires_at` depois de pagar** | **Inalterado.** Se pulou para "amanhã + 1 ciclo", a loja ganhou tempo de graça | ☐ |
+| 4.7 | Com Pro ativo, tentar assinar Starter | Botão desabilitado, com texto explicando que é preciso cancelar | ☐ |
+| 4.8 | Com assinatura **anual** ativa, tentar um plano **mensal** | Botão desabilitado, explicando que é preciso cancelar para trocar o ciclo | ☐ |
+
+> **O 4.6 é o mais importante deste bloco.** A cobrança avulsa vence amanhã; sem
+> a guarda que a impede de mexer na validade, confirmá-la estenderia o acesso por
+> um ciclo inteiro a partir de amanhã — meses de plano pago de graça.
+>
+> **O 4.4 valida um bug já corrigido:** `trocarPlano` não sincronizava o cliente
+> no Asaas, e a fatura saía com bairro e telefone vazios.
 
 ---
 
-## Bloco 5 — Cancelamento
+## Bloco 5 — Cancelamento e recontratação
 
 | # | Ação | Esperado | ✓ |
 |---|---|---|---|
-| 5.1 | Cancelar a assinatura | `subscription_status = 'canceled'`, `plan_expires_at` **intacto**, `pending_plan = null` | ☐ |
-| 5.2 | Abrir a vitrine | Continua no plano pago | ☐ |
-| 5.3 | Tela de assinatura | "Sua assinatura termina em {data}" | ☐ |
-| 5.4 | Forçar a data a passar | Cai para Free | ☐ |
+| 5.1 | Clicar em cancelar | Abre confirmação dizendo **até quando** o acesso continua | ☐ |
+| 5.2 | Fechar a confirmação sem confirmar | Nada muda no banco | ☐ |
+| 5.3 | Confirmar o cancelamento | `subscription_status = 'canceled'`, `plan_expires_at` **intacto**, `pending_plan = null` | ☐ |
+| 5.4 | Abrir a vitrine | Continua no plano pago | ☐ |
+| 5.5 | Topo da tela de assinatura | Mostra **qual plano e ciclo** — ex.: "Pro anual — termina em …" | ☐ |
+| 5.6 | Com Starter cancelado no prazo, tentar assinar Starter | Bloqueado: já tem esse plano até a data | ☐ |
+| 5.7 | Com Starter cancelado no prazo, tentar assinar **Pro** | **Liberado** — upgrade não duplica valor, aumenta | ☐ |
+| 5.8 | Com Pro cancelado no prazo, tentar qualquer plano | Todos bloqueados até a data passar | ☐ |
+| 5.9 | Forçar a data a passar e recarregar | Todos os planos voltam a ficar disponíveis | ☐ |
+| 5.10 | Deixar a data passar | Vitrine cai para Free | ☐ |
+
+> **O 5.5 valida um bug já corrigido:** com a assinatura cancelada, nenhum botão
+> exibe "Plano atual", e o cabeçalho não dizia qual plano o lojista tinha.
+>
+> **Os 5.6 a 5.8 são a regra que evita cobrança sobreposta:** durante um período
+> já pago, só upgrade é permitido.
+
+---
+
+## Bloco 5B — Interrupções e retomada
+
+Cenários que só aparecem quando o lojista abandona o fluxo no meio — foi assim
+que os bugs mais caros desta integração apareceram.
+
+| # | Ação | Esperado | ✓ |
+|---|---|---|---|
+| 5B.1 | Iniciar contratação por cartão e **fechar a página do Asaas** sem pagar | Volta ao painel com `pending_plan` gravado | ☐ |
+| 5B.2 | Clicar no mesmo plano de novo | Botão habilitado, rotulado como retomada — gera um checkout novo | ☐ |
+| 5B.3 | Clicar em **outro** plano nesse estado | Bloqueado, para não criar uma segunda cobrança em cima da pendente | ☐ |
+| 5B.4 | Concluir o pagamento retomado | Plano promove normalmente | ☐ |
+| 5B.5 | Assinar por Pix, não pagar, e depois assinar por cartão | Funciona — o id órfão da tentativa Pix não bloqueia o checkout novo | ☐ |
+| 5B.6 | Durante um processamento, tentar trocar o meio de pagamento | Rádios desabilitados; aviso de processamento visível e destacado | ☐ |
+| 5B.7 | Na modal de endereço, confirmar com campos vazios | Erro **em cada campo** faltando, não só uma mensagem no topo | ☐ |
+| 5B.8 | Corrigir um campo com erro | O erro daquele campo some | ☐ |
+
+> **O 5B.5 é o cenário que quebrou a validação de 5 de agosto.** A loja tinha um
+> `asaas_subscription_id` de uma tentativa Pix abandonada, e a guarda do vínculo
+> impedia o `CHECKOUT_PAID` do cartão de gravar o id novo — o pagamento era
+> confirmado e o plano nunca promovia.
 
 ---
 
@@ -200,8 +247,11 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:3000/api/webho
 
 ## Ordem sugerida
 
-**Essencial (~30 min):** blocos 1 → 3 → 6.
+**Essencial (~40 min):** blocos 1 → 3 → 5B → 6.
 **Completo:** acrescentar 2, 4 e 5.
+
+O 5B entra no essencial porque foi ali que apareceram os bugs mais caros desta
+integração — todos em fluxos interrompidos no meio, não no caminho feliz.
 
 Se só houver tempo para um cenário, faça o **3.5**: é o que amarra as três
 entregas — cobrança, modelagem de acesso e truncamento da vitrine.
