@@ -70,6 +70,50 @@ describe("AssinaturaClient", () => {
     expect(screen.getByText(/termina em 30 de agosto/i)).toBeTruthy();
   });
 
+  /**
+   * Sem plano/ciclo na mensagem, nada na tela dizia qual plano o lojista tem
+   * quando status === "canceled" (o botão "Plano atual" só aparece com
+   * status === "active").
+   */
+  it("mensagem de status inclui plano e ciclo nos três estados", () => {
+    // Cada estado precisa da sua própria instância — `status` nasce de
+    // useState(subscriptionStatus), que só lê a prop inicial no mount.
+    const { unmount: unmountAtiva } = render(
+      <AssinaturaClient
+        {...BASE}
+        plan="pro"
+        subscriptionStatus="active"
+        planExpiresAt="2026-09-12T00:00:00.000Z"
+        billingCycle="annual"
+      />
+    );
+    expect(screen.getByText(/pro anual — renova em 12 de setembro/i)).toBeTruthy();
+    unmountAtiva();
+
+    const { unmount: unmountAtraso } = render(
+      <AssinaturaClient
+        {...BASE}
+        plan="pro"
+        subscriptionStatus="past_due"
+        planExpiresAt="2026-08-15T00:00:00.000Z"
+        billingCycle="monthly"
+      />
+    );
+    expect(screen.getByText(/pro mensal —.*cobran(ç|c)a falhou/i)).toBeTruthy();
+    unmountAtraso();
+
+    render(
+      <AssinaturaClient
+        {...BASE}
+        plan="pro"
+        subscriptionStatus="canceled"
+        planExpiresAt="2026-08-30T00:00:00.000Z"
+        billingCycle="annual"
+      />
+    );
+    expect(screen.getByText(/pro anual — termina em 30 de agosto/i)).toBeTruthy();
+  });
+
   it("downgrade agendado é anunciado", () => {
     render(
       <AssinaturaClient

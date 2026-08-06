@@ -24,26 +24,40 @@ import { formatarDataSP } from "@/lib/timezone-sp";
 
 type Status = SubscriptionStatus | null;
 
+const PLAN_LABELS: Record<PaidPlan, string> = { starter: "Starter", pro: "Pro" };
+const CYCLE_LABELS: Record<BillingCycle, string> = { monthly: "Mensal", annual: "Anual" };
+
 /**
  * Escolhe a frase de status a partir de `subscriptionStatus` + `planExpiresAt`.
  * Sem os dois, o lojista nunca teve (ou não tem mais) assinatura paga em curso.
+ * Plano e ciclo entram no início da frase — sem eles, nada na tela dizia qual
+ * plano o lojista tem quando `status === "canceled"` (o botão "Plano atual"
+ * só aparece com `status === "active"`).
  */
-export function mensagemDeStatus(status: Status, planExpiresAt: string | null): string {
+export function mensagemDeStatus(
+  status: Status,
+  planExpiresAt: string | null,
+  plan: Plan,
+  billingCycle: BillingCycle | null
+): string {
   if (!status || !planExpiresAt) return "Você está no plano Free.";
   const data = formatarDataSP(planExpiresAt);
+  const rotuloPlano =
+    plan !== "free" && billingCycle
+      ? `${PLAN_LABELS[plan]} ${CYCLE_LABELS[billingCycle].toLowerCase()}`
+      : null;
 
   switch (status) {
     case "active":
-      return `Renova em ${data}.`;
+      return rotuloPlano ? `${rotuloPlano} — renova em ${data}.` : `Renova em ${data}.`;
     case "past_due":
-      return `Sua cobrança falhou — regularize até ${data}.`;
+      return rotuloPlano
+        ? `${rotuloPlano} — cobrança falhou, regularize até ${data}.`
+        : `Sua cobrança falhou — regularize até ${data}.`;
     case "canceled":
-      return `Sua assinatura termina em ${data}.`;
+      return rotuloPlano ? `${rotuloPlano} — termina em ${data}.` : `Sua assinatura termina em ${data}.`;
   }
 }
-
-const PLAN_LABELS: Record<PaidPlan, string> = { starter: "Starter", pro: "Pro" };
-const CYCLE_LABELS: Record<BillingCycle, string> = { monthly: "Mensal", annual: "Anual" };
 const PLANOS: PaidPlan[] = ["starter", "pro"];
 const CICLOS: BillingCycle[] = ["monthly", "annual"];
 
@@ -413,7 +427,9 @@ export function AssinaturaClient({
       <h1 className="font-display font-semibold text-[28px] text-obsidian">Assinatura</h1>
 
       <Card>
-        <p className="font-body text-[15px] text-obsidian">{mensagemDeStatus(status, planExpiresAt)}</p>
+        <p className="font-body text-[15px] text-obsidian">
+          {mensagemDeStatus(status, planExpiresAt, plan, billingCycle)}
+        </p>
         {pending && (
           <p className="font-body text-[13px] text-graphite mt-2">
             {planExpiresAt
