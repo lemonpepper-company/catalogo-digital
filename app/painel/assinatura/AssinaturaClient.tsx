@@ -62,6 +62,19 @@ export function mensagemDeStatus(
 const PLANOS: PaidPlan[] = ["starter", "pro"];
 const CICLOS: BillingCycle[] = ["monthly", "annual"];
 
+type EnderecoField = "cep" | "numero" | "rua" | "bairro" | "cidade";
+
+// Mapeia a mensagem exata que salvarEndereco devolve (app/actions/assinatura.ts)
+// pro campo correspondente — a Server Action não devolve qual campo falhou,
+// só a frase, e essas são as únicas frases que ela produz.
+const ENDERECO_ERRO_CAMPO: Record<string, EnderecoField> = {
+  "CEP inválido.": "cep",
+  "Número é obrigatório.": "numero",
+  "Rua é obrigatória.": "rua",
+  "Bairro é obrigatória.": "bairro",
+  "Cidade é obrigatória.": "cidade",
+};
+
 function formatBRL(valor: number): string {
   return `R$ ${valor.toLocaleString("pt-BR", {
     minimumFractionDigits: 2,
@@ -264,7 +277,12 @@ export function AssinaturaClient({
   const [ruaValue, setRuaValue] = useState("");
   const [bairroValue, setBairroValue] = useState("");
   const [cidadeValue, setCidadeValue] = useState("");
+  // Mensagem geral (topo da modal) só para erros que não pertencem a um
+  // campo específico — falha de rede, recusa do Asaas. Campo obrigatório
+  // vazio vira erro no próprio Input, não uma frase solta no topo que não
+  // diz qual campo falta.
   const [enderecoError, setEnderecoError] = useState<string | null>(null);
+  const [enderecoErrors, setEnderecoErrors] = useState<Partial<Record<EnderecoField, string>>>({});
   const [savingEndereco, setSavingEndereco] = useState(false);
 
   // Sugere rua/bairro/cidade a partir do CEP ao sair do campo — nem todo
@@ -322,6 +340,8 @@ export function AssinaturaClient({
         setRuaValue("");
         setBairroValue("");
         setCidadeValue("");
+        setEnderecoError(null);
+        setEnderecoErrors({});
         return;
       }
       setErrorMsg(result.error);
@@ -401,11 +421,17 @@ export function AssinaturaClient({
   async function confirmarEndereco() {
     if (!enderecoIntencao) return;
     setEnderecoError(null);
+    setEnderecoErrors({});
     setSavingEndereco(true);
     try {
       const result = await salvarEndereco(cepValue, numeroValue, ruaValue, bairroValue, cidadeValue);
       if (result && "error" in result) {
-        setEnderecoError(result.error);
+        const campo = ENDERECO_ERRO_CAMPO[result.error];
+        if (campo) {
+          setEnderecoErrors({ [campo]: result.error });
+        } else {
+          setEnderecoError(result.error);
+        }
         return;
       }
 
@@ -704,32 +730,56 @@ export function AssinaturaClient({
             cidade são sugeridos pelo CEP quando possível — confira ou
             complete manualmente.
           </p>
+          {enderecoError && (
+            <p role="alert" className="font-body text-[13px] text-error">
+              {enderecoError}
+            </p>
+          )}
           <Input
             label="CEP"
             value={cepValue}
-            onChange={(e) => setCepValue(e.target.value)}
+            onChange={(e) => {
+              setCepValue(e.target.value);
+              setEnderecoErrors((atual) => ({ ...atual, cep: undefined }));
+            }}
             onBlur={autopreencherPorCep}
-            error={enderecoError ?? undefined}
+            error={enderecoErrors.cep}
           />
           <Input
             label="Número"
             value={numeroValue}
-            onChange={(e) => setNumeroValue(e.target.value)}
+            onChange={(e) => {
+              setNumeroValue(e.target.value);
+              setEnderecoErrors((atual) => ({ ...atual, numero: undefined }));
+            }}
+            error={enderecoErrors.numero}
           />
           <Input
             label="Rua"
             value={ruaValue}
-            onChange={(e) => setRuaValue(e.target.value)}
+            onChange={(e) => {
+              setRuaValue(e.target.value);
+              setEnderecoErrors((atual) => ({ ...atual, rua: undefined }));
+            }}
+            error={enderecoErrors.rua}
           />
           <Input
             label="Bairro"
             value={bairroValue}
-            onChange={(e) => setBairroValue(e.target.value)}
+            onChange={(e) => {
+              setBairroValue(e.target.value);
+              setEnderecoErrors((atual) => ({ ...atual, bairro: undefined }));
+            }}
+            error={enderecoErrors.bairro}
           />
           <Input
             label="Cidade"
             value={cidadeValue}
-            onChange={(e) => setCidadeValue(e.target.value)}
+            onChange={(e) => {
+              setCidadeValue(e.target.value);
+              setEnderecoErrors((atual) => ({ ...atual, cidade: undefined }));
+            }}
+            error={enderecoErrors.cidade}
           />
           <div className="flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={() => setEnderecoIntencao(null)}>

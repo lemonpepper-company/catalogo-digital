@@ -772,6 +772,66 @@ describe("AssinaturaClient — modal de documento", () => {
 });
 
 /**
+ * Campo obrigatório vazio na modal de endereço produzia uma única mensagem
+ * vermelha no topo, sem indicar qual campo falta — o Input já suporta
+ * `error` por campo, só não era usado. A mensagem geral no topo continua
+ * existindo, mas só para falhas que não pertencem a um campo (rede, Asaas).
+ */
+describe("AssinaturaClient — modal de endereço, erros por campo", () => {
+  async function abrirModalEndereco() {
+    const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+    vi.mocked(iniciarAssinatura).mockResolvedValue({ error: "ENDERECO_NECESSARIO" });
+
+    render(<AssinaturaClient {...BASE} document="52998224725" />);
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /assinar/i })[0]);
+    await screen.findByRole("dialog");
+  }
+
+  it("campo obrigatório vazio mostra o erro no campo, não só no topo", async () => {
+    await abrirModalEndereco();
+    const { salvarEndereco } = await import("@/app/actions/assinatura");
+    vi.mocked(salvarEndereco).mockResolvedValue({ error: "Número é obrigatório." });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /confirmar/i }));
+    });
+
+    expect(screen.getByText("Número é obrigatório.")).toBeTruthy();
+    // Erro de campo não usa role="alert" — só a mensagem geral do topo usa,
+    // e ela não deveria aparecer para um erro que pertence a um campo.
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("editar o campo com erro limpa o erro daquele campo", async () => {
+    await abrirModalEndereco();
+    const { salvarEndereco } = await import("@/app/actions/assinatura");
+    vi.mocked(salvarEndereco).mockResolvedValue({ error: "Rua é obrigatória." });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /confirmar/i }));
+    });
+    expect(screen.getByText("Rua é obrigatória.")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText(/^rua$/i), { target: { value: "Rua Nova" } });
+
+    expect(screen.queryByText("Rua é obrigatória.")).toBeNull();
+  });
+
+  it("erro que não pertence a um campo (ex.: falha ao gravar) aparece como mensagem geral", async () => {
+    await abrirModalEndereco();
+    const { salvarEndereco } = await import("@/app/actions/assinatura");
+    vi.mocked(salvarEndereco).mockResolvedValue({ error: "Não foi possível salvar o endereço." });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /confirmar/i }));
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível salvar o endereço.");
+  });
+});
+
+/**
  * Diferente do cartão (que redireciona pro checkout hospedado), o Pix cria a
  * cobrança sem sair do site — sem mostrar o link em algum lugar, o lojista
  * não tem como pagar.
