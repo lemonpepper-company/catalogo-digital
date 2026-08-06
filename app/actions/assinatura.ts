@@ -18,6 +18,7 @@ import { PLAN_RANK } from "@/lib/plan-limits";
 import type { BillingCycle } from "@/lib/asaas/events";
 import { validarDocumento, normalizarDocumento } from "@/lib/validation/documento";
 import { validarCep, normalizarCep } from "@/lib/validation/cep";
+import type { StoreSettings } from "@/lib/types";
 
 export type AssinaturaState =
   | { error: string }
@@ -37,6 +38,36 @@ function amanha(): Date {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + 1);
   return d;
+}
+
+/**
+ * Mesmos campos em iniciarAssinatura e trocarPlano — os dois sincronizam o
+ * customer no Asaas antes de cobrar, e duplicar essa montagem convida os
+ * dois caminhos a divergirem (achado ao vivo: upgrade saía com bairro e
+ * telefone vazios porque só iniciarAssinatura sincronizava).
+ */
+function montarDadosCliente(
+  store: Pick<
+    StoreSettings,
+    "name" | "document" | "whatsapp" | "address" | "addressNumber" | "addressProvince" | "addressCity" | "addressPostalCode"
+  >,
+  email: string
+) {
+  return {
+    name: store.name,
+    cpfCnpj: store.document ?? "",
+    email,
+    phone: (store.whatsapp ?? "").replace(/\D/g, ""),
+    ...(store.address
+      ? {
+          address: store.address,
+          addressNumber: store.addressNumber ?? undefined,
+          province: store.addressProvince ?? undefined,
+          city: store.addressCity ?? undefined,
+          postalCode: store.addressPostalCode ?? undefined,
+        }
+      : {}),
+  };
 }
 
 /**
@@ -106,21 +137,7 @@ export async function iniciarAssinatura(
       return { error: "ENDERECO_NECESSARIO" };
     }
 
-    const dadosCliente = {
-      name: store.name,
-      cpfCnpj: store.document,
-      email: user.email,
-      phone: store.whatsapp.replace(/\D/g, ""),
-      ...(store.address
-        ? {
-            address: store.address,
-            addressNumber: store.addressNumber ?? undefined,
-            province: store.addressProvince ?? undefined,
-            city: store.addressCity ?? undefined,
-            postalCode: store.addressPostalCode ?? undefined,
-          }
-        : {}),
-    };
+    const dadosCliente = montarDadosCliente(store, user.email);
 
     let customerId = store.asaasCustomerId;
     if (customerId) {
@@ -215,6 +232,19 @@ export async function trocarPlano(
   const supabase = createAdminClient();
 
   try {
+    // Sem isso, a fatura do upgrade sai com dados desatualizados (achado ao
+    // vivo: bairro e telefone vazios) sempre que o customer foi criado antes
+    // do lojista completar o cadastro — mesma sincronização que
+    // iniciarAssinatura já faz antes de qualquer cobrança.
+    const authClient = await createClient();
+    const {
+      data: { user },
+    } = await authClient.auth.getUser();
+    if (!user?.email) return { error: "E-mail da conta não encontrado." };
+    if (store.asaasCustomerId) {
+      await atualizarCliente(store.asaasCustomerId, montarDadosCliente(store, user.email));
+    }
+
     await atualizarAssinatura({ subscriptionId: store.asaasSubscriptionId, plan: destino, cycle });
 
     const valor =

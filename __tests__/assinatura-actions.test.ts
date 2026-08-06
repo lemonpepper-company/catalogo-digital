@@ -355,6 +355,43 @@ describe("trocarPlano", () => {
   });
 
   /**
+   * Achado ao vivo: a tela de pagamento do upgrade mostrava bairro e
+   * telefone vazios — o customer no Asaas não era sincronizado antes da
+   * cobrança, diferente de iniciarAssinatura.
+   */
+  it("sincroniza o cliente no Asaas antes de atualizar a assinatura", async () => {
+    getCurrentStore.mockResolvedValue(LOJA_STARTER);
+    criarCobrancaAvulsa.mockResolvedValue({ id: "pay_1", invoiceUrl: "https://x" });
+    const { trocarPlano } = await import("@/app/actions/assinatura");
+
+    await trocarPlano("pro", "CREDIT_CARD");
+
+    expect(atualizarCliente).toHaveBeenCalled();
+    const ordemCliente = atualizarCliente.mock.invocationCallOrder[0];
+    const ordemAssinatura = atualizarAssinatura.mock.invocationCallOrder[0];
+    expect(ordemCliente).toBeLessThan(ordemAssinatura);
+  });
+
+  it("envia os mesmos campos de cliente que iniciarAssinatura", async () => {
+    getCurrentStore.mockResolvedValue(LOJA_STARTER);
+    criarCobrancaAvulsa.mockResolvedValue({ id: "pay_1", invoiceUrl: "https://x" });
+    const { trocarPlano } = await import("@/app/actions/assinatura");
+
+    await trocarPlano("pro", "CREDIT_CARD");
+
+    expect(atualizarCliente).toHaveBeenCalledWith(
+      "cus_1",
+      expect.objectContaining({
+        name: "Ateliê Mira",
+        cpfCnpj: "52998224725",
+        email: "ana@atelie.test",
+        phone: "11999990000",
+        address: "Rua das Flores",
+      })
+    );
+  });
+
+  /**
    * Decisão de produto: Pro não troca para Starter — quem quiser reduzir
    * cancela e assina o menor depois. Server Action é endpoint público, então
    * o bloqueio precisa existir aqui, não só no botão desabilitado do client.
