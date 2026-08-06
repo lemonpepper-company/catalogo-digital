@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Toast } from "@/components/ui/Toast";
+import { cn } from "@/lib/utils";
 import {
   iniciarAssinatura,
   trocarPlano,
@@ -278,6 +279,12 @@ export function AssinaturaClient({
     setCidadeValue((atual) => atual || encontrado.cidade);
   }
 
+  // Trocar o meio no meio de uma contratação em andamento não muda a
+  // cobrança já criada, mas passa a impressão de que mudou — trava enquanto
+  // um clique está em voo (loadingKey) ou uma troca aguarda confirmação do
+  // webhook (pending).
+  const meioDesabilitado = loadingKey !== null || !!pending;
+
   const podeCancelar = status === "active" || status === "past_due";
   // Cancelar deleta a assinatura no Asaas mas mantém o acesso até
   // plan_expires_at (é assim que já funciona: cancelamento só RESTRINGE,
@@ -449,8 +456,17 @@ export function AssinaturaClient({
         <p className="font-body text-[15px] text-obsidian">
           {mensagemDeStatus(status, planExpiresAt, plan, billingCycle)}
         </p>
-        {pending && (
-          <p className="font-body text-[13px] text-graphite mt-2">
+      </Card>
+
+      {/*
+        Peso visual proposital: enquanto pending existe, o lojista está
+        esperando o webhook confirmar um pagamento — um texto secundário
+        discreto some no meio da tela justamente no estado em que ele mais
+        precisa saber que algo está em andamento.
+      */}
+      {pending && (
+        <Card className="border-gold/40 bg-linen">
+          <p className="font-body text-[13px] text-obsidian">
             {planExpiresAt
               ? // Downgrade de uma assinatura já ativa: pending_plan muda o
                 // plano na renovação, data conhecida.
@@ -460,8 +476,8 @@ export function AssinaturaClient({
                 // confirmar o primeiro pagamento — sem data ainda.
                 `Assinatura em processamento — muda para ${PLAN_LABELS[pending]} assim que o pagamento confirmar.`}
           </p>
-        )}
-      </Card>
+        </Card>
+      )}
 
       {/*
         pixUrl vem do clique de assinar (só existe nesta sessão do navegador,
@@ -496,13 +512,19 @@ export function AssinaturaClient({
           1. Meio de pagamento
         </h2>
         <div className="flex flex-col gap-3">
-          <label className="flex items-start gap-3 cursor-pointer">
+          <label
+            className={cn(
+              "flex items-start gap-3",
+              meioDesabilitado ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+            )}
+          >
             <input
               type="radio"
               name="meio"
               value="CREDIT_CARD"
               checked={meio === "CREDIT_CARD"}
               onChange={() => setMeio("CREDIT_CARD")}
+              disabled={meioDesabilitado}
               className="mt-1"
             />
             <span>
@@ -514,13 +536,19 @@ export function AssinaturaClient({
               </span>
             </span>
           </label>
-          <label className="flex items-start gap-3 cursor-pointer">
+          <label
+            className={cn(
+              "flex items-start gap-3",
+              meioDesabilitado ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+            )}
+          >
             <input
               type="radio"
               name="meio"
               value="PIX"
               checked={meio === "PIX"}
               onChange={() => setMeio("PIX")}
+              disabled={meioDesabilitado}
               className="mt-1"
             />
             <span>

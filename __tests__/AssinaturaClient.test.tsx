@@ -494,6 +494,49 @@ describe("AssinaturaClient — meio de pagamento no upgrade", () => {
 });
 
 /**
+ * Trocar o meio no meio de uma contratação em andamento não muda a cobrança
+ * já criada, mas passa a impressão de que mudou — os rádios travam enquanto
+ * um clique está em voo ou uma troca aguarda confirmação do webhook.
+ */
+describe("AssinaturaClient — rádios de meio travados durante processamento", () => {
+  it("com loadingKey setado (clique em andamento), os rádios ficam desabilitados", async () => {
+    const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+    let resolver: (value: { ok: true }) => void = () => {};
+    vi.mocked(iniciarAssinatura).mockReturnValue(
+      new Promise((resolve) => {
+        resolver = resolve;
+      })
+    );
+
+    render(<AssinaturaClient {...BASE} document="52998224725" />);
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /assinar starter mensal/i }));
+
+    expect(screen.getByRole("radio", { name: /cart(ã|a)o/i })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: /pix/i })).toBeDisabled();
+
+    await act(async () => {
+      resolver({ ok: true });
+    });
+  });
+
+  it("com pending setado, os rádios ficam desabilitados", () => {
+    render(<AssinaturaClient {...BASE} pendingPlan="starter" planExpiresAt={null} />);
+
+    expect(screen.getByRole("radio", { name: /cart(ã|a)o/i })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: /pix/i })).toBeDisabled();
+  });
+
+  it("sem loading e sem pending, os rádios seguem livres", () => {
+    render(<AssinaturaClient {...BASE} document="52998224725" />);
+
+    expect(screen.getByRole("radio", { name: /cart(ã|a)o/i })).not.toBeDisabled();
+    expect(screen.getByRole("radio", { name: /pix/i })).not.toBeDisabled();
+  });
+});
+
+/**
  * Se o lojista fecha a página do Asaas sem pagar, pending_plan fica gravado
  * e o botão daquele mesmo plano ficava travado pra sempre em "Troca já em
  * andamento", sem meio de retomar. Diferente do Pix (que já tem uma cobrança
