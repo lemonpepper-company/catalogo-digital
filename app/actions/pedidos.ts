@@ -183,7 +183,7 @@ export async function updateOrderStatus(
   const store = await getCurrentStore();
   if (!store) return { error: "Loja não encontrada." };
 
-  if (!getPlanLimits(store.plan, store.trialEndsAt).hasOrderHistory) {
+  if (!getPlanLimits(store.plan, store.planExpiresAt).hasOrderHistory) {
     return { error: "Histórico de pedidos disponível a partir do plano Starter." };
   }
 

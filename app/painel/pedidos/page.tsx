@@ -22,7 +22,7 @@ export default async function PedidosPage({
 
   // Gate antes de qualquer I/O: no plano Free nenhum dado do histórico chega
   // ao HTML (ORD-28).
-  if (!getPlanLimits(store.plan, store.trialEndsAt).hasOrderHistory) {
+  if (!getPlanLimits(store.plan, store.planExpiresAt).hasOrderHistory) {
     return (
       <RecursoBloqueado
         titulo="Histórico de pedidos"

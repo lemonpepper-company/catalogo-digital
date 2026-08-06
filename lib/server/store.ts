@@ -15,7 +15,7 @@ type StoreRow = {
   name: string;
   slug: string;
   plan: Plan;
-  trial_ends_at: string | null;
+  plan_expires_at: string | null;
   whatsapp: string | null;
   accent_color: string | null;
   logo_url: string | null;
@@ -35,6 +35,17 @@ type StoreRow = {
   corner_style: string;
   secondary_color: string | null;
   grid_density: string;
+  document: string | null;
+  address: string | null;
+  address_number: string | null;
+  address_province: string | null;
+  address_city: string | null;
+  address_postal_code: string | null;
+  asaas_customer_id: string | null;
+  asaas_subscription_id: string | null;
+  billing_cycle: string | null;
+  subscription_status: string | null;
+  pending_plan: string | null;
 };
 
 type ProductRow = {
@@ -59,7 +70,7 @@ export function mapStore(row: StoreRow): StoreSettings {
     name: row.name,
     slug: row.slug,
     plan: row.plan,
-    trialEndsAt: row.trial_ends_at,
+    planExpiresAt: row.plan_expires_at,
     whatsapp: row.whatsapp,
     accentColor: row.accent_color ?? DEFAULT_ACCENT_COLOR,
     logoUrl: row.logo_url,
@@ -79,6 +90,17 @@ export function mapStore(row: StoreRow): StoreSettings {
     cornerStyle: row.corner_style,
     secondaryColor: row.secondary_color,
     gridDensity: row.grid_density === "compacto" ? "compacto" : "padrao",
+    document: row.document,
+    address: row.address,
+    addressNumber: row.address_number,
+    addressProvince: row.address_province,
+    addressCity: row.address_city,
+    addressPostalCode: row.address_postal_code,
+    asaasCustomerId: row.asaas_customer_id,
+    asaasSubscriptionId: row.asaas_subscription_id,
+    billingCycle: row.billing_cycle,
+    subscriptionStatus: row.subscription_status,
+    pendingPlan: row.pending_plan,
   };
 }
 
@@ -111,7 +133,7 @@ export const getCurrentStore = cache(async (): Promise<StoreSettings | null> => 
   const { data } = await supabase
     .from("stores")
     .select(
-      "id, name, slug, plan, trial_ends_at, whatsapp, accent_color, cover_url, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods, custom_domain, custom_domain_verified, font_pairing, background_palette, corner_style, secondary_color, grid_density"
+      "id, name, slug, plan, plan_expires_at, whatsapp, accent_color, cover_url, logo_url, description, monogram, analytics_id, pixel_id, message_template, instagram, payment_methods, delivery_methods, custom_domain, custom_domain_verified, font_pairing, background_palette, corner_style, secondary_color, grid_density, document, address, address_number, address_province, address_city, address_postal_code, asaas_customer_id, asaas_subscription_id, billing_cycle, subscription_status, pending_plan"
     )
     .eq("owner_id", user.id)
     .maybeSingle();

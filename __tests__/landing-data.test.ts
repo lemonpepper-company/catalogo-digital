@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   features,
   faqs,
@@ -110,5 +111,23 @@ describe("bullets de plano — cor secundária deixou de ser diferencial", () =>
   it("Starter anuncia os limites novos", () => {
     expect(starterFeatures).toContain("Até 50 produtos");
     expect(starterFeatures).toContain("7 categorias");
+  });
+});
+
+describe("preços publicados na landing", () => {
+  const page = readFileSync("app/page.tsx", "utf8");
+
+  it("exibe os valores mensais", () => {
+    expect(page).toMatch(/R\$ 29,90/);
+    expect(page).toMatch(/R\$ 59,90/);
+  });
+
+  it("exibe o anual como mensalidade equivalente", () => {
+    expect(page).toMatch(/R\$ 24,92\/mês, cobrado anualmente/);
+    expect(page).toMatch(/R\$ 49,92\/mês, cobrado anualmente/);
+  });
+
+  it("não resta 'Sob consulta'", () => {
+    expect(page).not.toMatch(/Sob consulta/);
   });
 });

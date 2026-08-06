@@ -124,7 +124,7 @@ export interface StoreSettings {
   name: string;
   slug: string;
   plan: Plan;
-  trialEndsAt: string | null;
+  planExpiresAt: string | null;
   whatsapp: string | null;
   accentColor: string;
   logoUrl: string | null;
@@ -144,4 +144,15 @@ export interface StoreSettings {
   cornerStyle: string;
   secondaryColor: string | null;
   gridDensity: "padrao" | "compacto";
+  document: string | null;
+  address: string | null;
+  addressNumber: string | null;
+  addressProvince: string | null;
+  addressCity: string | null;
+  addressPostalCode: string | null;
+  asaasCustomerId: string | null;
+  asaasSubscriptionId: string | null;
+  billingCycle: string | null;
+  subscriptionStatus: string | null;
+  pendingPlan: string | null;
 }

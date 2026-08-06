@@ -9,7 +9,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 
 /**
  * `lib/plan-limits` roda de verdade aqui (APO-01/APO-03): o gate é dirigido pelo
- * `plan`/`trial_ends_at` da linha falsa de `stores`, então o teste exercita a
+ * `plan`/`plan_expires_at` da linha falsa de `stores`, então o teste exercita a
  * resolução real de plano e expiração de trial em vez de um stub.
  */
 const STORE_ID = "11111111-1111-4111-8111-111111111111";
@@ -91,8 +91,8 @@ function payload(over: Record<string, unknown> = {}) {
 }
 
 /** Linha de `stores` no plano pedido — o gate de APO-01 lê estes dois campos. */
-function storeRow(plan: string, trialEndsAt: string | null = null) {
-  return { data: { id: STORE_ID, plan, trial_ends_at: trialEndsAt } };
+function storeRow(plan: string, planExpiresAt: string | null = null) {
+  return { data: { id: STORE_ID, plan, plan_expires_at: planExpiresAt } };
 }
 
 /** Loja Pro ativa encontrada, produto pertencente à loja, insert sem erro. */
@@ -263,7 +263,7 @@ describe("registrarEvento — captura exclusiva do Pro (APO-01 a APO-06)", () =>
     });
   });
 
-  it("não grava quando o pro tem trial_ends_at vencido (APO-03)", async () => {
+  it("não grava quando o pro tem plan_expires_at vencido (APO-03)", async () => {
     const past = new Date(Date.now() - 86400000).toISOString();
     const made = setupSupabase(happyPlan({ stores: [storeRow("pro", past)] }));
     const registrarEvento = await loadAction();
@@ -274,7 +274,7 @@ describe("registrarEvento — captura exclusiva do Pro (APO-01 a APO-06)", () =>
     expect(writeCalls(made)).toHaveLength(0);
   });
 
-  it("grava quando o pro tem trial_ends_at no futuro (APO-03)", async () => {
+  it("grava quando o pro tem plan_expires_at no futuro (APO-03)", async () => {
     const future = new Date(Date.now() + 86400000).toISOString();
     const made = setupSupabase(happyPlan({ stores: [storeRow("pro", future)] }));
     const registrarEvento = await loadAction();
@@ -312,7 +312,7 @@ describe("registrarEvento — captura exclusiva do Pro (APO-01 a APO-06)", () =>
 
     await registrarEvento(payload());
 
-    expect(callsOf(made, "stores", "select")).toEqual([["id, plan, trial_ends_at"]]);
+    expect(callsOf(made, "stores", "select")).toEqual([["id, plan, plan_expires_at"]]);
     expect(made.filter((entry) => entry.table === "stores")).toHaveLength(1);
   });
 });

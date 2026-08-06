@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { CategoriasClient } from "@/app/painel/categorias/CategoriasClient";
-import { VTRINE_WHATSAPP_NUMBER } from "@/lib/contact";
 import type { StoreCategory } from "@/lib/types";
 
 vi.mock("@/app/actions/categorias", () => ({
@@ -25,11 +24,7 @@ describe("CategoriasClient — limite de categorias", () => {
     const link = screen.getByRole("link", {
       name: "Limite de categorias do plano atingido — fale conosco para aumentar",
     });
-    expect(link.getAttribute("href")).toBe(
-      `https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
-        "Olá! Quero aumentar o limite de categorias da minha loja."
-      )}`
-    );
+    expect(link.getAttribute("href")).toBe("/painel/assinatura");
   });
 
   it("não mostra o botão 'Nova categoria' quando o limite foi atingido", () => {

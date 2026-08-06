@@ -32,7 +32,7 @@ export async function registrarEvento(payload: unknown): Promise<RegistrarEvento
 
     const { data: store, error: storeError } = await supabase
       .from("stores")
-      .select("id, plan, trial_ends_at")
+      .select("id, plan, plan_expires_at")
       .eq("slug", slug)
       .eq("is_active", true)
       .maybeSingle();
@@ -49,7 +49,7 @@ export async function registrarEvento(payload: unknown): Promise<RegistrarEvento
     // Loja sem o recurso não gera evento nenhum. Recusa silenciosa de propósito:
     // é o caminho esperado da maioria das lojas, e um console.error aqui viraria
     // uma linha de log por visita de vitrine Free (APO-04).
-    if (!getPlanLimits(store.plan as Plan, store.trial_ends_at as string | null).hasAnalytics) {
+    if (!getPlanLimits(store.plan as Plan, store.plan_expires_at as string | null).hasAnalytics) {
       return { ok: false };
     }
 

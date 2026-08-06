@@ -4,13 +4,13 @@ import type { Plan } from "@/lib/plan-limits";
 
 function makeStore(overrides: {
   plan: Plan;
-  trialEndsAt?: string | null;
+  planExpiresAt?: string | null;
   customDomain?: string | null;
   customDomainVerified?: boolean;
 }) {
   return {
     slug: "ateliemira",
-    trialEndsAt: null,
+    planExpiresAt: null,
     customDomain: null,
     customDomainVerified: false,
     ...overrides,
@@ -56,11 +56,11 @@ describe("getCatalogUrl", () => {
     expect(url).toBe("https://vtrine.test/ateliemira");
   });
 
-  it("cai para o link de slug quando o acesso Pro expirou (trial_ends_at vencido)", () => {
+  it("cai para o link de slug quando o acesso Pro expirou (plan_expires_at vencido)", () => {
     const url = getCatalogUrl(
       makeStore({
         plan: "pro",
-        trialEndsAt: "2020-01-01T00:00:00.000Z",
+        planExpiresAt: "2020-01-01T00:00:00.000Z",
         customDomain: "minhaloja.com.br",
         customDomainVerified: true,
       })

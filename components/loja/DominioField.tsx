@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { VTRINE_WHATSAPP_NUMBER } from "@/lib/contact";
 
 interface DominioFieldProps {
   domain: string;
@@ -21,22 +21,13 @@ export function DominioField({
   unlocked,
   pending,
 }: DominioFieldProps) {
-  const upgradeHref = `https://wa.me/${VTRINE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
-    "Olá! Quero saber mais sobre domínio próprio."
-  )}`;
-
   if (!unlocked) {
     return (
       <p className="font-body text-[13px] text-graphite">
         Domínio próprio disponível no plano Pro.{" "}
-        <a
-          href={upgradeHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline"
-        >
-          Fale conosco
-        </a>
+        <Link href="/painel/assinatura" className="underline">
+          Fazer upgrade
+        </Link>
         .
       </p>
     );

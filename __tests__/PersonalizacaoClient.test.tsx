@@ -17,7 +17,7 @@ function makeSettings(): StoreSettings {
     name: "Ateliê Mira",
     slug: "ateliemira",
     plan: "free",
-    trialEndsAt: null,
+    planExpiresAt: null,
     whatsapp: "5511999990000",
     accentColor: "#C9A96E",
     logoUrl: null,
@@ -37,6 +37,17 @@ function makeSettings(): StoreSettings {
     gridDensity: "padrao",
     customDomain: null,
     customDomainVerified: false,
+    document: null,
+    address: null,
+    addressNumber: null,
+    addressProvince: null,
+    addressCity: null,
+    addressPostalCode: null,
+    asaasCustomerId: null,
+    asaasSubscriptionId: null,
+    billingCycle: null,
+    subscriptionStatus: null,
+    pendingPlan: null,
   };
 }
 

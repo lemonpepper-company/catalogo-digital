@@ -31,6 +31,20 @@ export const storeSettingsSchema = z.object({
   analyticsId: z.string().nullable(),
   pixelId: z.string().nullable(),
   messageTemplate: z.string().max(2000, "Mensagem muito longa").nullable(),
+  // Dígito verificador validado em updateStoreSettings via validarDocumento —
+  // aqui só passa a string bruta adiante. Opcional: fixtures/chamadas antigas
+  // de storeSettingsSchema não mandam essa chave.
+  document: z.string().nullable().optional(),
+  // CEP, número, rua, bairro e cidade são a entrada do lojista — o CEP só
+  // sugere rua/bairro/cidade no cliente (nem todo CEP tem esses três dados
+  // no ViaCEP), quem decide o que é salvo é o formulário. Opcionais pelo
+  // mesmo motivo do document: só viram obrigatórios juntos em
+  // updateStoreSettings, na hora de assinar.
+  postalCode: z.string().nullable().optional(),
+  addressNumber: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  addressProvince: z.string().nullable().optional(),
+  addressCity: z.string().nullable().optional(),
 });
 
 export const personalizacaoSchema = z.object({

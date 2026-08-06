@@ -3,11 +3,11 @@ import { getPlanLimits, type Plan } from "@/lib/plan-limits";
 export function getCatalogUrl(store: {
   slug: string;
   plan: Plan;
-  trialEndsAt: string | null;
+  planExpiresAt: string | null;
   customDomain: string | null;
   customDomainVerified: boolean;
 }): string {
-  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  const limits = getPlanLimits(store.plan, store.planExpiresAt);
 
   if (limits.customDomain && store.customDomainVerified && store.customDomain) {
     return `https://${store.customDomain}`;

@@ -122,6 +122,12 @@ export function ConfiguracoesClient({
           onInstagramChange={f.setInstagram}
           storeDescription={f.storeDescription}
           onStoreDescriptionChange={f.setStoreDescription}
+          document={settings.document}
+          postalCode={settings.addressPostalCode}
+          addressNumber={settings.addressNumber}
+          address={settings.address}
+          addressProvince={settings.addressProvince}
+          addressCity={settings.addressCity}
         >
           <div className="mb-[18px]">
             <Input

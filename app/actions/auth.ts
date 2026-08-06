@@ -7,6 +7,7 @@ import { DEFAULT_ACCENT_COLOR } from '@/lib/theme'
 import { uploadToBucket } from '@/lib/server/upload'
 import { getSafeRedirect } from '@/lib/auth/safe-redirect'
 import { storeSchema } from '@/lib/validation/auth'
+import { normalizarDocumento } from '@/lib/validation/documento'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -140,6 +141,7 @@ export async function createStore(
     instagram: (formData.get('instagram') as string)?.replace(/^@+/, '').trim() || null,
     paymentMethods: JSON.parse((formData.get('paymentMethods') as string) || '[]'),
     deliveryMethods: JSON.parse((formData.get('deliveryMethods') as string) || '[]'),
+    document: (formData.get('document') as string) || null,
   })
 
   if (!result.success) {
@@ -161,10 +163,10 @@ export async function createStore(
 
   // Toda loja nasce no plano Free, sem expiração. Starter/Pro são liberados
   // manualmente depois, direto na tabela stores do Supabase (ver AGENTS.md /
-  // docs/roadmap/Escopo.md §4.3). plan/trial_ends_at nem entram neste insert —
+  // docs/roadmap/Escopo.md §4.3). plan/plan_expires_at nem entram neste insert —
   // authenticated não tem mais grant de escrita nessas colunas (ver
   // supabase/migrations/20260728110000_*); os valores vêm do default do banco
-  // (plan default 'free', trial_ends_at já nasce null por ser nullable sem
+  // (plan default 'free', plan_expires_at já nasce null por ser nullable sem
   // valor informado).
 
   const { data: store, error } = await supabase
@@ -180,6 +182,7 @@ export async function createStore(
       accent_color: DEFAULT_ACCENT_COLOR, // Gold Dust; o lojista ajusta na aba Personalização
       payment_methods: result.data.paymentMethods,
       delivery_methods: result.data.deliveryMethods,
+      document: result.data.document ? normalizarDocumento(result.data.document) : null,
     })
     .select('id')
     .single()

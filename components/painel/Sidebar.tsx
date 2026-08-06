@@ -9,6 +9,7 @@ import {
   Layers,
   Palette,
   Settings,
+  CreditCard,
   ExternalLink,
   HelpCircle,
   LogOut,
@@ -122,6 +123,12 @@ export function Sidebar({ name, monogram, logoUrl, catalogUrl }: SidebarProps) {
           icon={<Settings size={19} />}
           label="Configurações"
           active={isActive("/painel/configuracoes")}
+        />
+        <NavItem
+          href="/painel/assinatura"
+          icon={<CreditCard size={19} />}
+          label="Assinatura"
+          active={isActive("/painel/assinatura")}
         />
       </nav>
 

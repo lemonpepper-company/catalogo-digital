@@ -2,25 +2,45 @@ import { describe, it, expect } from "vitest";
 import { getPlanLimits, getEffectivePlan } from "@/lib/plan-limits";
 
 describe("getEffectivePlan", () => {
-  it("mantém free como free", () => {
+  const futuro = new Date(Date.now() + 86_400_000).toISOString();
+  const passado = "2020-01-01T00:00:00.000Z";
+
+  it("free continua free, independente da data", () => {
+    expect(getEffectivePlan("free", passado)).toBe("free");
+    expect(getEffectivePlan("free", futuro)).toBe("free");
     expect(getEffectivePlan("free", null)).toBe("free");
   });
 
-  it("mantém starter/pro quando trial_ends_at é nulo (indeterminado)", () => {
+  it("mantém starter/pro quando plan_expires_at é nulo (indeterminado)", () => {
     expect(getEffectivePlan("starter", null)).toBe("starter");
     expect(getEffectivePlan("pro", null)).toBe("pro");
   });
 
-  it("mantém starter/pro quando trial_ends_at está no futuro", () => {
-    const future = new Date(Date.now() + 86400000).toISOString();
-    expect(getEffectivePlan("starter", future)).toBe("starter");
-    expect(getEffectivePlan("pro", future)).toBe("pro");
+  it("mantém starter/pro quando plan_expires_at está no futuro", () => {
+    expect(getEffectivePlan("starter", futuro)).toBe("starter");
+    expect(getEffectivePlan("pro", futuro)).toBe("pro");
   });
 
-  it("rebaixa starter/pro para free quando trial_ends_at já passou", () => {
-    const past = new Date(Date.now() - 86400000).toISOString();
-    expect(getEffectivePlan("starter", past)).toBe("free");
-    expect(getEffectivePlan("pro", past)).toBe("free");
+  it("rebaixa starter/pro para free quando plan_expires_at já passou", () => {
+    expect(getEffectivePlan("starter", passado)).toBe("free");
+    expect(getEffectivePlan("pro", passado)).toBe("free");
+  });
+});
+
+describe("getEffectivePlan — período de graça", () => {
+  /**
+   * A graça de 3 dias é implementada empurrando plan_expires_at (Spec 2B),
+   * nunca lendo subscription_status. Este teste existe para travar isso: se
+   * alguém tentar fazer o acesso depender do status, ele quebra.
+   */
+  it("cobrança falhada com data no futuro continua liberando o plano", () => {
+    const dentroDaGraca = new Date(Date.now() + 2 * 86_400_000).toISOString();
+    expect(getEffectivePlan("pro", dentroDaGraca)).toBe("pro");
+  });
+
+  it("graça vencida cai para free", () => {
+    const gracaVencida = new Date(Date.now() - 1000).toISOString();
+    expect(getEffectivePlan("pro", gracaVencida)).toBe("free");
   });
 });
 
@@ -70,7 +90,7 @@ describe("getPlanLimits", () => {
     });
   });
 
-  it("starter com trial_ends_at expirado cai para os limites do Free", () => {
+  it("starter com plan_expires_at expirado cai para os limites do Free", () => {
     const past = new Date(Date.now() - 86400000).toISOString();
     expect(getPlanLimits("starter", past)).toEqual({
       maxProducts: 8,
@@ -86,7 +106,7 @@ describe("getPlanLimits", () => {
     });
   });
 
-  it("pro com trial_ends_at expirado cai para os limites do Free", () => {
+  it("pro com plan_expires_at expirado cai para os limites do Free", () => {
     const past = new Date(Date.now() - 86400000).toISOString();
     expect(getPlanLimits("pro", past)).toEqual({
       maxProducts: 8,
@@ -116,17 +136,17 @@ describe("getPlanLimits — hasOrderHistory", () => {
     expect(getPlanLimits("pro", null).hasOrderHistory).toBe(true);
   });
 
-  it("starter com trial_ends_at vencido perde o acesso ao histórico", () => {
+  it("starter com plan_expires_at vencido perde o acesso ao histórico", () => {
     const past = new Date(Date.now() - 86400000).toISOString();
     expect(getPlanLimits("starter", past).hasOrderHistory).toBe(false);
   });
 
-  it("pro com trial_ends_at vencido perde o acesso ao histórico", () => {
+  it("pro com plan_expires_at vencido perde o acesso ao histórico", () => {
     const past = new Date(Date.now() - 86400000).toISOString();
     expect(getPlanLimits("pro", past).hasOrderHistory).toBe(false);
   });
 
-  it("starter com trial_ends_at no futuro mantém o acesso ao histórico", () => {
+  it("starter com plan_expires_at no futuro mantém o acesso ao histórico", () => {
     const future = new Date(Date.now() + 86400000).toISOString();
     expect(getPlanLimits("starter", future).hasOrderHistory).toBe(true);
   });
@@ -154,7 +174,7 @@ describe("getPlanLimits — feature flags de personalização", () => {
     expect(limits.gridDensity).toBe(true);
   });
 
-  it("starter/pro com trial_ends_at expirado perdem as flags (caem para Free)", () => {
+  it("starter/pro com plan_expires_at expirado perdem as flags (caem para Free)", () => {
     const past = new Date(Date.now() - 86400000).toISOString();
     const limits = getPlanLimits("pro", past);
     expect(limits.themeOptions).toBe(false);
@@ -172,7 +192,7 @@ describe("getPlanLimits — importação CSV", () => {
     expect(getPlanLimits("pro", null).csvImport).toBe(true);
   });
 
-  it("pro com trial_ends_at expirado perde a importação CSV (cai para Free)", () => {
+  it("pro com plan_expires_at expirado perde a importação CSV (cai para Free)", () => {
     const past = new Date(Date.now() - 86400000).toISOString();
     expect(getPlanLimits("pro", past).csvImport).toBe(false);
   });
@@ -191,12 +211,12 @@ describe("getPlanLimits — métricas da vitrine (APO-07)", () => {
     expect(getPlanLimits("pro", null).hasAnalytics).toBe(true);
   });
 
-  it("pro com trial_ends_at expirado perde as métricas da vitrine (cai para Free)", () => {
+  it("pro com plan_expires_at expirado perde as métricas da vitrine (cai para Free)", () => {
     const past = new Date(Date.now() - 86400000).toISOString();
     expect(getPlanLimits("pro", past).hasAnalytics).toBe(false);
   });
 
-  it("pro com trial_ends_at no futuro mantém as métricas da vitrine", () => {
+  it("pro com plan_expires_at no futuro mantém as métricas da vitrine", () => {
     const future = new Date(Date.now() + 86400000).toISOString();
     expect(getPlanLimits("pro", future).hasAnalytics).toBe(true);
   });
@@ -212,7 +232,7 @@ describe("getPlanLimits — domínio próprio", () => {
     expect(getPlanLimits("pro", null).customDomain).toBe(true);
   });
 
-  it("pro com trial_ends_at expirado perde o domínio próprio (cai para Free)", () => {
+  it("pro com plan_expires_at expirado perde o domínio próprio (cai para Free)", () => {
     const past = new Date(Date.now() - 86400000).toISOString();
     expect(getPlanLimits("pro", past).customDomain).toBe(false);
   });

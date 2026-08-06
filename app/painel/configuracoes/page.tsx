@@ -7,7 +7,7 @@ export default async function ConfiguracoesPage() {
   const store = await getCurrentStore();
   if (!store) redirect("/login");
 
-  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  const limits = getPlanLimits(store.plan, store.planExpiresAt);
 
   return <ConfiguracoesClient settings={store} limits={limits} />;
 }

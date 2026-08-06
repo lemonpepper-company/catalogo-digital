@@ -294,7 +294,7 @@ function baseStoreRow(overrides: Partial<PublicStoreRow> = {}): PublicStoreRow {
 
 describe("resolveCatalog — gating de tema/densidade/destaques por plano", () => {
   // effectivePlan chega separado do storeRow — resolvido antes, via RPC
-  // get_effective_plan (Task 1), nunca lido de plan/trial_ends_at cru.
+  // get_effective_plan (Task 1), nunca lido de plan/plan_expires_at cru.
   it("loja free: ignora fonte/fundo/cantos e densidade não-padrão mesmo se salvos no banco", () => {
     const store = baseStoreRow({
       font_pairing: "editorial",

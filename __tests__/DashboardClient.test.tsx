@@ -135,7 +135,7 @@ describe("DashboardClient — bloqueio no plano Free (ORD-29)", () => {
     renderDashboard(null);
 
     expect(screen.getByText("Disponível a partir do plano Starter")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Falar no WhatsApp →" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Fazer upgrade →" })).toBeTruthy();
     expect(screen.queryByText("Pedidos")).toBeNull();
     expect(screen.queryByText("Vendas confirmadas")).toBeNull();
     expect(screen.queryByText("Aguardando confirmação")).toBeNull();

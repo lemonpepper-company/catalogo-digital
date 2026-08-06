@@ -74,3 +74,47 @@ export function daysAgoStartInSaoPaulo(date: Date, daysAgo: number): Date {
   const { year, month, day } = zonedParts(date);
   return zonedInstant(year, month, day - daysAgo);
 }
+
+const dataPorExtensoFormatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: TIME_ZONE,
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+/**
+ * Formata uma data ISO por extenso, no padrão "12 de setembro de 2026".
+ *
+ * As datas que alimentam esta função (`plan_expires_at`) são sempre meia-noite
+ * UTC representando um DIA, não um instante preciso (ver `somarCiclo` /
+ * `somarDias` em `lib/asaas/events.ts`, que operam inteiramente em UTC). Por
+ * isso o dia é lido diretamente da parte de data do ISO e reconstruído ao
+ * meio-dia UTC antes de formatar — reaplicar o offset de São Paulo sobre uma
+ * meia-noite UTC empurraria a exibição para o dia anterior (SP é UTC-3, sem
+ * horário de verão desde 2019).
+ */
+export function formatarDataSP(iso: string): string {
+  const [datePart] = iso.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const meioDiaUTC = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  return dataPorExtensoFormatter.format(meioDiaUTC);
+}
+
+/**
+ * Dias entre hoje e uma data ISO (positivo = no futuro, negativo = já
+ * vencida). "Hoje" é o dia civil em São Paulo, não em UTC — comparar
+ * componentes UTC crus de `agora` classificaria as 21h-24h de SP (ainda
+ * "hoje" no fuso do lojista) como o dia seguinte, porque UTC já virou a
+ * data. Os dois lados passam por `dayStartInSaoPaulo`, que resolve isso; o
+ * meio-dia UTC como âncora do `dueDate` é o mesmo truque de `formatarDataSP`
+ * pra não deixar esse dia (um DIA, não um instante) cair do lado errado da
+ * meia-noite ao entrar no fuso de SP.
+ */
+export function diasAte(dueDateIso: string, agora: Date): number {
+  const [datePart] = dueDateIso.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const meioDiaUTC = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  const alvo = dayStartInSaoPaulo(meioDiaUTC).getTime();
+  const hoje = dayStartInSaoPaulo(agora).getTime();
+  return Math.round((alvo - hoje) / (24 * 60 * 60 * 1000));
+}

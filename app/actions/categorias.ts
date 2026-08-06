@@ -32,7 +32,7 @@ export async function createCategory(
     .select("id", { count: "exact", head: true })
     .eq("store_id", store.id);
 
-  const limits = getPlanLimits(store.plan, store.trialEndsAt);
+  const limits = getPlanLimits(store.plan, store.planExpiresAt);
   if ((count ?? 0) >= limits.maxCategories) {
     return {
       error: "Limite de categorias do seu plano atingido. Fale conosco para aumentar o limite.",

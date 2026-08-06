@@ -91,6 +91,7 @@ describe("Sidebar — item Pedidos (ORD-16)", () => {
       "Categorias",
       "Personalização",
       "Configurações",
+      "Assinatura",
     ]);
   });
 
