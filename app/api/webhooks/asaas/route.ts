@@ -111,11 +111,8 @@ export async function POST(request: Request) {
   }
 
   const storeId = storeIdFromEvent(evento);
+  const checkoutSession = checkoutSessionFromEvent(evento);
 
-  const supabaseLoja = supabase
-    .from("stores")
-    .select("id, billing_cycle, pending_plan, subscription_status, asaas_subscription_id");
-  const checkoutSession = storeId ? null : checkoutSessionFromEvent(evento);
   type LojaRow = {
     id: string;
     billing_cycle: string | null;
@@ -123,36 +120,51 @@ export async function POST(request: Request) {
     subscription_status: string | null;
     asaas_subscription_id: string | null;
   };
-  let loja: LojaRow | null = null;
-  // Só true quando a busca por checkoutSession não achou ninguém — sinal de
-  // corrida (CHECKOUT_PAID ainda não gravou o vínculo temporário), não de
-  // loja inexistente (ver uso abaixo).
-  let checkoutSessionOrfao = false;
-  if (storeId) {
-    ({ data: loja } = await supabaseLoja.eq("id", storeId).maybeSingle());
-  } else if (checkoutSession) {
-    ({ data: loja } = await supabaseLoja.eq("asaas_subscription_id", checkoutSession).maybeSingle());
-    if (!loja) checkoutSessionOrfao = true;
-  } else if (evento.payment?.subscription) {
-    // Renovação de assinatura criada via checkout hospedado: sem
-    // externalReference nem checkoutSession, casa pela assinatura real já
-    // vinculada no primeiro PAYMENT_CONFIRMED (ver bloco acima).
-    ({ data: loja } = await supabaseLoja
-      .eq("asaas_subscription_id", evento.payment.subscription)
-      .maybeSingle());
+
+  // Uma query nova por tentativa — postgrest-js .eq() muta e devolve o mesmo
+  // builder, então reaproveitar uma query entre tentativas acumula filtros
+  // (ex.: busca por customer herdaria o .eq() de asaas_subscription_id da
+  // tentativa anterior) e o fallback nunca casaria nenhuma linha.
+  async function buscarLoja(
+    coluna: "id" | "asaas_subscription_id" | "asaas_customer_id",
+    valor: string
+  ): Promise<LojaRow | null> {
+    const { data } = await supabase
+      .from("stores")
+      .select("id, billing_cycle, pending_plan, subscription_status, asaas_subscription_id")
+      .eq(coluna, valor)
+      .maybeSingle();
+    return data;
   }
 
-  // Fallback por asaas_customer_id: o customer é criado e gravado por nós
+  // Cadeia de tentativas, da mais forte pra mais fraca — cada uma só roda se
+  // a anterior não achou ninguém (ramos exclusivos aqui perderiam um evento
+  // que traz mais de um identificador ao mesmo tempo, ex.: checkoutSession E
+  // payment.subscription juntos).
+  //
+  // payment.subscription vem antes de checkoutSession: é o id real e
+  // definitivo da assinatura, enquanto checkoutSession é vínculo temporário
+  // que só existe até o primeiro pagamento resolver o id real (ver bloco de
+  // CHECKOUT_PAID acima). asaas_customer_id vem por último: é gravado por nós
   // ANTES do checkout (ver app/actions/assinatura.ts), então casar por ele
-  // não depende da ordem de entrega entre CHECKOUT_PAID e PAYMENT_* — ao
-  // contrário do checkoutSession, que só existe se o CHECKOUT_PAID já tiver
-  // gravado o vínculo temporário. Cobre tanto o checkoutSession órfão quanto
-  // um payment.subscription que não bateu com nada.
-  if (!loja && evento.payment?.customer) {
-    ({ data: loja } = await supabaseLoja
-      .eq("asaas_customer_id", evento.payment.customer)
-      .maybeSingle());
+  // não depende da ordem de entrega entre CHECKOUT_PAID e PAYMENT_* — cobre
+  // tanto o checkoutSession órfão quanto um payment.subscription que não
+  // bateu com nada.
+  let loja: LojaRow | null = storeId ? await buscarLoja("id", storeId) : null;
+  if (!loja && evento.payment?.subscription) {
+    loja = await buscarLoja("asaas_subscription_id", evento.payment.subscription);
   }
+  if (!loja && checkoutSession) {
+    loja = await buscarLoja("asaas_subscription_id", checkoutSession);
+  }
+  if (!loja && evento.payment?.customer) {
+    loja = await buscarLoja("asaas_customer_id", evento.payment.customer);
+  }
+
+  // Só true quando TODAS as estratégias acima falharam e havia um
+  // checkoutSession no payload — sinal de corrida (CHECKOUT_PAID ainda não
+  // gravou o vínculo temporário), não de loja inexistente (ver uso abaixo).
+  const checkoutSessionOrfao = !loja && !!checkoutSession;
 
   if (!loja) {
     console.warn(

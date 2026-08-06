@@ -10,7 +10,22 @@ const cancelarNoAsaas = vi.fn();
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
     from: () => ({
-      select: () => ({ eq: () => ({ maybeSingle: single }) }),
+      // Reproduz a mutabilidade real do postgrest-js: .eq() muta e devolve o
+      // MESMO builder, acumulando filtros. select() por sua vez cria um
+      // builder novo a cada chamada — se o código sob teste reaproveitar um
+      // único builder entre tentativas (o bug real), os filtros das
+      // tentativas anteriores vazam para a próxima.
+      select: () => {
+        const filtros: Array<[string, unknown]> = [];
+        const builder = {
+          eq: (coluna: string, valor: unknown) => {
+            filtros.push([coluna, valor]);
+            return builder;
+          },
+          maybeSingle: () => single(filtros.slice()),
+        };
+        return builder;
+      },
       update: (v: unknown) => {
         update(v);
         // .eq(...) é awaited direto na maioria dos updates, mas o vínculo de
@@ -58,15 +73,20 @@ beforeEach(() => {
   or.mockReset();
   selectAfterOr.mockReset().mockResolvedValue({ data: [{ id: "loja-1" }], error: null });
   cancelarNoAsaas.mockReset().mockResolvedValue(undefined);
-  single.mockReset().mockResolvedValue({
-    data: {
+  // Casa se TODOS os filtros acumulados no builder baterem com a loja padrão
+  // — simula o AND que o Postgres aplicaria. Testes que precisam de um
+  // resultado diferente sobrescrevem com mockResolvedValue(Once).
+  single.mockReset().mockImplementation((filtros: Array<[string, unknown]>) => {
+    const loja: Record<string, unknown> = {
       id: "loja-1",
       billing_cycle: "monthly",
       pending_plan: null,
       subscription_status: "active",
       asaas_subscription_id: "sub_1",
-    },
-    error: null,
+      asaas_customer_id: "cus_1",
+    };
+    const bate = filtros.every(([coluna, valor]) => loja[coluna] === valor);
+    return Promise.resolve({ data: bate ? loja : null, error: null });
   });
   vi.resetModules();
 });
@@ -281,7 +301,7 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
     );
   });
 
-  it("PAYMENT_CONFIRMED sem externalReference casa pelo checkoutSession, aplica pending_plan e grava os identificadores reais", async () => {
+  it("PAYMENT_CONFIRMED sem externalReference casa a loja, aplica pending_plan e grava os identificadores reais", async () => {
     single.mockResolvedValue({
       data: { id: "loja-1", billing_cycle: "monthly", pending_plan: "pro" },
       error: null,
@@ -315,12 +335,14 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
    * O checkoutSession (== checkout.id gravado pelo CHECKOUT_PAID) só existe
    * se o CHECKOUT_PAID já tiver sido processado. Se ele ainda não chegou —
    * ou, como no bug real, nunca gravou por causa da guarda antiga — o
-   * pagamento chega sem loja casada por checkoutSession. O asaas_customer_id
-   * é gravado por nós ANTES do checkout (ver app/actions/assinatura.ts), não
-   * depende dessa ordem, e serve de fallback.
+   * pagamento chega sem loja casada por payment.subscription nem por
+   * checkoutSession. O asaas_customer_id é gravado por nós ANTES do checkout
+   * (ver app/actions/assinatura.ts), não depende dessa ordem, e serve de
+   * fallback final.
    */
-  it("PAYMENT_CONFIRMED sem externalReference e sem checkoutSession casado, mas com customer que bate, acha a loja", async () => {
+  it("PAYMENT_CONFIRMED sem externalReference, subscription e checkoutSession não casados, mas com customer que bate, acha a loja", async () => {
     single
+      .mockResolvedValueOnce({ data: null, error: null }) // busca por payment.subscription: não acha
       .mockResolvedValueOnce({ data: null, error: null }) // busca por checkoutSession: não acha
       .mockResolvedValueOnce({
         data: { id: "loja-1", billing_cycle: "monthly", pending_plan: "pro" },
@@ -332,7 +354,7 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
         event: "PAYMENT_CONFIRMED",
         payment: {
           dueDate: "2026-09-01",
-          subscription: "sub_real_1",
+          subscription: "sub_nao_bate",
           externalReference: null,
           customer: "cus_real_1",
           checkoutSession: "chk_orfao",
@@ -345,9 +367,60 @@ describe("POST /api/webhooks/asaas — checkout hospedado (sem externalReference
         subscription_status: "active",
         plan: "pro",
         asaas_customer_id: "cus_real_1",
-        asaas_subscription_id: "sub_real_1",
+        asaas_subscription_id: "sub_nao_bate",
       })
     );
+  });
+
+  /**
+   * Bug real: ramos exclusivos (if/else if) faziam checkoutSession truthy
+   * impedir que payment.subscription — o id real e definitivo, presente no
+   * mesmo evento — fosse sequer tentado. O evento pagou (diferença de upgrade
+   * de plano), mas o plano nunca promoveu porque a rota marcava
+   * checkoutSession órfão e devolvia 409 pra sempre.
+   */
+  it("evento com checkoutSession e subscription juntos casa por payment.subscription — não vira órfão", async () => {
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_RECEIVED",
+        payment: {
+          dueDate: "2026-09-01",
+          subscription: "sub_1", // bate com a loja padrão do beforeEach
+          externalReference: null,
+          checkoutSession: "chk_nao_bate", // não bate — não pode bloquear a tentativa por subscription
+        },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ subscription_status: "active" }));
+  });
+
+  /**
+   * Bug real: `supabaseLoja` era criado uma vez e reaproveitado entre
+   * tentativas — .eq() do postgrest-js muta e devolve o MESMO builder, então
+   * a busca por customer herdava o filtro de asaas_subscription_id da
+   * tentativa anterior e nunca casava nenhuma linha (mock replica essa
+   * mutabilidade acima). Cada tentativa abaixo não bate isolada, exceto a
+   * última, por customer — só passa se o código montar uma query nova a cada
+   * tentativa.
+   */
+  it("busca que casaria isolada por customer não pode casar depois de subscription e checkoutSession terem rodado antes", async () => {
+    const { POST } = await import("@/app/api/webhooks/asaas/route");
+    const res = await POST(
+      req({
+        event: "PAYMENT_CONFIRMED",
+        payment: {
+          dueDate: "2026-09-01",
+          subscription: "sub_outra", // não bate
+          externalReference: null,
+          customer: "cus_1", // bate isolado — só se a busca usar uma query nova
+          checkoutSession: "chk_outra", // não bate
+        },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ subscription_status: "active" }));
   });
 
   it("renovação seguinte (sem externalReference nem checkoutSession) casa por payment.subscription", async () => {
