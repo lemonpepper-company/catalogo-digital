@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const registrarEvento = vi.fn(() => Promise.resolve({ ok: true }));
+const registrarEvento = vi.fn((_payload: unknown) => Promise.resolve({ ok: true }));
 
 vi.mock("@/app/actions/eventos", () => ({
   registrarEvento: (payload: unknown) => registrarEvento(payload),

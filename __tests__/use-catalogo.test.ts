@@ -16,7 +16,7 @@ vi.mock("@/app/actions/pedidos", () => ({
 // A telemetria é mockada aqui em vez de deixar o client real rodar: ele importa a
 // Server Action, que por sua vez importa o admin client `server-only`.
 const trackEvent = vi.fn();
-const shouldTrackVisit = vi.fn(() => true);
+const shouldTrackVisit = vi.fn((_slug: string) => true);
 
 vi.mock("@/lib/analytics-client", () => ({
   trackEvent: (...args: unknown[]) => trackEvent(...args),
