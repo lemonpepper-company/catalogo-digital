@@ -245,6 +245,12 @@ export function AssinaturaClient({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [pixUrl, setPixUrl] = useState<string | null>(null);
+  // Cancelar é imediato no servidor — a confirmação é só um passo a mais no
+  // client, pra não deixar o lojista clicar por engano e só perceber depois
+  // (o arrependimento vira chamado de suporte). Assinar/trocar não tem esse
+  // passo de propósito: ali o extra atrapalha mais do que protege, e o
+  // próprio checkout do Asaas já confirma.
+  const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false);
 
   const [documentIntencao, setDocumentIntencao] = useState<Intencao | null>(null);
   const [documentValue, setDocumentValue] = useState("");
@@ -428,6 +434,7 @@ export function AssinaturaClient({
       }
       setStatus("canceled");
       setPending(null);
+      setConfirmandoCancelamento(false);
       setToastMsg("Assinatura cancelada. O acesso continua até o fim do período pago.");
     } finally {
       setLoadingKey(null);
@@ -594,14 +601,46 @@ export function AssinaturaClient({
             type="button"
             variant="destructive"
             disabled={loadingKey === "cancelar"}
-            onClick={cancelar}
+            onClick={() => setConfirmandoCancelamento(true)}
           >
-            {loadingKey === "cancelar" ? "Cancelando…" : "Cancelar assinatura"}
+            Cancelar assinatura
           </Button>
         </div>
       )}
 
       {toastMsg && <Toast msg={toastMsg} tone="success" />}
+
+      {confirmandoCancelamento && (
+        <Modal title="Cancelar assinatura" onClose={() => setConfirmandoCancelamento(false)}>
+          <p className="font-body text-[13px] text-graphite">
+            {planExpiresAt
+              ? `Sua assinatura não é interrompida agora — o acesso continua normalmente até ${formatarDataSP(planExpiresAt)}, quando o período pago termina.`
+              : "Sua assinatura não é interrompida agora — o acesso continua normalmente até o fim do período já pago."}
+          </p>
+          {errorMsg && (
+            <p role="alert" className="font-body text-[13px] text-error">
+              {errorMsg}
+            </p>
+          )}
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setConfirmandoCancelamento(false)}
+            >
+              Voltar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={loadingKey === "cancelar"}
+              onClick={cancelar}
+            >
+              {loadingKey === "cancelar" ? "Cancelando…" : "Sim, cancelar assinatura"}
+            </Button>
+          </div>
+        </Modal>
+      )}
 
       {documentIntencao && (
         <Modal title="Confirme seu documento" onClose={() => setDocumentIntencao(null)}>

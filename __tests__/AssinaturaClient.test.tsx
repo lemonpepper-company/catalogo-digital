@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { AssinaturaClient } from "@/app/painel/assinatura/AssinaturaClient";
 
 vi.mock("@/app/actions/assinatura", () => ({
@@ -604,11 +604,96 @@ describe("AssinaturaClient — assinar de novo depois de cancelar (ainda com ace
 
     expect(screen.getAllByRole("button", { name: /troca já em andamento/i }).length).toBeGreaterThan(0);
 
+    fireEvent.click(screen.getByRole("button", { name: /^cancelar assinatura$/i }));
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /cancelar assinatura/i }));
+      fireEvent.click(screen.getByRole("button", { name: /sim, cancelar assinatura/i }));
     });
 
     expect(screen.queryByRole("button", { name: /troca já em andamento/i })).toBeNull();
+  });
+});
+
+/**
+ * Cancelamento é imediato no servidor, sem passo intermediário — a
+ * confirmação evita o clique por engano que só é percebido depois (e vira
+ * chamado de suporte). Assinar/trocar de propósito não ganha esse passo: o
+ * checkout do Asaas já é a confirmação.
+ */
+describe("AssinaturaClient — confirmação antes de cancelar", () => {
+  it("clicar em cancelar abre confirmação e não chama a action antes do 'confirmar'", async () => {
+    const { cancelarAssinatura } = await import("@/app/actions/assinatura");
+    vi.mocked(cancelarAssinatura).mockClear();
+
+    render(
+      <AssinaturaClient
+        {...BASE}
+        plan="pro"
+        subscriptionStatus="active"
+        planExpiresAt="2026-09-12T00:00:00.000Z"
+        billingCycle="monthly"
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /^cancelar assinatura$/i }));
+
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+    expect(cancelarAssinatura).not.toHaveBeenCalled();
+  });
+
+  it("confirmação de cancelamento mostra até quando o acesso vale", () => {
+    render(
+      <AssinaturaClient
+        {...BASE}
+        plan="pro"
+        subscriptionStatus="active"
+        planExpiresAt="2026-09-12T00:00:00.000Z"
+        billingCycle="monthly"
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /^cancelar assinatura$/i }));
+
+    const dialogo = within(screen.getByRole("dialog"));
+    expect(dialogo.getByText(/12 de setembro/i)).toBeTruthy();
+    expect(dialogo.getByText(/n(ã|a)o (é|e) interrompida agora/i)).toBeTruthy();
+  });
+
+  it("confirmar cancelamento chama a action e fecha a confirmação", async () => {
+    const { cancelarAssinatura } = await import("@/app/actions/assinatura");
+    vi.mocked(cancelarAssinatura).mockClear();
+    vi.mocked(cancelarAssinatura).mockResolvedValue({ ok: true });
+
+    render(
+      <AssinaturaClient
+        {...BASE}
+        plan="pro"
+        subscriptionStatus="active"
+        planExpiresAt="2026-09-12T00:00:00.000Z"
+        billingCycle="monthly"
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /^cancelar assinatura$/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /sim, cancelar assinatura/i }));
+    });
+
+    expect(cancelarAssinatura).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("assinar/trocar não abre confirmação", async () => {
+    const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+    vi.mocked(iniciarAssinatura).mockResolvedValue({ ok: true, redirectUrl: "https://x.com" });
+
+    render(<AssinaturaClient {...BASE} document="52998224725" />);
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /assinar starter mensal/i }));
+    });
+
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
 
