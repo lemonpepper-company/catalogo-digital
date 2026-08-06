@@ -19,7 +19,7 @@ import { buscarEndereco } from "@/app/actions/cep";
 import { validarCep } from "@/lib/validation/cep";
 import { PRECOS, type PaidPlan } from "@/lib/asaas/plans";
 import type { BillingCycle, SubscriptionStatus } from "@/lib/asaas/events";
-import type { Plan } from "@/lib/plan-limits";
+import { PLAN_RANK, type Plan } from "@/lib/plan-limits";
 import { formatarDataSP } from "@/lib/timezone-sp";
 
 type Status = SubscriptionStatus | null;
@@ -58,6 +58,127 @@ function precoLabel(plan: PaidPlan, cycle: BillingCycle): string {
   const preco = PRECOS[plan][cycle];
   if (cycle === "monthly") return formatBRL(preco);
   return `${formatBRL(preco / 12)}/mês, cobrado anualmente`;
+}
+
+/** Fora do corpo do componente: `Date.now()` aqui não é uma chamada impura de render. */
+function expiraNoFuturo(planExpiresAt: string | null): boolean {
+  return !!planExpiresAt && new Date(planExpiresAt).getTime() > Date.now();
+}
+
+interface BotaoPlano {
+  disabled: boolean;
+  variant: "ghost" | "primary";
+  label: string;
+  title?: string;
+}
+
+/**
+ * Decide o estado de cada botão de plano. Um bloqueio nunca é só `disabled`
+ * — sempre tem `title` explicando por quê, ou vira chamado de suporte.
+ * A ordem dos ifs é a ordem de prioridade dos motivos de bloqueio.
+ */
+function analisarBotaoPlano({
+  p,
+  cycle,
+  plan,
+  billingCycle,
+  status,
+  planExpiresAt,
+  pending,
+  meio,
+  carregando,
+}: {
+  p: PaidPlan;
+  cycle: BillingCycle;
+  plan: Plan;
+  billingCycle: BillingCycle | null;
+  status: Status;
+  planExpiresAt: string | null;
+  pending: PaidPlan | null;
+  meio: MeioPagamento | null;
+  carregando: boolean;
+}): BotaoPlano {
+  const ehAtual = plan === p && billingCycle === cycle && status === "active";
+  if (ehAtual) return { disabled: true, variant: "ghost", label: "Plano atual" };
+
+  // Cancelar mantém acesso até plan_expires_at — sem assinatura viva no
+  // Asaas, o caminho vira assinar de novo (iniciarAssinatura), não trocar.
+  const semAssinaturaViva = plan === "free" || status === "canceled";
+
+  // Ainda dentro do período pago de uma assinatura já cancelada: assinar o
+  // mesmo plano ou um menor cobraria duas vezes o mesmo intervalo. Só o
+  // upgrade fica liberado, porque ele não duplica valor, aumenta.
+  const emPeriodoPagoCancelado = status === "canceled" && expiraNoFuturo(planExpiresAt);
+  if (emPeriodoPagoCancelado && PLAN_RANK[p] <= PLAN_RANK[plan]) {
+    const data = formatarDataSP(planExpiresAt!);
+    if (p === plan) {
+      return {
+        disabled: true,
+        variant: "ghost",
+        label: "Aguarde a renovação",
+        title: `Você já tem ${PLAN_LABELS[p]} até ${data}. Poderá renovar a partir dessa data.`,
+      };
+    }
+    return {
+      disabled: true,
+      variant: "ghost",
+      label: "Aguarde o fim do período",
+      title: `Para mudar para um plano menor, aguarde o fim do período atual em ${data}.`,
+    };
+  }
+
+  // Decisão de produto: Pro não troca para Starter — quem quiser reduzir
+  // cancela e assina o menor depois.
+  if (plan === "pro" && p === "starter" && !semAssinaturaViva) {
+    return {
+      disabled: true,
+      variant: "ghost",
+      label: "Cancele para reduzir o plano",
+      title: "Para mudar para um plano menor, cancele a assinatura atual.",
+    };
+  }
+
+  // trocarPlano(destino, meio) não recebe ciclo — o servidor reusa
+  // store.billingCycle. Sem essa trava, Starter anual → Pro mensal pagaria a
+  // diferença calculada sobre preços anuais e terminaria em Pro anual, sem
+  // aviso nenhum. Vale para qualquer plano, não só o mesmo.
+  const cicloDiferente = !semAssinaturaViva && billingCycle !== null && billingCycle !== cycle;
+  if (cicloDiferente) {
+    return {
+      disabled: true,
+      variant: "ghost",
+      label: "Cancele para trocar o ciclo",
+      title: `Sua assinatura é ${CYCLE_LABELS[billingCycle as BillingCycle].toLowerCase()}. Para mudar para cobrança ${CYCLE_LABELS[cycle].toLowerCase()}, cancele e assine novamente ao fim do período.`,
+    };
+  }
+
+  // Já existe uma troca aguardando confirmação do webhook (pending_plan) —
+  // clicar de novo criaria uma segunda cobrança avulsa em cima da que já
+  // está pendente.
+  if (!!pending && p !== plan) {
+    return {
+      disabled: true,
+      variant: "ghost",
+      label: "Troca já em andamento",
+      title: "Já existe uma troca de plano aguardando confirmação do pagamento.",
+    };
+  }
+
+  const precoTxt = `Assinar ${PLAN_LABELS[p]} ${CYCLE_LABELS[cycle]} — ${precoLabel(p, cycle)}`;
+
+  // Botões de plano ficam desabilitados até um meio ser escolhido — o
+  // lojista precisa decidir explicitamente, sem cair num padrão que ele
+  // talvez nem perceba que havia.
+  if (!meio) {
+    return {
+      disabled: true,
+      variant: "primary",
+      label: precoTxt,
+      title: "Escolha um meio de pagamento primeiro.",
+    };
+  }
+
+  return { disabled: carregando, variant: "primary", label: carregando ? "Assinando…" : precoTxt };
 }
 
 interface Intencao {
@@ -133,6 +254,13 @@ export function AssinaturaClient({
   // trocarPlano atualizar — sem esse caso, o clique caía em trocarPlano
   // tentando mexer numa assinatura que não existe mais no Asaas e quebrava.
   const semAssinaturaViva = plan === "free" || status === "canceled";
+
+  // Starter cancelado ainda dentro do período pago: só o upgrade pro Pro
+  // fica liberado (não há plano acima de Pro). Ao confirmar, plan_expires_at
+  // é recalculado a partir da nova cobrança e o restante do Starter é
+  // absorvido — vale avisar aqui pra não parecer erro quando a data mudar.
+  const upgradeDisponivelAposCancelamento =
+    plan === "starter" && status === "canceled" && expiraNoFuturo(planExpiresAt);
 
   function tratarResultado(result: AssinaturaState, intencao: Intencao) {
     if (!result) return;
@@ -377,6 +505,12 @@ export function AssinaturaClient({
             Escolha um meio de pagamento acima para continuar.
           </p>
         )}
+        {upgradeDisponivelAposCancelamento && (
+          <p className="font-body text-[13px] text-graphite mb-3">
+            Você tem Starter até {formatarDataSP(planExpiresAt!)}. Ao assinar o Pro agora, a data de
+            renovação é recalculada e o restante do período atual é aproveitado.
+          </p>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
           {PLANOS.map((p) => (
             <div
@@ -388,53 +522,30 @@ export function AssinaturaClient({
               </span>
               {CICLOS.map((cycle) => {
                 const key = `${p}-${cycle}`;
-                const ehAtual = plan === p && billingCycle === cycle && status === "active";
-                // Mesmo plano, só o ciclo muda: trocarPlano(destino) reusa
-                // store.billingCycle e não tem como agir aqui — daria um
-                // "muda para X" sem nenhuma troca real. Bloqueia no client.
-                // Só se aplica com assinatura viva: já cancelada, o caminho
-                // vira assinar de novo (semAssinaturaViva), sem esse bloqueio.
-                const somenteCicloDiferente =
-                  !ehAtual && !semAssinaturaViva && plan === p && billingCycle !== cycle;
-                // Já existe uma troca aguardando confirmação do webhook
-                // (pending_plan) — clicar de novo criaria uma segunda
-                // cobrança avulsa em cima da que já está pendente. Bloqueia
-                // tudo que não seja o plano atual até essa troca resolver.
-                const trocaPendente = !ehAtual && !!pending;
-                const carregando = loadingKey === key;
-                const semMeioEscolhido =
-                  !meio && !ehAtual && !somenteCicloDiferente && !trocaPendente;
+                const botao = analisarBotaoPlano({
+                  p,
+                  cycle,
+                  plan,
+                  billingCycle,
+                  status,
+                  planExpiresAt,
+                  pending,
+                  meio,
+                  carregando: loadingKey === key,
+                });
                 return (
                   <Button
                     key={key}
                     type="button"
-                    variant={ehAtual || somenteCicloDiferente || trocaPendente ? "ghost" : "primary"}
+                    variant={botao.variant}
                     size="sm"
                     className="min-h-9 py-2 text-center leading-snug"
                     style={{ height: "auto", whiteSpace: "normal" }}
-                    disabled={
-                      ehAtual || somenteCicloDiferente || trocaPendente || carregando || semMeioEscolhido
-                    }
-                    title={
-                      somenteCicloDiferente
-                        ? "Cancele a assinatura atual para trocar o ciclo de cobrança."
-                        : trocaPendente
-                          ? "Já existe uma troca de plano aguardando confirmação do pagamento."
-                          : semMeioEscolhido
-                            ? "Escolha um meio de pagamento primeiro."
-                            : undefined
-                    }
+                    disabled={botao.disabled}
+                    title={botao.title}
                     onClick={() => assinar(p, cycle)}
                   >
-                    {ehAtual
-                      ? "Plano atual"
-                      : somenteCicloDiferente
-                        ? "Cancele para trocar o ciclo"
-                        : trocaPendente
-                          ? "Troca já em andamento"
-                          : carregando
-                            ? "Assinando…"
-                            : `Assinar ${PLAN_LABELS[p]} ${CYCLE_LABELS[cycle]} — ${precoLabel(p, cycle)}`}
+                    {botao.label}
                   </Button>
                 );
               })}

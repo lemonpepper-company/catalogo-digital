@@ -14,6 +14,7 @@ import {
   criarCobrancaAvulsa,
 } from "@/lib/asaas/subscriptions";
 import { proporcional, type PaidPlan } from "@/lib/asaas/plans";
+import { PLAN_RANK } from "@/lib/plan-limits";
 import type { BillingCycle } from "@/lib/asaas/events";
 import { validarDocumento, normalizarDocumento } from "@/lib/validation/documento";
 import { validarCep, normalizarCep } from "@/lib/validation/cep";
@@ -50,6 +51,26 @@ export async function iniciarAssinatura(
 ): Promise<AssinaturaState> {
   const store = await getCurrentStore();
   if (!store) return { error: "Loja não encontrada." };
+
+  // Cancelar mantém o acesso até plan_expires_at — assinar de novo no mesmo
+  // plano (ou num plano menor) nesse período cobraria duas vezes o mesmo
+  // intervalo. Bloquear tudo seria pior (impediria pagar mais), então só o
+  // upgrade fica liberado. Data no passado significa que o período já
+  // acabou, então qualquer plano segue liberado normalmente — é por isso que
+  // a checagem usa plan_expires_at, não só subscription_status.
+  if (
+    store.subscriptionStatus === "canceled" &&
+    store.planExpiresAt &&
+    new Date(store.planExpiresAt) > new Date() &&
+    PLAN_RANK[plan] <= PLAN_RANK[store.plan]
+  ) {
+    return {
+      error:
+        plan === store.plan
+          ? "Você já tem esse plano até o fim do período atual. Aguarde para renovar."
+          : "Para mudar para um plano menor, aguarde o fim do período atual.",
+    };
+  }
 
   const supabase = createAdminClient();
 
@@ -181,6 +202,14 @@ export async function trocarPlano(
   const store = await getCurrentStore();
   if (!store) return { error: "Loja não encontrada." };
   if (!store.asaasSubscriptionId) return { error: "Nenhuma assinatura ativa." };
+
+  // Decisão de produto: Pro não troca para Starter — quem quiser reduzir
+  // cancela e assina o menor depois. Server Action é endpoint público, o
+  // bloqueio no botão do client não é bloqueio — precisa rejeitar aqui antes
+  // de qualquer chamada ao Asaas.
+  if (store.plan === "pro" && destino === "starter") {
+    return { error: "Para mudar para um plano menor, cancele a assinatura atual." };
+  }
 
   const cycle = (store.billingCycle ?? "monthly") as BillingCycle;
   const supabase = createAdminClient();

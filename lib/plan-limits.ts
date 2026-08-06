@@ -1,5 +1,8 @@
 export type Plan = "free" | "starter" | "pro";
 
+/** Ordem de valor dos planos — usada para decidir upgrade vs downgrade/mesmo plano. */
+export const PLAN_RANK: Record<Plan, number> = { free: 0, starter: 1, pro: 2 };
+
 export interface PlanLimits {
   maxProducts: number;
   maxCategories: number;

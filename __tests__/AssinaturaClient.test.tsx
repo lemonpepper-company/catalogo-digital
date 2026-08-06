@@ -138,14 +138,16 @@ describe("AssinaturaClient", () => {
     render(
       <AssinaturaClient
         {...BASE}
-        plan="pro"
+        plan="starter"
         subscriptionStatus="active"
         planExpiresAt="2026-09-12T00:00:00.000Z"
         billingCycle="monthly"
       />
     );
 
-    const botaoCicloAnual = screen.getByRole("button", { name: /cancele para trocar o ciclo/i });
+    // Starter anual (mesmo plano) e Pro anual (fix do bug de ciclo em
+    // qualquer plano) compartilham o mesmo texto — o primeiro é o do Starter.
+    const botaoCicloAnual = screen.getAllByRole("button", { name: /cancele para trocar o ciclo/i })[0];
     // Mesmo plano/ciclo diferente fica bloqueado sempre — trocarPlano(destino)
     // reusa store.billingCycle e não tem como agir aqui, com ou sem meio
     // escolhido.
@@ -154,13 +156,211 @@ describe("AssinaturaClient", () => {
     fireEvent.click(botaoCicloAnual);
     expect(trocarPlano).not.toHaveBeenCalled();
 
-    // upgrade real (Starter) só habilita depois de escolher um meio — igual
+    // upgrade real (Pro) só habilita depois de escolher um meio — igual
     // à primeira assinatura.
-    const botaoUpgrade = screen.getByRole("button", { name: /assinar starter mensal/i });
+    const botaoUpgrade = screen.getByRole("button", { name: /assinar pro mensal/i });
     expect(botaoUpgrade).toBeDisabled();
 
     fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
     expect(botaoUpgrade).not.toBeDisabled();
+  });
+});
+
+/**
+ * trocarPlano(destino, meio) não recebe ciclo — lê store.billingCycle no
+ * servidor. A trava antiga só cobria o mesmo plano (`plan === p`), então
+ * Starter anual → Pro mensal passava, pagava a diferença calculada sobre
+ * preços anuais e terminava em Pro anual sem aviso. A trava agora cobre
+ * qualquer plano.
+ */
+describe("AssinaturaClient — troca de ciclo bloqueada para qualquer plano", () => {
+  it("Starter anual ativo → Pro mensal desabilitado; Pro anual habilitado", () => {
+    render(
+      <AssinaturaClient
+        {...BASE}
+        plan="starter"
+        subscriptionStatus="active"
+        planExpiresAt="2026-09-12T00:00:00.000Z"
+        billingCycle="annual"
+      />
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+
+    // Bloqueado: não tem mais o texto "Assinar", vira o aviso de ciclo.
+    expect(screen.queryByRole("button", { name: /assinar pro mensal/i })).toBeNull();
+    const botaoProMensal = screen.getAllByRole("button", { name: /cancele para trocar o ciclo/i })[1];
+    expect(botaoProMensal).toBeDisabled();
+    expect(botaoProMensal.getAttribute("title")).toMatch(/anual/i);
+
+    const botaoProAnual = screen.getByRole("button", { name: /assinar pro anual/i });
+    expect(botaoProAnual).not.toBeDisabled();
+  });
+});
+
+/**
+ * Decisão de produto: Pro não troca para Starter — quem quiser reduzir
+ * cancela e assina o menor depois.
+ */
+describe("AssinaturaClient — downgrade de plano bloqueado", () => {
+  it("Pro ativo → botão do Starter desabilitado, com tooltip explicando", () => {
+    render(
+      <AssinaturaClient
+        {...BASE}
+        plan="pro"
+        subscriptionStatus="active"
+        planExpiresAt="2026-09-12T00:00:00.000Z"
+        billingCycle="monthly"
+      />
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+
+    expect(screen.queryByRole("button", { name: /assinar starter mensal/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /assinar starter anual/i })).toBeNull();
+
+    const botoesStarter = screen.getAllByRole("button", { name: /cancele para reduzir o plano/i });
+    expect(botoesStarter).toHaveLength(2); // Starter mensal e anual
+    for (const botao of botoesStarter) {
+      expect(botao).toBeDisabled();
+      expect(botao.getAttribute("title")).toMatch(/menor/i);
+    }
+  });
+});
+
+/**
+ * Cancelar mantém o acesso até plan_expires_at — assinar de novo no mesmo
+ * período pagaria duas vezes o mesmo intervalo. Mas bloquear tudo impediria
+ * o lojista de pagar mais (upgrade), então só o upgrade fica liberado.
+ */
+describe("AssinaturaClient — assinatura cancelada, mas ainda no período pago", () => {
+  it("Starter cancelado com prazo no futuro → botão do Pro habilitado", () => {
+    render(
+      <AssinaturaClient
+        {...BASE}
+        plan="starter"
+        subscriptionStatus="canceled"
+        planExpiresAt="2099-09-12T00:00:00.000Z"
+        billingCycle="monthly"
+      />
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+
+    expect(screen.getByRole("button", { name: /assinar pro mensal/i })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /assinar pro anual/i })).not.toBeDisabled();
+  });
+
+  it("Starter cancelado com prazo no futuro → botão do Starter desabilitado", () => {
+    render(
+      <AssinaturaClient
+        {...BASE}
+        plan="starter"
+        subscriptionStatus="canceled"
+        planExpiresAt="2099-09-12T00:00:00.000Z"
+        billingCycle="monthly"
+      />
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+
+    const botoesStarter = screen.getAllByRole("button", { name: /aguarde a renova(ç|c)(ã|a)o/i });
+    expect(botoesStarter).toHaveLength(2); // Starter mensal e anual
+    for (const botao of botoesStarter) {
+      expect(botao).toBeDisabled();
+      expect(botao.getAttribute("title")).toMatch(/já tem starter/i);
+    }
+  });
+
+  it("Pro cancelado com prazo no futuro → todos desabilitados", () => {
+    render(
+      <AssinaturaClient
+        {...BASE}
+        plan="pro"
+        subscriptionStatus="canceled"
+        planExpiresAt="2099-09-12T00:00:00.000Z"
+        billingCycle="monthly"
+      />
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+
+    // Nenhum botão de plano oferece "Assinar ..." — os quatro (Starter e
+    // Pro, mensal e anual) estão bloqueados pelo período pago em curso.
+    for (const nome of [
+      /assinar starter mensal/i,
+      /assinar starter anual/i,
+      /assinar pro mensal/i,
+      /assinar pro anual/i,
+    ]) {
+      expect(screen.queryByRole("button", { name: nome })).toBeNull();
+    }
+
+    const todosOsBotoesDePlano = [
+      ...screen.getAllByRole("button", { name: /aguarde a renova(ç|c)(ã|a)o/i }),
+      ...screen.getAllByRole("button", { name: /aguarde o fim do per(í|i)odo/i }),
+    ];
+    expect(todosOsBotoesDePlano).toHaveLength(4);
+    for (const botao of todosOsBotoesDePlano) {
+      expect(botao).toBeDisabled();
+    }
+  });
+
+  it("qualquer plano com prazo no passado → todos habilitados", () => {
+    render(
+      <AssinaturaClient
+        {...BASE}
+        plan="pro"
+        subscriptionStatus="canceled"
+        planExpiresAt="2020-01-01T00:00:00.000Z"
+        billingCycle="monthly"
+      />
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+
+    for (const nome of [
+      /assinar starter mensal/i,
+      /assinar starter anual/i,
+      /assinar pro mensal/i,
+      /assinar pro anual/i,
+    ]) {
+      expect(screen.getByRole("button", { name: nome })).not.toBeDisabled();
+    }
+  });
+});
+
+describe("AssinaturaClient — cada bloqueio tem tooltip explicativo", () => {
+  it("botão bloqueado por troca de ciclo tem título explicando o motivo", () => {
+    render(
+      <AssinaturaClient
+        {...BASE}
+        plan="starter"
+        subscriptionStatus="active"
+        planExpiresAt="2026-09-12T00:00:00.000Z"
+        billingCycle="annual"
+      />
+    );
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+    const botao = screen.getAllByRole("button", { name: /cancele para trocar o ciclo/i })[0];
+    expect(botao.getAttribute("title")).toBeTruthy();
+    expect(botao.getAttribute("title")).not.toBe("");
+  });
+
+  it("botão bloqueado por troca pendente tem título explicando o motivo", () => {
+    render(
+      <AssinaturaClient
+        {...BASE}
+        plan="starter"
+        pendingPlan="pro"
+        subscriptionStatus="active"
+        planExpiresAt="2026-09-06T00:00:00.000Z"
+        billingCycle="monthly"
+      />
+    );
+    fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
+    const botao = screen.getAllByRole("button", { name: /troca já em andamento/i })[0];
+    expect(botao.getAttribute("title")).toBeTruthy();
   });
 });
 
@@ -225,9 +425,15 @@ describe("AssinaturaClient — meio de pagamento no upgrade", () => {
 
     fireEvent.click(screen.getByRole("radio", { name: /cart(ã|a)o/i }));
 
-    const botoesPro = screen.getAllByRole("button", { name: /troca já em andamento/i });
-    expect(botoesPro).toHaveLength(2); // Pro mensal e Pro anual
-    for (const botao of botoesPro) {
+    // Pro mensal (mesmo ciclo da assinatura ativa): bloqueado pela troca
+    // pendente. Pro anual: o ciclo diferente já bloqueia por conta própria —
+    // motivo mais específico, tem prioridade sobre a troca pendente.
+    const botaoProMensal = screen.getByRole("button", { name: /troca já em andamento/i });
+    // Starter mensal e Pro anual compartilham o mesmo texto — o segundo é o
+    // do card Pro (renderizado depois do card Starter).
+    const botoesCicloDiferente = screen.getAllByRole("button", { name: /cancele para trocar o ciclo/i });
+    const botaoProAnual = botoesCicloDiferente[botoesCicloDiferente.length - 1];
+    for (const botao of [botaoProMensal, botaoProAnual]) {
       expect(botao).toBeDisabled();
       fireEvent.click(botao);
     }

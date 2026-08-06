@@ -220,6 +220,54 @@ describe("iniciarAssinatura", () => {
     await iniciarAssinatura("starter", "annual", "PIX");
     expect(update).toHaveBeenCalledWith(expect.objectContaining({ pending_plan: "starter" }));
   });
+
+  /**
+   * Cancelar mantém o acesso até plan_expires_at — assinar de novo no mesmo
+   * plano (ou num plano menor) nesse período cobraria duas vezes o mesmo
+   * intervalo. Só o upgrade fica liberado, porque ele não duplica valor.
+   */
+  describe("com assinatura cancelada ainda dentro do período pago", () => {
+    const LOJA_STARTER_CANCELADA = {
+      ...LOJA_FREE,
+      plan: "starter",
+      subscriptionStatus: "canceled",
+      planExpiresAt: "2099-09-01T00:00:00.000Z",
+    };
+
+    it("Pro segue normalmente — é upgrade", async () => {
+      getCurrentStore.mockResolvedValue(LOJA_STARTER_CANCELADA);
+      const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+
+      const r = await iniciarAssinatura("pro", "monthly", "PIX");
+
+      expect(r).not.toEqual(expect.objectContaining({ error: expect.any(String) }));
+      expect(criarAssinaturaPix).toHaveBeenCalled();
+    });
+
+    it("Starter (mesmo plano) é rejeitado sem chamar o Asaas", async () => {
+      getCurrentStore.mockResolvedValue(LOJA_STARTER_CANCELADA);
+      const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+
+      const r = await iniciarAssinatura("starter", "monthly", "PIX");
+
+      expect(r).toEqual(expect.objectContaining({ error: expect.any(String) }));
+      expect(criarAssinaturaPix).not.toHaveBeenCalled();
+      expect(criarCliente).not.toHaveBeenCalled();
+    });
+
+    it("com prazo no passado, segue normalmente — o período pago já acabou", async () => {
+      getCurrentStore.mockResolvedValue({
+        ...LOJA_STARTER_CANCELADA,
+        planExpiresAt: "2020-01-01T00:00:00.000Z",
+      });
+      const { iniciarAssinatura } = await import("@/app/actions/assinatura");
+
+      const r = await iniciarAssinatura("starter", "monthly", "PIX");
+
+      expect(r).not.toEqual(expect.objectContaining({ error: expect.any(String) }));
+      expect(criarAssinaturaPix).toHaveBeenCalled();
+    });
+  });
 });
 
 describe("trocarPlano", () => {
@@ -306,15 +354,21 @@ describe("trocarPlano", () => {
     expect(update).toHaveBeenCalledWith(expect.objectContaining({ pending_plan: "pro" }));
   });
 
-  it("downgrade grava pending_plan e não cobra nada, sem redirectUrl", async () => {
+  /**
+   * Decisão de produto: Pro não troca para Starter — quem quiser reduzir
+   * cancela e assina o menor depois. Server Action é endpoint público, então
+   * o bloqueio precisa existir aqui, não só no botão desabilitado do client.
+   */
+  it("Pro → Starter é rejeitado antes de qualquer chamada ao Asaas", async () => {
     getCurrentStore.mockResolvedValue({ ...LOJA_STARTER, plan: "pro" });
     const { trocarPlano } = await import("@/app/actions/assinatura");
 
     const r = await trocarPlano("starter", "CREDIT_CARD");
 
+    expect(r).toEqual({ error: "Para mudar para um plano menor, cancele a assinatura atual." });
+    expect(atualizarAssinatura).not.toHaveBeenCalled();
     expect(criarCobrancaAvulsa).not.toHaveBeenCalled();
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({ pending_plan: "starter" }));
-    expect(r).toEqual({ ok: true, redirectUrl: undefined });
+    expect(update).not.toHaveBeenCalled();
   });
 });
 

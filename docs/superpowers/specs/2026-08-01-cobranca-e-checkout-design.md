@@ -16,7 +16,7 @@ A [Spec 2A](2026-08-01-modelagem-assinatura-design.md) já deixou o estado model
 Fechadas em conversa anterior, registradas aqui para não serem rediscutidas:
 
 - Starter R$ 29,90/mês ou R$ 299/ano; Pro R$ 59,90/mês ou R$ 599/ano.
-- Upgrade cobra proporcional; downgrade só na virada do ciclo.
+- Upgrade cobra proporcional. **Downgrade direto (Pro → Starter) não é suportado** — ver nota abaixo, atualizada depois desta spec.
 - Cancelamento mantém acesso até o fim do período pago.
 - Falha de pagamento dá 3 dias de graça antes de cair para Free.
 - Sem trial dos planos pagos — o Free permanente é a porta de entrada.
@@ -137,6 +137,12 @@ A alternativa considerada e descartada foi o webhook deduzir o plano pelo `value
 
 A coluna segue as mesmas regras das da Spec 2A: `grant update` só para `service_role`, nada para `authenticated` ou `anon`, e a mesma verificação no guard de privilégios do CI.
 
+**Atualização (2026-08-06): downgrade direto e troca de ciclo direto não são suportados.** O parágrafo acima descreve o mecanismo (`pending_plan`) que continua valendo para upgrade e para a primeira assinatura — é como o webhook sabe para qual plano promover quando o pagamento confirma. O que não existe mais é um caminho de UI que grave `pending_plan` para *reduzir* o plano ou trocar só o ciclo de cobrança.
+
+A causa é técnica, não de produto: `trocarPlano(destino, meio)`, a Server Action que faz a troca, **não recebe o ciclo escolhido no clique** — ela lê `store.billingCycle` do banco. Um downgrade Pro → Starter ou uma troca de ciclo (Starter anual → Starter mensal, ou qualquer combinação entre planos com ciclo diferente do atual) sempre confirmaria no ciclo antigo, não no que o lojista escolheu. Corrigir isso exigiria passar o ciclo atual pela Server Action e reconciliar com o `billingCycle` gravado — não foi feito porque o produto decidiu que **não vale o custo**: quem quer reduzir o plano ou trocar o ciclo cancela e assina de novo no fim do período. `app/actions/assinatura.ts` (`trocarPlano`, `iniciarAssinatura`) e `app/painel/assinatura/AssinaturaClient.tsx` bloqueiam os dois casos, no servidor e no botão — não "corrija" removendo o bloqueio sem resolver a leitura do ciclo primeiro.
+
+A alternativa considerada e adiada foi agendar a nova assinatura com `nextDueDate = plan_expires_at` no Asaas, o que eliminaria a sobreposição de cobrança sem bloquear ninguém (permitiria downgrade e troca de ciclo direto). Verificado em sandbox que a API do Asaas **aceita** `nextDueDate` futuro num checkout recorrente; falta confirmar se o checkout hospedado cobra na conclusão do checkout ou só na data agendada — essa dúvida não resolvida é o que adia a mudança, não uma limitação conhecida do Asaas.
+
 ## Webhook
 
 **Autenticação** no padrão de [app/api/admin/revalidate/route.ts](../../../app/api/admin/revalidate/route.ts): token comparado com `timingSafeEqual`, nunca `===`. O header é **`asaas-access-token`**, e o valor é o token configurado ao registrar o webhook no Asaas.
@@ -177,7 +183,8 @@ paga em atraso   → status active,    expires = venc + ciclo
 graça vence      → status past_due,  expires no passado       ← cai para free sozinho
 cancela          → status canceled,  expires intacto          ← usa até o fim
 upgrade          → só após webhook confirmar a cobrança proporcional
-downgrade        → pending_plan gravado; vira plan no próximo PAYMENT_CONFIRMED
+downgrade direto → não suportado (bloqueado no client e no server) — cancele e assine o menor depois
+troca de ciclo   → não suportada (bloqueada no client e no server) — cancele e assine de novo
 ```
 
 **Nenhuma transição depende de job agendado.** "Graça vence" e "cancelamento chega ao fim" não são eventos — são a data passando, e a leitura já trata isso.
